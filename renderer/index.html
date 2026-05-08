@@ -2303,6 +2303,256 @@ Q('setupGuardarBtn').onclick = async function(){
   }
 };
 
+
+
+// ══ PROVEEDORES ══════════════════════════════════════════════════════════
+async function loadProveedores(){
+  var rows = await window.api.getProveedores(Q('provSearch').value);
+  var tb = Q('provTbody');
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--text2)">Sin proveedores</td></tr>'; return; }
+  tb.innerHTML = rows.map(function(p){
+    return '<tr>'
+      +'<td><strong>'+p.nombre+'</strong></td>'
+      +'<td>'+(p.nit||'-')+'</td>'
+      +'<td>'+(p.telefono||'-')+'</td>'
+      +'<td>'+(p.contacto||'-')+'</td>'
+      +'<td>'+(p.email||'-')+'</td>'
+      +'<td style="display:flex;gap:5px">'
+      +'<button class="btn btn-ghost btn-sm" onclick="editProv('+p.id+')">Editar</button>'
+      +'<button class="btn btn-danger btn-sm" onclick="delProv('+p.id+')">Eliminar</button>'
+      +'</td></tr>';
+  }).join('');
+}
+Q('provBuscar').onclick = function(){ loadProveedores(); };
+Q('provSearch').addEventListener('keydown', function(e){ if(e.key==='Enter') loadProveedores(); });
+Q('newProvBtn').onclick = function(){
+  Q('mProvTit').textContent='Nuevo Proveedor';
+  ['provId','provNom','provNit','provTel','provContacto','provEmail','provDir','provNotas'].forEach(function(id){ Q(id).value=''; });
+  openM('mProv');
+};
+async function editProv(id){
+  var rows = await window.api.getProveedores('');
+  var p = rows.find(function(x){ return x.id===id; });
+  if(!p) return;
+  Q('mProvTit').textContent='Editar Proveedor';
+  Q('provId').value=p.id; Q('provNom').value=p.nombre; Q('provNit').value=p.nit||'';
+  Q('provTel').value=p.telefono||''; Q('provContacto').value=p.contacto||'';
+  Q('provEmail').value=p.email||''; Q('provDir').value=p.direccion||''; Q('provNotas').value=p.notas||'';
+  openM('mProv');
+}
+Q('saveProvBtn').onclick = async function(){
+  var p={id:Q('provId').value||null,nombre:Q('provNom').value.trim(),nit:Q('provNit').value,
+    telefono:Q('provTel').value,contacto:Q('provContacto').value,
+    email:Q('provEmail').value,direccion:Q('provDir').value,notas:Q('provNotas').value};
+  if(!p.nombre){ toast('Nombre requerido','warning'); return; }
+  var r=await window.api.saveProveedor(p);
+  if(r.ok){ toast('Proveedor guardado'); closeM('mProv'); loadProveedores(); }
+  else toast(r.msg||'Error','error');
+};
+async function delProv(id){
+  if(!confirm('Eliminar proveedor?')) return;
+  await window.api.deleteProveedor(id); toast('Eliminado'); loadProveedores();
+}
+
+// ══ COMPRAS ══════════════════════════════════════════════════════════════
+var compraItemsList = [];
+async function loadCompras(){
+  var provs = await window.api.getProveedores('');
+  var sel = Q('compraProvId');
+  sel.innerHTML = '<option value="">Selecciona proveedor...</option>'
+    + provs.map(function(p){ return '<option value="'+p.id+'" data-nom="'+p.nombre+'">'+p.nombre+'</option>'; }).join('');
+  var prods = await window.api.getProductos({});
+  var selP = Q('compraProdId');
+  selP.innerHTML = '<option value="">Selecciona producto...</option>'
+    + prods.map(function(p){ return '<option value="'+p.id+'" data-nom="'+p.nombre+'" data-precio="'+p.costo+'">'+p.nombre+' (Stock: '+p.stock+')</option>'; }).join('');
+  selP.onchange = function(){
+    var opt = selP.options[selP.selectedIndex];
+    if(opt && opt.dataset.precio) Q('compraPrecio').value = opt.dataset.precio;
+  };
+  var rows = await window.api.getCompras();
+  var tb = Q('compraTbody');
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">Sin compras</td></tr>'; return; }
+  tb.innerHTML = rows.map(function(c){
+    var estadoColor = c.estado==='pagada'?'badge-green':c.estado==='pendiente'?'badge-orange':'badge-blue';
+    return '<tr>'
+      +'<td><strong>'+c.numero+'</strong></td>'
+      +'<td style="font-size:12px">'+new Date(c.fecha).toLocaleString('es-GT')+'</td>'
+      +'<td>'+c.proveedor_nombre+'</td>'
+      +'<td><strong>'+fmt(c.total)+'</strong></td>'
+      +'<td><span class="badge '+estadoColor+'">'+c.estado+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+function addCompraItem(){
+  var sel = Q('compraProdId');
+  var opt = sel.options[sel.selectedIndex];
+  var cant = parseFloat(Q('compraCant').value)||0;
+  var precio = parseFloat(Q('compraPrecio').value)||0;
+  if(!opt||!opt.value){ toast('Selecciona un producto','warning'); return; }
+  if(!cant||!precio){ toast('Ingresa cantidad y precio','warning'); return; }
+  var existing = compraItemsList.find(function(x){ return x.producto_id===parseInt(opt.value); });
+  if(existing){ existing.cantidad+=cant; existing.subtotal=existing.cantidad*existing.precio_unitario; }
+  else compraItemsList.push({producto_id:parseInt(opt.value),nombre:opt.dataset.nom,cantidad:cant,precio_unitario:precio,subtotal:cant*precio});
+  renderCompraItems();
+  Q('compraCant').value=''; Q('compraPrecio').value='';
+}
+function renderCompraItems(){
+  var total = compraItemsList.reduce(function(s,x){ return s+x.subtotal; },0);
+  Q('compraTotalLabel').textContent = fmt(total);
+  if(!compraItemsList.length){ Q('compraItems').innerHTML=''; return; }
+  Q('compraItems').innerHTML = compraItemsList.map(function(item,i){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--gray2);border-radius:7px;margin-bottom:5px;font-size:12px">'
+      +'<div style="flex:1"><strong>'+item.nombre+'</strong><br>'+item.cantidad+' x '+fmt(item.precio_unitario)+'</div>'
+      +'<div style="font-weight:700">'+fmt(item.subtotal)+'</div>'
+      +'<button class="cart-rm" onclick="removeCompraItem('+i+')">x</button>'
+      +'</div>';
+  }).join('');
+}
+function removeCompraItem(i){ compraItemsList.splice(i,1); renderCompraItems(); }
+Q('guardarCompraBtn').onclick = async function(){
+  var provSel = Q('compraProvId');
+  var provOpt = provSel.options[provSel.selectedIndex];
+  if(!provOpt||!provOpt.value){ toast('Selecciona un proveedor','warning'); return; }
+  if(!compraItemsList.length){ toast('Agrega al menos un producto','warning'); return; }
+  var total = compraItemsList.reduce(function(s,x){ return s+x.subtotal; },0);
+  var r = await window.api.nuevaCompra({
+    proveedor_id:parseInt(provOpt.value),
+    proveedor_nombre:provOpt.dataset.nom,
+    subtotal:total,total:total,
+    estado:Q('compraEstado').value,
+    fecha_vencimiento:Q('compraVence').value||null,
+    notas:Q('compraNotas').value,
+    items:compraItemsList
+  });
+  if(r.ok){
+    toast('Compra '+r.numero+' registrada');
+    compraItemsList=[];
+    renderCompraItems();
+    Q('compraNotas').value='';
+    loadCompras();
+  } else toast(r.msg||'Error','error');
+};
+
+// ══ DESCUENTOS ════════════════════════════════════════════════════════════════
+async function loadDescuentos(){
+  var rows = await window.api.getDescuentos();
+  var tb = Q('descTbody');
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:22px;color:var(--text2)">Sin codigos de descuento</td></tr>'; return; }
+  tb.innerHTML = rows.map(function(d){
+    var vigente = (!d.fecha_fin || new Date(d.fecha_fin) >= new Date()) && d.activo;
+    return '<tr>'
+      +'<td><strong style="color:var(--blue)">'+d.codigo+'</strong></td>'
+      +'<td>'+(d.descripcion||'-')+'</td>'
+      +'<td>'+(d.tipo==='porcentaje'?'%':'Q fijo')+'</td>'
+      +'<td><strong>'+(d.tipo==='porcentaje'?d.valor+'%':'Q'+d.valor)+'</strong></td>'
+      +'<td>'+(d.minimo_compra>0?fmt(d.minimo_compra):'-')+'</td>'
+      +'<td>'+(d.usos_maximos>0?d.usos_actuales+'/'+d.usos_maximos:d.usos_actuales+'/inf')+'</td>'
+      +'<td style="font-size:11px">'+(d.fecha_fin?d.fecha_fin:'Sin limite')+'</td>'
+      +'<td><span class="badge '+(vigente?'badge-green':'badge-red')+'">'+(vigente?'Activo':'Inactivo')+'</span></td>'
+      +'<td style="display:flex;gap:5px">'
+      +'<button class="btn btn-ghost btn-sm" onclick="editDesc('+d.id+')">Editar</button>'
+      +'<button class="btn btn-danger btn-sm" onclick="delDesc('+d.id+')">Eliminar</button>'
+      +'</td></tr>';
+  }).join('');
+}
+Q('newDescBtn').onclick = function(){
+  Q('mDescTit').textContent='Nuevo Codigo de Descuento';
+  ['descId','descCodigo','descDescripcion','descValor','descMinimo','descUsos','descDesde','descHasta'].forEach(function(id){ Q(id).value=''; });
+  Q('descTipo').value='porcentaje';
+  openM('mDesc');
+};
+async function editDesc(id){
+  var rows = await window.api.getDescuentos();
+  var d = rows.find(function(x){ return x.id===id; });
+  if(!d) return;
+  Q('mDescTit').textContent='Editar Codigo';
+  Q('descId').value=d.id; Q('descCodigo').value=d.codigo; Q('descDescripcion').value=d.descripcion||'';
+  Q('descTipo').value=d.tipo; Q('descValor').value=d.valor; Q('descMinimo').value=d.minimo_compra||0;
+  Q('descUsos').value=d.usos_maximos||0; Q('descDesde').value=d.fecha_inicio||''; Q('descHasta').value=d.fecha_fin||'';
+  openM('mDesc');
+}
+Q('saveDescBtn').onclick = async function(){
+  var d={id:Q('descId').value||null,codigo:Q('descCodigo').value.trim().toUpperCase(),
+    descripcion:Q('descDescripcion').value,tipo:Q('descTipo').value,
+    valor:parseFloat(Q('descValor').value)||0,minimo_compra:parseFloat(Q('descMinimo').value)||0,
+    usos_maximos:parseInt(Q('descUsos').value)||0,activo:1,
+    fecha_inicio:Q('descDesde').value||null,fecha_fin:Q('descHasta').value||null};
+  if(!d.codigo||!d.valor){ toast('Codigo y valor requeridos','warning'); return; }
+  var r=await window.api.saveDescuento(d);
+  if(r.ok){ toast('Codigo guardado'); closeM('mDesc'); loadDescuentos(); }
+  else toast(r.msg||'Error','error');
+};
+async function delDesc(id){
+  if(!confirm('Desactivar este codigo?')) return;
+  await window.api.deleteDescuento(id); toast('Desactivado'); loadDescuentos();
+}
+var codigoDescActivo = null;
+async function aplicarCodDesc(){
+  var codigo = Q('posCodDesc').value.trim().toUpperCase();
+  if(!codigo){ toast('Escribe un codigo','warning'); return; }
+  var tots = updTotals();
+  var r = await window.api.validarDescuento({codigo:codigo,total:tots.total});
+  if(!r.ok){ toast(r.msg||'Codigo invalido','error'); return; }
+  codigoDescActivo = codigo;
+  Q('posDesc').value = r.monto_descuento.toFixed(2);
+  updTotals();
+  toast('Descuento aplicado: '+fmt(r.monto_descuento));
+  Q('posCodDesc').style.borderColor = 'var(--green)';
+}
+
+// ══ BACKUP ════════════════════════════════════════════════════════════════════
+async function loadBackup(){
+  var lista = await window.api.getBackupsList();
+  var el = Q('backupLista');
+  if(!lista.length){ el.innerHTML='<div class="empty-state">No hay backups automaticos aun</div>'; return; }
+  el.innerHTML = lista.map(function(b){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--gray2)">'
+      +'<div><div style="font-size:13px;font-weight:500">'+b.fecha+'</div>'
+      +'<div style="font-size:11px;color:var(--text2)">'+b.size+'</div></div>'
+      +'<span class="badge badge-green">OK</span>'
+      +'</div>';
+  }).join('');
+}
+Q('btnBackupManual').onclick = async function(){
+  this.textContent='Guardando...'; this.disabled=true;
+  var r = await window.api.hacerBackup();
+  if(r.ok){ toast('Backup guardado en: '+r.path); loadBackup(); }
+  else if(r.msg !== 'Cancelado') toast(r.msg||'Error','error');
+  this.textContent='Guardar backup ahora'; this.disabled=false;
+};
+Q('btnRestaurar').onclick = async function(){
+  if(!confirm('ADVERTENCIA: Esto reemplazara TODOS los datos actuales. Continuar?')) return;
+  var r = await window.api.restaurarBackup();
+  if(r.ok){ toast('Backup restaurado. Reinicia la aplicacion.'); }
+  else if(r.msg !== 'Cancelado') toast(r.msg||'Error','error');
+};
+
+// ══ AUDITORIA ═════════════════════════════════════════════════════════════════
+async function loadAuditoria(){
+  var rows=await window.api.getAuditLog({
+    limit:parseInt(Q('audLimit').value)||100,
+    accion:Q('audAccion').value,
+    usuario_nombre:Q('audUser').value
+  });
+  var tb=Q('audTbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--text2)">Sin registros</td></tr>';return;}
+  var colores={'LOGIN':'badge-green','LOGIN_FALLIDO':'badge-red','NUEVA_VENTA':'badge-blue','ANULAR_VENTA':'badge-red','CIERRE_CAJA':'badge-blue','CREATE_USUARIO':'badge-green','UPDATE_USUARIO':'badge-orange','CREATE_PRODUCTO':'badge-green','UPDATE_PRODUCTO':'badge-orange','DELETE_PRODUCTO':'badge-red'};
+  tb.innerHTML=rows.map(function(r){
+    var cls=colores[r.accion]||'badge-gray';
+    return '<tr>'
+      +'<td style="color:var(--text2);font-size:11px">'+r.id+'</td>'
+      +'<td style="font-size:12px">'+r.fecha+'</td>'
+      +'<td><strong>'+r.usuario_nombre+'</strong></td>'
+      +'<td><span class="badge '+cls+'">'+r.accion+'</span></td>'
+      +'<td style="color:var(--text2);font-size:12px">'+(r.tabla||'-')+'</td>'
+      +'<td style="font-size:12px">'+(r.detalle||'-')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+Q('audBuscar').onclick=function(){loadAuditoria();};
+Q('audLimit').addEventListener('change',function(){loadAuditoria();});
+Q('audAccion').addEventListener('change',function(){loadAuditoria();});
+
 // INIT
 window.addEventListener('load', function(){
   var dbReady=false;
