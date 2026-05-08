@@ -277,19 +277,7 @@ function seedData() {
   ];
   cfgs.forEach(([k,v]) => run('INSERT OR IGNORE INTO config (clave,valor) VALUES (?,?)',[k,v]));
 
-  if (!get('SELECT id FROM productos LIMIT 1')) {
-    const prods = [
-      ['P001','Mouse Inalambrico','Mouse USB optico',85,50,20,'Perifericos'],
-      ['P002','Teclado USB','Teclado estandar espanol',120,70,15,'Perifericos'],
-      ['P003','Audifonos con Microfono','Audifonos stereo',150,90,10,'Perifericos'],
-      ['P004','Cable HDMI 1.8m','Cable HDMI 4K',45,20,30,'Cables'],
-      ['P005','Hub USB 4 puertos','Concentrador USB 3.0',95,55,12,'Accesorios'],
-      ['P006','Camara CCTV Domo','Camara IP domo 2MP',450,280,8,'CCTV'],
-      ['P007','DVR 4 Canales','Grabador 4 canales 1080P',850,550,5,'CCTV'],
-      ['P008','Mantenimiento PC','Servicio mantenimiento',200,0,99,'Servicios'],
-    ];
-    prods.forEach(p => run('INSERT INTO productos (codigo,nombre,descripcion,precio,costo,stock,categoria) VALUES (?,?,?,?,?,?,?)',p));
-  }
+  // Inventario en blanco - el cliente agrega sus propios productos
 }
 
 // ─── Window ───────────────────────────────────────────────────────────────────
