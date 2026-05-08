@@ -1,0 +1,44 @@
+{
+  "name": "ws-pos",
+  "version": "1.0.0",
+  "description": "Sistema de Facturacion WS POS",
+  "author": "WS POS System",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.wspossystem.pos",
+    "productName": "WS POS",
+    "copyright": "WS POS System",
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WS POS",
+      "menuCategory": "WS POS",
+      "deleteAppDataOnUninstall": false
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "node_modules/sql.js/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "25.9.8",
+    "electron-builder": "24.6.4"
+  },
+  "dependencies": {
+    "sql.js": "1.10.2"
+  }
+}
