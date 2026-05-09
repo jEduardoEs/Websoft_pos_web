@@ -1489,91 +1489,124 @@ Q('saveSisBtn').onclick=async function(){
 
 // TICKET 80mm
 function buildTicket(v){
-  var c=appConfig;
-  var rows=(v.items||[]).map(function(it){
-    return '<tr><td colspan="2">'+it.nombre+'</td></tr>'
-      +'<tr><td>'+it.cantidad+' x '+fmt(it.precio_unitario)+'</td><td align="right">'+fmt(it.subtotal)+'</td></tr>';
+  var c = appConfig;
+  var empresa = c.empresa_nombre || 'Mi Empresa';
+  var nit     = c.empresa_nit    || 'CF';
+  var dir     = c.empresa_direccion || '';
+  var tel     = c.empresa_telefono  || '';
+  var iva_pct = c.iva_porcentaje    || '5';
+  var msg     = c.ticket_mensaje    || 'Gracias por su compra!';
+  var fecha   = new Date(v.fecha).toLocaleString('es-GT');
+
+  // Build items rows
+  var itemsHTML = (v.items||[]).map(function(it){
+    var desc = it.nombre.length > 22 ? it.nombre.substring(0,22)+'.' : it.nombre;
+    return ''
+      +'<tr>'
+      +'<td style="padding:3px 0;font-size:11px;vertical-align:top">'+desc+'</td>'
+      +'<td style="padding:3px 0;font-size:11px;text-align:center;vertical-align:top;white-space:nowrap">'+it.cantidad+'</td>'
+      +'<td style="padding:3px 0;font-size:11px;text-align:right;vertical-align:top;white-space:nowrap">'+fmt(it.precio_unitario)+'</td>'
+      +'<td style="padding:3px 0;font-size:11px;text-align:right;vertical-align:top;white-space:nowrap;font-weight:600">'+fmt(it.subtotal)+'</td>'
+      +'</tr>';
   }).join('');
-  return '<div style="font-family:Courier New,monospace;font-size:12px;width:280px;margin:0 auto;color:#000">'
-    +'<div style="text-align:center;margin-bottom:8px">'
-    +'<img src="'+LOGO_IMG+'" style="width:80px;height:32px;object-fit:contain;display:block;margin:0 auto"/>'
+
+  // QR data
+  var qrData = encodeURIComponent(
+    'EMPRESA:'+empresa+
+    '|NIT:'+nit+
+    '|VENTA:'+v.numero+
+    '|FECHA:'+fecha+
+    '|TOTAL:'+fmt(v.total)+
+    '|CLIENTE:'+v.cliente_nit
+  );
+  var qrURL = 'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data='+qrData;
+
+  return ''
+    // ── LOGO + EMPRESA ──────────────────────────────────────
+    +'<div style="font-family:monospace;font-size:12px;width:280px;color:#000;margin:0 auto">'
+
+    // Logo
+    +(LOGO_IMG ? '<div style="text-align:center;margin-bottom:6px"><img src="'+LOGO_IMG+'" style="max-width:80px;max-height:36px;object-fit:contain"/></div>' : '')
+
+    // Empresa header
+    +'<div style="text-align:center;border-top:2px solid #000;border-bottom:2px solid #000;padding:5px 0;margin-bottom:5px">'
+    +'<div style="font-size:13px;font-weight:bold;letter-spacing:1px">'+empresa.toUpperCase()+'</div>'
+    +(dir ? '<div style="font-size:10px;margin-top:2px">'+dir+'</div>' : '')
+    +(tel ? '<div style="font-size:10px">Tel: '+tel+'</div>' : '')
+    +'<div style="font-size:10px">NIT: '+nit+'</div>'
     +'</div>'
-    +'<div style="text-align:center;font-size:13px;font-weight:bold">'+(c.empresa_nombre||'WS POS')+'</div>'
-    +'<div style="text-align:center">NIT: '+(c.empresa_nit||'CF')+'</div>'
-    +'<div style="text-align:center">'+(c.empresa_direccion||'')+'</div>'
-    +'<div style="text-align:center">Tel: '+(c.empresa_telefono||'')+'</div>'
-    +'<hr style="border:none;border-top:1px dashed #000;margin:6px 0"/>'
-    +'<div style="text-align:center;font-weight:bold">FACTURA / RECIBO</div>'
-    +'<div style="display:flex;justify-content:space-between"><span>N:</span><span>'+v.numero+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>Fecha:</span><span>'+new Date(v.fecha).toLocaleString('es-GT')+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>Cliente:</span><span>'+v.cliente_nombre+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>NIT:</span><span>'+v.cliente_nit+'</span></div>'
-    +'<hr style="border:none;border-top:1px dashed #000;margin:6px 0"/>'
-    +'<table style="width:100%;font-size:12px;border-collapse:collapse">'+rows+'</table>'
-    +'<hr style="border:none;border-top:1px dashed #000;margin:6px 0"/>'
-    +'<div style="display:flex;justify-content:space-between"><span>Subtotal:</span><span>'+fmt(v.subtotal)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>IVA ('+(c.iva_porcentaje||5)+'%):</span><span>'+fmt(v.impuesto)+'</span></div>'
-    +(v.descuento>0?'<div style="display:flex;justify-content:space-between"><span>Descuento:</span><span>'+fmt(v.descuento)+'</span></div>':'')
-    +'<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:bold;border-top:1px solid #000;padding-top:4px;margin-top:4px"><span>TOTAL</span><span>'+fmt(v.total)+'</span></div>'
-    +'<hr style="border:none;border-top:1px dashed #000;margin:6px 0"/>'
-    +'<div style="display:flex;justify-content:space-between"><span>Pago:</span><span>'+v.metodo_pago+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>Recibido:</span><span>'+fmt(v.monto_recibido)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between"><span>Cambio:</span><span>'+fmt(v.cambio)+'</span></div>'
-    +'<hr style="border:none;border-top:1px dashed #000;margin:6px 0"/>'
-    +'<div style="text-align:center;font-weight:bold">'+(c.ticket_mensaje||'Gracias por su compra!')+'</div>'
-    +'<div style="text-align:center;font-size:10px;margin-top:4px">WS POS</div>'
+
+    // ── DATOS DE LA VENTA ────────────────────────────────────
+    +'<div style="margin-bottom:5px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px"><span>RECIBO No.:</span><span style="font-weight:bold">'+v.numero+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px"><span>Fecha:</span><span>'+fecha+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px"><span>Cliente:</span><span>'+v.cliente_nombre+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px"><span>NIT:</span><span>'+v.cliente_nit+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px"><span>Cajero:</span><span>'+v.usuario_nombre+'</span></div>'
+    +'</div>'
+
+    // ── TABLA DE PRODUCTOS ───────────────────────────────────
+    +'<div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin-bottom:5px">'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr>'
+    +'<th style="font-size:10px;text-align:left;padding:2px 0;border-bottom:1px solid #000">DESCRIPCION</th>'
+    +'<th style="font-size:10px;text-align:center;padding:2px 0;border-bottom:1px solid #000">QTY</th>'
+    +'<th style="font-size:10px;text-align:right;padding:2px 0;border-bottom:1px solid #000">P.UNIT</th>'
+    +'<th style="font-size:10px;text-align:right;padding:2px 0;border-bottom:1px solid #000">TOTAL</th>'
+    +'</tr></thead>'
+    +'<tbody>'+itemsHTML+'</tbody>'
+    +'</table>'
+    +'</div>'
+
+    // ── TOTALES ──────────────────────────────────────────────
+    +'<div style="margin-bottom:5px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px"><span>Subtotal:</span><span>'+fmt(v.subtotal)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px"><span>IVA ('+iva_pct+'%):</span><span>'+fmt(v.impuesto)+'</span></div>'
+    +(v.descuento>0 ? '<div style="display:flex;justify-content:space-between;font-size:11px"><span>Descuento:</span><span>-'+fmt(v.descuento)+'</span></div>' : '')
+    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;border-top:1px solid #000;border-bottom:1px solid #000;padding:4px 0;margin-top:3px">'
+    +'<span>TOTAL A PAGAR</span><span>'+fmt(v.total)+'</span></div>'
+    +'</div>'
+
+    // ── PAGO ─────────────────────────────────────────────────
+    +'<div style="margin-bottom:6px;font-size:11px">'
+    +'<div style="display:flex;justify-content:space-between"><span>Forma de pago:</span><span style="text-transform:capitalize">'+v.metodo_pago+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between"><span>Monto recibido:</span><span>'+fmt(v.monto_recibido)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-weight:bold"><span>Cambio:</span><span>'+fmt(v.cambio)+'</span></div>'
+    +'</div>'
+
+    // ── QR CODE ──────────────────────────────────────────────
+    +'<div style="border-top:1px dashed #000;padding-top:6px;margin-bottom:5px;display:flex;align-items:center;gap:8px">'
+    +'<img src="'+qrURL+'" style="width:70px;height:70px" alt="QR"/>'
+    +'<div style="font-size:9px;color:#444;line-height:1.4">'
+    +'<div>Escanea para verificar</div>'
+    +'<div>este recibo</div>'
+    +'<div style="margin-top:4px;font-size:8px">'+v.numero+'</div>'
+    +'<div style="font-size:8px">'+fecha+'</div>'
+    +'</div>'
+    +'</div>'
+
+    // ── MENSAJE FINAL ─────────────────────────────────────────
+    +'<div style="border-top:2px solid #000;padding-top:5px;text-align:center">'
+    +'<div style="font-size:11px;font-weight:bold">'+msg+'</div>'
+    +'<div style="font-size:9px;margin-top:3px;color:#444">Este documento es su comprobante de pago</div>'
+    +'</div>'
+
     +'</div>';
 }
 
 async function printTicket(v){
-  var body=buildTicket(v);
-  // CSS optimizado para impresora termica POS 80mm
-  var css=''
-    +'@page{'
-    +'  size: 80mm auto;'
-    +'  margin: 0mm;'
-    +'}'
-    +'*{'
-    +'  margin: 0;'
-    +'  padding: 0;'
-    +'  box-sizing: border-box;'
-    +'}'
-    +'html {'
-    +'  width: 80mm;'
-    +'  height: auto;'
-    +'}'
-    +'body {'
-    +'  width: 80mm;'
-    +'  min-height: auto;'
-    +'  font-family: "Courier New", Courier, monospace;'
-    +'  font-size: 11pt;'
-    +'  color: #000;'
-    +'  background: #fff;'
-    +'  padding: 2mm;'
-    +'  -webkit-print-color-adjust: exact;'
-    +'  print-color-adjust: exact;'
-    +'}'
-    +'img {'
-    +'  display: block;'
-    +'  margin: 0 auto;'
-    +'  max-width: 60mm;'
-    +'}'
-    +'table {'
-    +'  width: 100%;'
-    +'  border-collapse: collapse;'
-    +'}'
-    +'div {'
-    +'  word-break: break-word;'
-    +'}';
-  var full='<!DOCTYPE html>'
-    +'<html><head>'
-    +'<meta charset="UTF-8"/>'
-    +'<meta name="viewport" content="width=80mm"/>'
-    +'<style>'+css+'</style>'
-    +'</head>'
-    +'<body>'+body+'</body></html>';
-  var r=await window.api.printTicket(full);
-  if(!r||!r.ok) toast('Verificar impresora','warning');
+  var body = buildTicket(v);
+  var css = ''
+    +'@page{size:80mm auto;margin:0}'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'html,body{width:80mm;background:#fff}'
+    +'body{padding:4mm;font-family:"Courier New",Courier,monospace;font-size:12px;color:#000}'
+    +'img{max-width:100%}'
+    +'@media print{html,body{width:80mm}}';
+  var full = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<style>'+css+'</style></head><body>'+body+'</body></html>';
+  var r = await window.api.printTicket(full);
+  if(r && !r.ok) toast('Verificar impresora','warning');
   closeM('mCobro');
   resetPos();
 }
@@ -1619,41 +1652,45 @@ function renderReporte(r){
   Q('rMonto').textContent=fmt(r.resumen.montoTotal);
   Q('rIva').textContent=fmt(r.resumen.montoImpuesto);
   Q('rAnuladas').textContent=r.resumen.totalAnuladas;
-  var dias=Object.entries(r.porDia).sort();
-  var maxD=Math.max.apply(null,dias.map(function(x){return x[1].total;}));
+  var dias=Object.entries(r.porDia).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  var maxD=Math.max.apply(null,dias.map(function(x){return x[1].total;})||[1]);
   if(!maxD) maxD=1;
   Q('rChartD').innerHTML=dias.slice(-12).map(function(x){
-    var f=x[0],d=x[1];
-    return '<div class="cbar-wrap" title="'+f+': '+fmt(d.total)+'">'
+    var key=x[0], d=x[1];
+    var lbl = d.label || key;
+    return '<div class="cbar-wrap" title="'+lbl+': '+fmt(d.total)+'">'
       +'<div class="cbar-val">'+fmt(d.total).replace('Q ','Q')+'</div>'
       +'<div class="cbar-fill" style="height:'+Math.max(3,(d.total/maxD)*80)+'px"></div>'
-      +'<div class="cbar-lbl">'+f.split('/').slice(0,2).join('/')+'</div>'
+      +'<div class="cbar-lbl">'+lbl.split('/').slice(0,2).join('/')+'</div>'
       +'</div>';
   }).join('');
-  Q('rTD').innerHTML=dias.map(function(x){
-    var f=x[0],d=x[1];
-    return '<tr><td><strong>'+f+'</strong></td><td>'+d.cantidad+'</td>'
+  Q('rTD').innerHTML=dias.length ? dias.map(function(x){
+    var key=x[0], d=x[1];
+    var lbl = d.label || key;
+    return '<tr><td><strong>'+lbl+'</strong></td><td>'+d.cantidad+'</td>'
       +'<td><strong style="color:var(--blue)">'+fmt(d.total)+'</strong></td>'
       +'<td>'+(d.anuladas>0?'<span class="badge badge-red">'+d.anuladas+'</span>':'-')+'</td>'
       +'<td>'+(d.cantidad>0?fmt(d.total/d.cantidad):'-')+'</td></tr>';
-  }).join('')||'<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text2)">Sin datos</td></tr>';
-  var meses=Object.entries(r.porMes);
-  var maxM=Math.max.apply(null,meses.map(function(x){return x[1].total;}));
+  }).join('') : '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text2)">Sin datos para este periodo</td></tr>';
+  var meses=Object.entries(r.porMes).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  var maxM=Math.max.apply(null,meses.map(function(x){return x[1].total;})||[1]);
   if(!maxM) maxM=1;
   Q('rChartM').innerHTML=meses.map(function(x){
-    var m=x[0],d=x[1];
+    var key=x[0], d=x[1];
+    var lbl = d.label || key;
     return '<div class="cbar-wrap">'
       +'<div class="cbar-val">'+fmt(d.total).replace('Q ','')+'</div>'
       +'<div class="cbar-fill" style="height:'+Math.max(3,(d.total/maxM)*80)+'px"></div>'
-      +'<div class="cbar-lbl">'+m.split(' de ')[0]+'</div>'
+      +'<div class="cbar-lbl">'+lbl.split(' de ')[0]+'</div>'
       +'</div>';
   }).join('');
-  Q('rTM').innerHTML=meses.map(function(x){
-    var m=x[0],d=x[1];
-    return '<tr><td><strong>'+m+'</strong></td><td>'+d.cantidad+'</td>'
+  Q('rTM').innerHTML=meses.length ? meses.map(function(x){
+    var key=x[0], d=x[1];
+    var lbl = d.label || key;
+    return '<tr><td><strong>'+lbl+'</strong></td><td>'+d.cantidad+'</td>'
       +'<td><strong style="color:var(--blue)">'+fmt(d.total)+'</strong></td>'
       +'<td>'+(d.cantidad>0?fmt(d.total/d.cantidad):'-')+'</td></tr>';
-  }).join('')||'<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text2)">Sin datos</td></tr>';
+  }).join('') : '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text2)">Sin datos para este periodo</td></tr>';
   var mets=Object.entries(r.porMetodo);
   var maxMet=Math.max.apply(null,mets.map(function(x){return x[1].total;}));
   if(!maxMet) maxMet=1;

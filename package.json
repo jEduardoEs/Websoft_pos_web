@@ -1,6 +1,6 @@
 {
   "name": "ws-pos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sistema de Facturacion WS POS",
   "author": "WS POS System",
   "main": "main.js",

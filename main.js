@@ -557,7 +557,9 @@ ipcMain.handle('get-reporte',async(_,{fecha_ini,fecha_fin})=>{
   await waitForDB();
   try {
     const all_v=all('SELECT * FROM ventas');
+    console.log('get-reporte: total ventas en DB:', all_v.length, 'filtro:', fecha_ini, '->', fecha_fin);
     const periodo=filterByDate(all_v,fecha_ini,fecha_fin);
+    console.log('get-reporte: ventas en periodo:', periodo.length);
     const completadas=periodo.filter(v=>v.estado==='completada');
     const anuladas=periodo.filter(v=>v.estado==='anulada');
     const resumen={totalVentas:completadas.length,totalAnuladas:anuladas.length,
@@ -567,10 +569,20 @@ ipcMain.handle('get-reporte',async(_,{fecha_ini,fecha_fin})=>{
     const porMetodo={};
     completadas.forEach(v=>{ const m=v.metodo_pago||'efectivo'; if(!porMetodo[m]) porMetodo[m]={cantidad:0,total:0}; porMetodo[m].cantidad++;porMetodo[m].total+=parseFloat(v.total)||0; });
     const porDia={};
-    completadas.forEach(v=>{ const d=new Date(v.fecha).toLocaleDateString('es-GT'); if(!porDia[d]) porDia[d]={cantidad:0,total:0,anuladas:0}; porDia[d].cantidad++;porDia[d].total+=parseFloat(v.total)||0; });
-    anuladas.forEach(v=>{ const d=new Date(v.fecha).toLocaleDateString('es-GT'); if(!porDia[d]) porDia[d]={cantidad:0,total:0,anuladas:0}; porDia[d].anuladas++; });
+    const fmtDia = (fecha) => {
+      const d = new Date(fecha);
+      return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');
+    };
+    completadas.forEach(v=>{ const d=fmtDia(v.fecha); if(!porDia[d]) porDia[d]={cantidad:0,total:0,anuladas:0,label:new Date(v.fecha).toLocaleDateString('es-GT')}; porDia[d].cantidad++;porDia[d].total+=parseFloat(v.total)||0; });
+    anuladas.forEach(v=>{ const d=fmtDia(v.fecha); if(!porDia[d]) porDia[d]={cantidad:0,total:0,anuladas:0,label:new Date(v.fecha).toLocaleDateString('es-GT')}; porDia[d].anuladas++; });
     const porMes={};
-    completadas.forEach(v=>{ const m=new Date(v.fecha).toLocaleDateString('es-GT',{year:'numeric',month:'long'}); if(!porMes[m]) porMes[m]={cantidad:0,total:0}; porMes[m].cantidad++;porMes[m].total+=parseFloat(v.total)||0; });
+    completadas.forEach(v=>{
+      const dd=new Date(v.fecha);
+      const mKey=dd.getFullYear()+'-'+(dd.getMonth()+1).toString().padStart(2,'0');
+      const mLabel=dd.toLocaleDateString('es-GT',{year:'numeric',month:'long'});
+      if(!porMes[mKey]) porMes[mKey]={cantidad:0,total:0,label:mLabel};
+      porMes[mKey].cantidad++;porMes[mKey].total+=parseFloat(v.total)||0;
+    });
     const ids=completadas.map(v=>v.id);
     let topProductos=[];
     if(ids.length){ const ph=ids.map(()=>'?').join(','); topProductos=all('SELECT vi.nombre,vi.codigo,SUM(vi.cantidad) as qty,SUM(vi.subtotal) as total FROM venta_items vi WHERE vi.venta_id IN('+ph+') GROUP BY vi.nombre ORDER BY total DESC LIMIT 10',ids); }
