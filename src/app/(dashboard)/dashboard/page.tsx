@@ -131,7 +131,7 @@ export default async function DashboardPage() {
             <tbody>
               {d.ultimasVentas.map(v => (
                 <tr key={v.id} style={{ cursor: 'pointer' }}>
-                  <td style={{ padding: '10px 13px', fontSize: 13, color: '#1a1f36', borderBottom: '1px solid #f4f7fb', fontWeight: 600, color: '#2B7FD4' }}>{v.numero}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f4f7fb', fontWeight: 600, color: '#2B7FD4' }}>{v.numero}</td>
                   <td style={{ padding: '10px 13px', fontSize: 13, color: '#1a1f36', borderBottom: '1px solid #f4f7fb' }}>{fmtDateTime(v.fecha)}</td>
                   <td style={{ padding: '10px 13px', fontSize: 13, color: '#1a1f36', borderBottom: '1px solid #f4f7fb' }}>{v.clienteNombre}</td>
                   <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f4f7fb' }}><span className="badge-blue" style={{ textTransform: 'capitalize' }}>{v.metodoPago}</span></td>
