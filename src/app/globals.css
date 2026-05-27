@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue: #2B7FD4;
+  --blue-dark: #1a5fa0;
+  --blue-light: #e8f3fd;
+  --dark: #0d0f1a;
+  --white: #fff;
+  --gray: #f4f7fb;
+  --gray2: #e2eaf4;
+  --gray3: #c5d5e8;
+  --text: #1a1f36;
+  --text2: #4a5568;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --purple: #8b5cf6;
+  --radius: 10px;
+  --shadow: 0 4px 20px rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray); color: var(--text); font-size: 14px; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 3px; }
+
+@layer components {
+  .card {
+    @apply bg-white rounded-[10px] border border-[#e2eaf4] shadow-[0_4px_20px_rgba(0,0,0,.08)];
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2B7FD4] text-white rounded-lg text-sm font-semibold transition-all hover:bg-[#1a5fa0] disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-500 text-white rounded-lg text-sm font-semibold transition-all hover:bg-green-600 disabled:opacity-60;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-red-500 text-white rounded-lg text-sm font-semibold transition-all hover:bg-red-600 disabled:opacity-60;
+  }
+  .btn-warning {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold transition-all hover:bg-amber-600;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-transparent text-[#4a5568] border border-[#e2eaf4] rounded-lg text-sm font-semibold transition-all hover:border-[#2B7FD4] hover:text-[#2B7FD4];
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .input {
+    @apply w-full px-3 py-2 border border-[#e2eaf4] rounded-lg text-sm text-[#1a1f36] outline-none transition-all focus:border-[#2B7FD4] bg-white;
+  }
+  .badge-green  { @apply inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold; }
+  .badge-red    { @apply inline-flex items-center px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-semibold; }
+  .badge-blue   { @apply inline-flex items-center px-2 py-0.5 bg-blue-50 text-[#2B7FD4] rounded-full text-xs font-semibold; }
+  .badge-gray   { @apply inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold; }
+  .badge-orange { @apply inline-flex items-center px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-xs font-semibold; }
+}
