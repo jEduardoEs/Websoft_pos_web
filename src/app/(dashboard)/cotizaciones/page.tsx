@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
 
@@ -104,6 +105,14 @@ export default function CotizacionesPage() {
   const [loading, setLoading] = useState(false)
   const [productos, setProductos] = useState<Producto[]>([])
   const [buscarProd, setBuscarProd] = useState('')
+
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
+
+  const [pinModal, setPinModal] = useState<{ id: number; estado: string; numero: string } | null>(null)
+  const [pin, setPin] = useState('')
+  const [pinLoading, setPinLoading] = useState(false)
+  const [pinError, setPinError] = useState('')
 
   const load = async () => {
     const c = await fetch('/api/cotizaciones').then(r => r.json())
@@ -224,10 +233,45 @@ export default function CotizacionesPage() {
     }
   }
 
-  const cambiarEstado = async (id: number, estado: string) => {
-    await fetch(`/api/cotizaciones/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }) })
-    await load()
-    setSelected(p => p ? { ...p, estado } : null)
+  const solicitarCambioEstado = (id: number, estado: string, numero: string) => {
+    const estadosProtegidos = ['aceptada', 'rechazada']
+    if (!isAdmin && estadosProtegidos.includes(estado)) {
+      setPinModal({ id, estado, numero })
+      setPin('')
+      setPinError('')
+      return
+    }
+    aplicarEstado(id, estado, null)
+  }
+
+  const aplicarEstado = async (id: number, estado: string, pinValue: string | null) => {
+    setPinLoading(true)
+    const res = await fetch(`/api/cotizaciones/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado, pin: pinValue }),
+    })
+    const data = await res.json()
+    setPinLoading(false)
+    if (data.ok) {
+      setPinModal(null)
+      setPin('')
+      await load()
+      setSelected(p => p ? { ...p, estado } : null)
+      toast.success(`Cotizacion ${estado}`)
+    } else if (data.error === 'PIN_WRONG') {
+      setPinError('PIN incorrecto. Intenta de nuevo.')
+    } else if (data.error === 'PIN_REQUIRED') {
+      setPinError('Se requiere PIN de administrador.')
+    } else {
+      toast.error(data.message || 'Error')
+      setPinModal(null)
+    }
+  }
+
+  // Keep old name for compatibility
+  const cambiarEstado = (id: number, estado: string) => {
+    solicitarCambioEstado(id, estado, selected?.numero || '')
   }
 
   const eliminar = async (id: number) => {
@@ -423,7 +467,27 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
                   <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{fmt(c.total)}</td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
-                    <button className="btn-ghost btn-sm" onClick={() => imprimir(c)}>Imprimir</button>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {c.estado === 'pendiente' && (
+                        <>
+                          <button onClick={() => solicitarCambioEstado(c.id, 'aceptada', c.numero)}
+                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            ✓ Aceptar
+                          </button>
+                          <button onClick={() => solicitarCambioEstado(c.id, 'rechazada', c.numero)}
+                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            ✗ Rechazar
+                          </button>
+                        </>
+                      )}
+                      {c.estado === 'aceptada' && (
+                        <button onClick={() => solicitarCambioEstado(c.id, 'pendiente', c.numero)}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          ↩ Pendiente
+                        </button>
+                      )}
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨️</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -700,12 +764,30 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: 8 }}>
-                <select value={selected.estado} onChange={e => cambiarEstado(selected.id, e.target.value)} className="input" style={{ width: 140, fontSize: 12 }}>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="aceptada">Aceptada</option>
-                  <option value="rechazada">Rechazada</option>
-                  <option value="vencida">Vencida</option>
-                </select>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {selected.estado === 'pendiente' && (
+                    <>
+                      <button onClick={() => solicitarCambioEstado(selected.id, 'aceptada', selected.numero)}
+                        style={{ padding: '6px 14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✓ Aceptar
+                      </button>
+                      <button onClick={() => solicitarCambioEstado(selected.id, 'rechazada', selected.numero)}
+                        style={{ padding: '6px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✗ Rechazar
+                      </button>
+                    </>
+                  )}
+                  {selected.estado !== 'pendiente' && (
+                    <button onClick={() => solicitarCambioEstado(selected.id, 'pendiente', selected.numero)}
+                      style={{ padding: '6px 14px', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      ↩ Reabrir
+                    </button>
+                  )}
+                  <button onClick={() => solicitarCambioEstado(selected.id, 'vencida', selected.numero)}
+                    style={{ padding: '6px 14px', background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Marcar vencida
+                  </button>
+                </div>
                 <button className="btn-danger btn-sm" onClick={() => eliminar(selected.id)}>Eliminar</button>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -716,6 +798,46 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
           </div>
         </div>
       )}
+
+      {/* ─── PIN AUTHORIZATION MODAL ─── */}
+      {pinModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ width: 56, height: 56, background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 26 }}>🔐</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#0f172a', marginBottom: 6 }}>Autorizacion requerida</div>
+              <div style={{ fontSize: 13, color: '#64748b' }}>
+                Para <strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong> la cotizacion <strong>{pinModal.numero}</strong> se requiere el PIN del administrador.
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>PIN de Administrador</label>
+              <input
+                className="input"
+                type="password"
+                value={pin}
+                onChange={e => { setPin(e.target.value); setPinError('') }}
+                onKeyDown={e => e.key === 'Enter' && pin && aplicarEstado(pinModal.id, pinModal.estado, pin)}
+                placeholder="Ingresa el PIN"
+                autoFocus
+                style={{ fontSize: 20, textAlign: 'center', letterSpacing: 6, fontWeight: 700 }}
+              />
+              {pinError && <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginTop: 6 }}>⚠ {pinError}</div>}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { setPinModal(null); setPin(''); setPinError('') }}>Cancelar</button>
+              <button
+                onClick={() => aplicarEstado(pinModal.id, pinModal.estado, pin)}
+                disabled={!pin || pinLoading}
+                style={{ flex: 1, background: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: !pin || pinLoading ? .6 : 1 }}
+              >
+                {pinLoading ? 'Verificando...' : 'Autorizar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

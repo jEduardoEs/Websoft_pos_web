@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth'
+import Providers from '@/components/Providers'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import Topbar from '@/components/Topbar'
@@ -13,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar role={session.user.role} />
         <main style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
-          {children}
+          <Providers>{children}</Providers>
         </main>
       </div>
     </div>

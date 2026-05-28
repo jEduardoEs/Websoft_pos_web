@@ -20,6 +20,7 @@ interface ActiveSession {
   id: number
   usuarioId: number
   lastActivity: string
+  createdAt: string
   usuario: { nombre: string; rol: string; usuario: string }
 }
 
