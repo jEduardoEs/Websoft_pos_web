@@ -15,7 +15,7 @@ export default function LoginPage() {
     const res = await signIn('credentials', { ...form, redirect: false })
     setLoading(false)
     if (res?.error) {
-      toast.error('Usuario o contraseña incorrectos')
+      toast.error('Usuario o contrasena incorrectos')
     } else {
       router.push('/pos')
       router.refresh()
@@ -25,34 +25,52 @@ export default function LoginPage() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: 'linear-gradient(145deg, #0d0f1a, #0f1530)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
+      background: 'linear-gradient(135deg, #020917 0%, #0a1628 40%, #0f1f3d 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
     }}>
-      <div style={{
-        background: '#fff', borderRadius: 18, padding: '40px 36px',
-        width: 360, boxShadow: '0 30px 80px rgba(0,0,0,.3)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 24 }}>
-          <svg width="36" height="36" viewBox="0 0 200 200" fill="none">
-            <rect width="200" height="200" rx="40" fill="#1a1f36"/>
-            <rect x="30" y="60" width="140" height="100" rx="12" stroke="#2B7FD4" strokeWidth="8"/>
-            <line x1="30" y1="90" x2="170" y2="90" stroke="#2B7FD4" strokeWidth="6"/>
-            <rect x="55" y="105" width="20" height="16" rx="3" fill="#2B7FD4"/>
-            <rect x="90" y="105" width="20" height="16" rx="3" fill="#2B7FD4"/>
-            <rect x="125" y="105" width="20" height="16" rx="3" fill="#2B7FD4"/>
-          </svg>
-          <span style={{ fontSize: 22, fontWeight: 700, color: '#1a1f36' }}>
-            WS <span style={{ color: '#2B7FD4' }}>POS</span>
-          </span>
-        </div>
+      {/* Background glow effects */}
+      <div style={{ position: 'absolute', top: '20%', left: '30%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(37,99,235,.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '10%', right: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(29,78,216,.08) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-        <h2 style={{ fontSize: 17, fontWeight: 600, color: '#4a5568', marginBottom: 20, textAlign: 'center' }}>
-          Iniciar sesión
-        </h2>
+      <div style={{
+        background: 'rgba(15,31,61,.85)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(37,99,235,.2)',
+        borderRadius: 18,
+        padding: '40px 38px',
+        width: 380,
+        boxShadow: '0 30px 80px rgba(0,0,0,.5), 0 0 40px rgba(37,99,235,.08)',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <img
+              src="https://websoft-solutions.vercel.app/logo.png"
+              alt="WebSoft"
+              style={{ width: 64, height: 64, borderRadius: 14, objectFit: 'contain', display: 'block' }}
+              onError={e => {
+                const el = e.target as HTMLImageElement
+                el.style.display = 'none'
+                const next = el.nextElementSibling as HTMLElement
+                if (next) next.style.display = 'flex'
+              }}
+            />
+            {/* Fallback logo */}
+            <div style={{ width: 64, height: 64, borderRadius: 14, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'none', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>W</div>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -.5, lineHeight: 1 }}>
+            Web<span style={{ color: '#2563eb' }}>Soft</span>
+          </div>
+          <div style={{ fontSize: 10, color: '#60a5fa', letterSpacing: 3, fontWeight: 600, marginTop: 4 }}>SOLUTIONS</div>
+          <div style={{ fontSize: 12, color: 'rgba(148,163,184,.6)', marginTop: 10 }}>Sistema de Gestion</div>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#4a5568', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#60a5fa', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
               Usuario
             </label>
             <input
@@ -60,14 +78,14 @@ export default function LoginPage() {
               type="text"
               value={form.usuario}
               onChange={e => setForm(f => ({ ...f, usuario: e.target.value }))}
-              placeholder="admin"
+              placeholder="Ingresa tu usuario"
               required
               autoFocus
             />
           </div>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#4a5568', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.5px' }}>
-              Contraseña
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#60a5fa', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Contrasena
             </label>
             <input
               className="input"
@@ -81,16 +99,16 @@ export default function LoginPage() {
           <button
             type="submit"
             className="btn-primary"
-            style={{ width: '100%', padding: '13px', fontSize: 15 }}
+            style={{ width: '100%', padding: '13px', fontSize: 15, borderRadius: 10 }}
             disabled={loading}
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading ? 'Ingresando...' : 'Ingresar al sistema'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', marginTop: 20 }}>
-          WS POS — Sistema de Facturación Web
-        </p>
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'rgba(100,116,139,.5)' }}>
+          WebSoft Solutions · Guastatoya, El Progreso
+        </div>
       </div>
     </div>
   )

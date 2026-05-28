@@ -287,3 +287,45 @@ model AuditLog {
 
   @@map("audit_log")
 }
+
+model Cotizacion {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  clienteNombre   String   @map("cliente_nombre")
+  clienteDireccion String? @map("cliente_direccion")
+  clienteTelefono String?  @map("cliente_telefono")
+  clienteNit      String?  @map("cliente_nit")
+  atencion        String?
+  formaPago       String?  @map("forma_pago")
+  descripcion     String?
+  notas           String?
+  subtotal        Float    @default(0)
+  descuento       Float    @default(0)
+  total           Float    @default(0)
+  estado          String   @default("pendiente")
+  validezDias     Int      @default(15)  @map("validez_dias")
+  usuarioId       Int?     @map("usuario_id")
+  usuarioNombre   String?  @map("usuario_nombre")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  items CotizacionItem[]
+
+  @@map("cotizaciones")
+}
+
+model CotizacionItem {
+  id             Int    @id @default(autoincrement())
+  cotizacionId   Int    @map("cotizacion_id")
+  codigo         String?
+  descripcion    String
+  cantidad       Float
+  precioUnitario Float  @map("precio_unitario")
+  subtotal       Float
+  descuento      Float  @default(0)
+  totalItem      Float  @map("total_item")
+
+  cotizacion Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+
+  @@map("cotizacion_items")
+}

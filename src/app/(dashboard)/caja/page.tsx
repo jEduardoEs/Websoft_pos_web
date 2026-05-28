@@ -34,8 +34,8 @@ export default function CajaPage() {
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a1f36' }}>Apertura / Cierre de Caja</h1>
-        <p style={{ fontSize: 13, color: '#4a5568', marginTop: 3 }}>Control de turno de caja</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0' }}>Apertura / Cierre de Caja</h1>
+        <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>Control de turno de caja</p>
       </div>
 
       <div className="card" style={{ padding: 28, maxWidth: 480 }}>
@@ -43,7 +43,7 @@ export default function CajaPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 3px rgba(34,197,94,.2)' }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>Caja Abierta</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#10b981' }}>Caja Abierta</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
               {[
@@ -52,9 +52,9 @@ export default function CajaPage() {
                 ['Cajero', activa.usuarioNombre || '—'],
                 ['Notas', activa.notas || '—'],
               ].map(([l, v]) => (
-                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f4f7fb' }}>
-                  <span style={{ fontSize: 13, color: '#4a5568' }}>{l}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1f36' }}>{v}</span>
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                  <span style={{ fontSize: 13, color: '#94a3b8' }}>{l}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -66,15 +66,15 @@ export default function CajaPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#9ca3af' }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#4a5568' }}>Caja Cerrada</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8' }}>Caja Cerrada</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', marginBottom: 4 }}>Fondo inicial</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Fondo inicial</label>
                 <input className="input" type="number" value={fondo} onChange={e => setFondo(e.target.value)} placeholder="0.00" />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', marginBottom: 4 }}>Notas</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Notas</label>
                 <input className="input" value={notas} onChange={e => setNotas(e.target.value)} placeholder="Opcional" />
               </div>
             </div>

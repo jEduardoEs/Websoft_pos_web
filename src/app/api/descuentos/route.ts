@@ -2,21 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function POST(req: NextRequest) {
+export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  return NextResponse.json(await prisma.descuento.findMany({ orderBy: { id: 'desc' } }))
+}
 
-  const { codigo, total } = await req.json()
-  const d = await prisma.descuento.findUnique({ where: { codigo: codigo.toUpperCase(), activo: true } })
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const body = await req.json()
+  const { id, codigo, descripcion, tipo, valor, minimoCompra, usosMaximos, fechaInicio, fechaFin } = body
+  if (!codigo || !valor) return NextResponse.json({ error: 'Código y valor requeridos' }, { status: 400 })
+  if (id) {
+    await prisma.descuento.update({ where: { id: Number(id) }, data: { codigo: codigo.toUpperCase(), descripcion, tipo, valor: +valor, minimoCompra: +minimoCompra || 0, usosMaximos: +usosMaximos || 0, fechaInicio: fechaInicio ? new Date(fechaInicio) : null, fechaFin: fechaFin ? new Date(fechaFin) : null } })
+    return NextResponse.json({ ok: true })
+  }
+  await prisma.descuento.create({ data: { codigo: codigo.toUpperCase(), descripcion, tipo: tipo || 'porcentaje', valor: +valor, minimoCompra: +minimoCompra || 0, usosMaximos: +usosMaximos || 0, fechaInicio: fechaInicio ? new Date(fechaInicio) : null, fechaFin: fechaFin ? new Date(fechaFin) : null } })
+  return NextResponse.json({ ok: true })
+}
 
-  if (!d) return NextResponse.json({ ok: false, error: 'Código no válido' })
-
-  const now = new Date()
-  if (d.fechaInicio && now < d.fechaInicio) return NextResponse.json({ ok: false, error: 'El descuento aún no está vigente' })
-  if (d.fechaFin && now > d.fechaFin) return NextResponse.json({ ok: false, error: 'El descuento expiró' })
-  if (d.minimoCompra && total < d.minimoCompra) return NextResponse.json({ ok: false, error: `Mínimo de compra: Q ${d.minimoCompra}` })
-  if (d.usosMaximos > 0 && d.usosActuales >= d.usosMaximos) return NextResponse.json({ ok: false, error: 'Código agotado' })
-
-  const porcentaje = d.tipo === 'porcentaje' ? d.valor : (d.valor / total * 100)
-  return NextResponse.json({ ok: true, porcentaje, descuento: d })
+export async function DELETE(req: NextRequest) {
+  const session = await auth()
+  if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+  await prisma.descuento.update({ where: { id: Number(id) }, data: { activo: false } })
+  return NextResponse.json({ ok: true })
 }
