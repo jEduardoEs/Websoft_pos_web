@@ -329,3 +329,28 @@ model CotizacionItem {
 
   @@map("cotizacion_items")
 }
+
+model MovimientoCaja {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  tipo          String   // inyeccion | retiro
+  monto         Float
+  motivo        String?
+  aperturaId    Int?     @map("apertura_id")
+  usuarioId     Int?     @map("usuario_id")
+  usuarioNombre String?  @map("usuario_nombre")
+
+  @@map("movimientos_caja")
+}
+
+model ActiveSession {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @unique @map("usuario_id")
+  sessionToken  String   @map("session_token")
+  ip            String?
+  userAgent     String?  @map("user_agent")
+  lastActivity  DateTime @default(now()) @map("last_activity")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("active_sessions")
+}
