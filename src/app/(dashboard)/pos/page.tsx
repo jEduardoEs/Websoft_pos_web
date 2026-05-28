@@ -131,17 +131,51 @@ export default function POSPage() {
     }
   }
 
+  const [nitStatus, setNitStatus] = useState<'idle'|'found'|'notfound'>('idle')
+  const [showRegCliente, setShowRegCliente] = useState(false)
+  const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '' })
+
   const buscarNit = async (nit: string) => {
     setClienteNit(nit)
-    if (nit.length < 3 || nit === 'CF') return
+    if (nit.length < 3 || nit.toUpperCase() === 'CF') {
+      setNitStatus('idle'); setClienteNombre('Consumidor Final'); return
+    }
+  }
+
+  const ejecutarBusquedaNit = async () => {
+    if (clienteNit.length < 3 || clienteNit.toUpperCase() === 'CF') return
     try {
-      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(nit)}`)
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(clienteNit)}`)
       const data = await res.json()
       if (data.encontrado && data.cliente) {
         setClienteNombre(data.cliente.nombre)
-        toast.success(`Cliente encontrado: ${data.cliente.nombre}`)
+        setNitStatus('found')
+        toast.success(`Cliente: ${data.cliente.nombre}`)
+      } else {
+        setNitStatus('notfound')
+        setClienteNombre('')
+        setRegForm({ nombre: '', telefono: '', direccion: '' })
       }
-    } catch { /* ignore */ }
+    } catch {
+      toast.error('Error al buscar NIT')
+    }
+  }
+
+  const registrarCliente = async () => {
+    if (!regForm.nombre.trim()) { toast.error('Nombre requerido'); return }
+    try {
+      const res = await fetch('/api/clientes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: regForm.nombre, nit: clienteNit, telefono: regForm.telefono, direccion: regForm.direccion }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setClienteNombre(regForm.nombre)
+        setNitStatus('found')
+        setShowRegCliente(false)
+        toast.success('Cliente registrado')
+      }
+    } catch { toast.error('Error al registrar') }
   }
 
   const cobrar = async () => {
@@ -331,11 +365,41 @@ export default function POSPage() {
         {/* Actions */}
         <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 7, borderTop: '1px solid #f1f5f9' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>NIT</label>
-              <input className="input" value={clienteNit} onChange={e => buscarNit(e.target.value)} onBlur={e => buscarNit(e.target.value)} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12 }} />
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>NIT del cliente</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  className="input"
+                  value={clienteNit}
+                  onChange={e => buscarNit(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()}
+                  placeholder="CF"
+                  style={{ padding: '6px 8px', fontSize: 12, flex: 1,
+                    borderColor: nitStatus === 'found' ? '#16a34a' : nitStatus === 'notfound' ? '#dc2626' : undefined }}
+                />
+                <button
+                  onClick={ejecutarBusquedaNit}
+                  style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                >
+                  Buscar
+                </button>
+              </div>
+              {nitStatus === 'found' && (
+                <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, marginTop: 3 }}>✓ Cliente encontrado</div>
+              )}
+              {nitStatus === 'notfound' && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: '#dc2626', fontWeight: 600 }}>✗ NIT no registrado</span>
+                  <button
+                    onClick={() => setShowRegCliente(true)}
+                    style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    + Registrar cliente
+                  </button>
+                </div>
+              )}
             </div>
-            <div>
+            <div style={{ gridColumn: '1/-1' }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Nombre</label>
               <input className="input" value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Consumidor Final" style={{ padding: '6px 8px', fontSize: 12 }} />
             </div>
@@ -373,6 +437,43 @@ export default function POSPage() {
           </button>
         </div>
       </div>
+
+      {/* Modal registrar cliente */}
+      {showRegCliente && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Registrar Cliente</div>
+              <button onClick={() => setShowRegCliente(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            </div>
+            <div style={{ marginBottom: 10, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
+              NIT: <strong style={{ color: '#2563eb' }}>{clienteNit}</strong>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+              {[
+                { label: 'Nombre *', key: 'nombre', placeholder: 'Nombre completo' },
+                { label: 'Telefono', key: 'telefono', placeholder: '5555-5555' },
+                { label: 'Direccion', key: 'direccion', placeholder: 'Direccion del cliente' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>{f.label}</label>
+                  <input
+                    className="input"
+                    value={(regForm as any)[f.key]}
+                    onChange={e => setRegForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    autoFocus={f.key === 'nombre'}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn-ghost btn-sm" onClick={() => setShowRegCliente(false)}>Cancelar</button>
+              <button className="btn-primary btn-sm" onClick={registrarCliente}>Guardar Cliente</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal cobro exitoso */}
       {showCobro && lastVenta && (
