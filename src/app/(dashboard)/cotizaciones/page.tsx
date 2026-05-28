@@ -90,6 +90,25 @@ export default function CotizacionesPage() {
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
+  const buscarNitCliente = async (nit: string) => {
+    setF('clienteNit', nit)
+    if (nit.length < 3 || nit.toUpperCase() === 'CF') return
+    try {
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(nit)}`)
+      const data = await res.json()
+      if (data.encontrado && data.cliente) {
+        setForm(p => ({
+          ...p,
+          clienteNombre: data.cliente.nombre,
+          clienteTelefono: data.cliente.telefono || p.clienteTelefono,
+          clienteDireccion: data.cliente.direccion || p.clienteDireccion,
+          clienteNit: nit,
+        }))
+        toast.success(`Cliente encontrado: ${data.cliente.nombre}`)
+      }
+    } catch { /* ignore */ }
+  }
+
   // ─── Item update logic ───
   const updItem = (i: number, k: keyof LineItem, v: number | string) => {
     setItems(prev => prev.map((item, idx) => {

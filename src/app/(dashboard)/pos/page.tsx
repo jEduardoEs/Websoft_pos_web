@@ -131,6 +131,19 @@ export default function POSPage() {
     }
   }
 
+  const buscarNit = async (nit: string) => {
+    setClienteNit(nit)
+    if (nit.length < 3 || nit === 'CF') return
+    try {
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(nit)}`)
+      const data = await res.json()
+      if (data.encontrado && data.cliente) {
+        setClienteNombre(data.cliente.nombre)
+        toast.success(`Cliente encontrado: ${data.cliente.nombre}`)
+      }
+    } catch { /* ignore */ }
+  }
+
   const cobrar = async () => {
     if (cart.length === 0) { toast.error('Carrito vacio'); return }
     if (metodoPago === 'efectivo' && parseFloat(montoRecibido || '0') < total) {
@@ -197,6 +210,9 @@ export default function POSPage() {
       th{text-align:left;font-size:10px;border-bottom:1px solid #000}
       td{padding:2px 0}.total-row{font-weight:bold;font-size:13px}
     </style></head><body>
+      <div style="text-align:center;margin-bottom:8px">
+        <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style="width:50px;height:50px;border-radius:8px;object-fit:contain" onerror="this.style.display='none'"/>
+      </div>
       <h2>${config.empresa_nombre}</h2>
       <p>NIT: ${config.empresa_nit}</p>
       <p>${config.empresa_direccion || ''}</p>
@@ -317,7 +333,7 @@ export default function POSPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             <div>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>NIT</label>
-              <input className="input" value={clienteNit} onChange={e => setClienteNit(e.target.value)} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12 }} />
+              <input className="input" value={clienteNit} onChange={e => buscarNit(e.target.value)} onBlur={e => buscarNit(e.target.value)} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12 }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Nombre</label>
