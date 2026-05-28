@@ -17,6 +17,8 @@ export async function GET() {
     let ventasEfectivo = 0
     let ventasTarjeta = 0
     let ventasTransferencia = 0
+    let numVentas = 0
+    let totalVentas = 0
 
     if (activa) {
       // Ventas desde apertura
