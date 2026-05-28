@@ -47,15 +47,32 @@ export default function CajaPage() {
     } catch { toast.error('Error al cargar caja') }
   }, [])
 
+  const [sessionError, setSessionError] = useState('')
+
   const loadSessions = useCallback(async () => {
     try {
       const res = await fetch('/api/sesion')
-      setSessions(await res.json())
-    } catch {}
+      const data = await res.json()
+      if (data.error) {
+        setSessionError(data.error)
+        setSessions([])
+      } else {
+        setSessionError('')
+        setSessions(Array.isArray(data) ? data : [])
+      }
+    } catch (e: any) {
+      setSessionError('Error al cargar sesiones')
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { if (tab === 'sesiones') loadSessions() }, [tab, loadSessions])
+  useEffect(() => {
+    if (tab === 'sesiones') {
+      loadSessions()
+      const interval = setInterval(loadSessions, 30000) // auto-refresh every 30s
+      return () => clearInterval(interval)
+    }
+  }, [tab, loadSessions])
 
   const abrir = async () => {
     setLoading(true)
@@ -385,7 +402,10 @@ export default function CajaPage() {
             <div className="card">
               <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Sesiones activas ({sessions.length})</div>
-                <button className="btn-ghost btn-sm" onClick={loadSessions}>Actualizar</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>Se actualiza cada 30s</span>
+                <button className="btn-ghost btn-sm" onClick={loadSessions}>↺ Actualizar</button>
+              </div>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -423,8 +443,13 @@ export default function CajaPage() {
                   </tbody>
                 </table>
               </div>
+              {sessionError && (
+                <div style={{ padding: '12px 18px', background: '#fef2f2', borderTop: '1px solid #fecaca', fontSize: 12, color: '#dc2626', fontWeight: 600 }}>
+                  ⚠ {sessionError}
+                </div>
+              )}
               <div style={{ padding: '12px 18px', background: '#fffbeb', borderTop: '1px solid #fef3c7', fontSize: 12, color: '#92400e' }}>
-                ℹ Los cajeros no pueden iniciar sesion si ya tienen una sesion activa. La sesion expira automaticamente tras 8 horas. Los administradores tienen sesion multiple pero con timeout de 30 min por inactividad.
+                ℹ Los cajeros no pueden iniciar sesion si ya tienen una sesion activa en otro equipo. La sesion expira tras 8 horas. Admin tiene timeout de 30 min por inactividad.
               </div>
             </div>
           )}
