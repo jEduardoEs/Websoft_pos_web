@@ -233,8 +233,8 @@ export default function POSPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: 'calc(100vh - 54px)', overflow: 'hidden' }}>
       {/* LEFT */}
-      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #e2eaf4', background: 'rgba(255,255,255,.03)' }}>
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #e2eaf4', background: '#ffffff' }}>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9' }}>
           <input
             ref={searchRef}
             className="input"
@@ -252,12 +252,12 @@ export default function POSPage() {
               style={{
                 border: '1.5px solid #e2eaf4', borderRadius: 10, padding: '10px 8px',
                 textAlign: 'center', cursor: p.stock <= 0 ? 'not-allowed' : 'pointer',
-                opacity: p.stock <= 0 ? .45 : 1, background: 'rgba(255,255,255,.03)',
+                opacity: p.stock <= 0 ? .45 : 1, background: '#ffffff',
               }}
             >
-              <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{p.codigo}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 4, lineHeight: 1.3 }}>{p.nombre}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#60a5fa' }}>{fmt(p.precio)}</div>
+              <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>{p.codigo}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', marginBottom: 4, lineHeight: 1.3 }}>{p.nombre}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#2563eb' }}>{fmt(p.precio)}</div>
               <div style={{ fontSize: 10, color: p.stock <= 5 ? '#f59e0b' : '#4a5568', marginTop: 3 }}>
                 {p.stock <= 0 ? 'Sin stock' : `${p.stock} en stock`}
               </div>
@@ -272,9 +272,9 @@ export default function POSPage() {
       </div>
 
       {/* RIGHT */}
-      <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,.03)', overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#e2e8f0' }}>Carrito ({cart.length})</span>
+      <div style={{ display: 'flex', flexDirection: 'column', background: '#ffffff', overflow: 'hidden' }}>
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Carrito ({cart.length})</span>
           <button className="btn-ghost btn-sm" onClick={() => setCart([])}>Limpiar</button>
         </div>
 
@@ -284,49 +284,49 @@ export default function POSPage() {
               Agrega productos al carrito
             </div>
           ) : cart.map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, border: '1px solid rgba(37,99,235,.18)', borderRadius: 8, marginBottom: 6, background: 'rgba(255,255,255,.03)' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 6, background: '#ffffff' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', lineHeight: 1.2 }}>{item.nombre}</div>
-                <div style={{ fontSize: 10, color: '#94a3b8' }}>{fmt(item.precioUnitario)}/u</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', lineHeight: 1.2 }}>{item.nombre}</div>
+                <div style={{ fontSize: 10, color: '#64748b' }}>{fmt(item.precioUnitario)}/u</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <button onClick={() => changeQty(i, -1)} style={{ width: 22, height: 22, borderRadius: 5, border: '1.5px solid #e2eaf4', background: 'rgba(255,255,255,.03)', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
+                <button onClick={() => changeQty(i, -1)} style={{ width: 22, height: 22, borderRadius: 5, border: '1.5px solid #e2eaf4', background: '#ffffff', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
                 <span style={{ width: 28, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{item.cantidad}</span>
-                <button onClick={() => changeQty(i, 1)} style={{ width: 22, height: 22, borderRadius: 5, border: '1.5px solid #e2eaf4', background: 'rgba(255,255,255,.03)', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                <button onClick={() => changeQty(i, 1)} style={{ width: 22, height: 22, borderRadius: 5, border: '1.5px solid #e2eaf4', background: '#ffffff', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', minWidth: 60, textAlign: 'right' }}>{fmt(item.subtotal)}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', minWidth: 60, textAlign: 'right' }}>{fmt(item.subtotal)}</span>
               <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#c5d5e8', cursor: 'pointer', fontSize: 16, padding: '2px 4px' }}>x</button>
             </div>
           ))}
         </div>
 
         {/* Totals */}
-        <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,.07)', background: 'rgba(37,99,235,.1)' }}>
+        <div style={{ padding: '10px 14px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
           {totalesRows.map(([l, v]) => (
-            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: 12, color: '#94a3b8' }}>
+            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: 12, color: '#64748b' }}>
               <span>{l}</span><span>{v}</span>
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0 0', borderTop: '1px solid rgba(255,255,255,.07)', marginTop: 5, fontSize: 17, fontWeight: 700, color: '#e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0 0', borderTop: '1px solid #f1f5f9', marginTop: 5, fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
             <span>TOTAL</span><span>{fmt(total)}</span>
           </div>
         </div>
 
         {/* Actions */}
-        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 7, borderTop: '1px solid rgba(255,255,255,.07)' }}>
+        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 7, borderTop: '1px solid #f1f5f9' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>NIT</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>NIT</label>
               <input className="input" value={clienteNit} onChange={e => setClienteNit(e.target.value)} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12 }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Nombre</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Nombre</label>
               <input className="input" value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Consumidor Final" style={{ padding: '6px 8px', fontSize: 12 }} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Metodo pago</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Metodo pago</label>
               <select className="input" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} style={{ padding: '6px 8px', fontSize: 12 }}>
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
@@ -334,12 +334,12 @@ export default function POSPage() {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Monto recibido</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Monto recibido</label>
               <input className="input" type="number" value={montoRecibido} onChange={e => setMontoRecibido(e.target.value)} placeholder={fmt(total)} style={{ padding: '6px 8px', fontSize: 12 }} />
             </div>
           </div>
           {montoRecibido && parseFloat(montoRecibido) >= total && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: '#10b981', padding: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: '#16a34a', padding: '4px 0' }}>
               <span>Cambio:</span><span>{fmt(cambio)}</span>
             </div>
           )}
@@ -361,15 +361,15 @@ export default function POSPage() {
       {/* Modal cobro exitoso */}
       {showCobro && lastVenta && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 14, padding: 28, width: 380, boxShadow: '0 30px 80px rgba(0,0,0,.2)', textAlign: 'center' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 28, width: 380, boxShadow: '0 30px 80px rgba(0,0,0,.2)', textAlign: 'center' }}>
             <div style={{ width: 60, height: 60, background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="28" height="28" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>Venta Registrada</h3>
-            <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 4 }}>Factura <strong style={{ color: '#60a5fa' }}>{lastVenta.numero}</strong></p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0', marginBottom: 16 }}>{fmt(lastVenta.total)}</p>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Venta Registrada</h3>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 4 }}>Factura <strong style={{ color: '#2563eb' }}>{lastVenta.numero}</strong></p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>{fmt(lastVenta.total)}</p>
             {lastVenta.cambio > 0 && (
-              <p style={{ fontSize: 15, color: '#10b981', marginBottom: 16 }}>Cambio: <strong>{fmt(lastVenta.cambio)}</strong></p>
+              <p style={{ fontSize: 15, color: '#16a34a', marginBottom: 16 }}>Cambio: <strong>{fmt(lastVenta.cambio)}</strong></p>
             )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button className="btn-ghost" onClick={printTicket}>Imprimir</button>

@@ -29,7 +29,7 @@ async function main() {
     ['empresa_telefono', ''],
     ['empresa_email', ''],
     ['ticket_mensaje', '¡Gracias por su compra!'],
-    ['iva_porcentaje', '12'],
+    ['iva_porcentaje', '5'],
     ['numero_siguiente', '1'],
     ['numero_siguiente_compra', '1'],
     ['moneda_simbolo', 'Q'],

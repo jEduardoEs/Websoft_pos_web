@@ -57,8 +57,8 @@ export default function DevolucionesPage() {
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0' }}>Devoluciones</h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>{devoluciones.length} devoluciones registradas</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Devoluciones</h1>
+          <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{devoluciones.length} devoluciones registradas</p>
         </div>
         <button className="btn-primary" onClick={() => { setVentaId(''); setVentaDetalle(null); setMotivo(''); setSelectedItems({}); setShowModal(true) }}>+ Nueva Devolución</button>
       </div>
@@ -68,18 +68,18 @@ export default function DevolucionesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>{['Fecha', 'Factura', 'Motivo', 'Total devuelto', 'Usuario'].map(h => (
-                <th key={h} style={{ background: 'rgba(37,99,235,.1)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,.06)' }}>{h}</th>
+                <th key={h} style={{ background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {devoluciones.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>Sin devoluciones</td></tr>
               : devoluciones.map(d => (
                 <tr key={d.id}>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', whiteSpace: 'nowrap' }}>{fmtDateTime(d.fecha)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#60a5fa' }}>{d.ventaNumero || '—'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)' }}>{d.motivo}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#ef4444' }}>{fmt(d.totalDevuelto)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{d.usuarioNombre || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>{fmtDateTime(d.fecha)}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid #f1f5f9', color: '#2563eb' }}>{d.ventaNumero || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9' }}>{d.motivo}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9', color: '#ef4444' }}>{fmt(d.totalDevuelto)}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{d.usuarioNombre || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -89,36 +89,36 @@ export default function DevolucionesPage() {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0' }}>Nueva Devolución</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Nueva Devolución</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#475569' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Factura de venta</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Factura de venta</label>
                 <select className="input" value={ventaId} onChange={e => selVenta(e.target.value)}>
                   <option value="">Seleccionar factura...</option>
                   {ventas.map(v => <option key={v.id} value={v.id}>{v.numero} — {v.clienteNombre} — {fmt(v.total)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Motivo *</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Motivo *</label>
                 <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Razón de la devolución" />
               </div>
             </div>
 
             {ventaDetalle && (
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10 }}>Seleccionar productos a devolver</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 10 }}>Seleccionar productos a devolver</p>
                 {ventaDetalle.items.map((item: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600 }}>{item.nombre}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>Cant. comprada: {item.cantidad} — {fmt(item.precioUnitario)}/u</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Cant. comprada: {item.cantidad} — {fmt(item.precioUnitario)}/u</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>Devolver:</span>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>Devolver:</span>
                       <input
                         className="input" type="number" min="0" max={item.cantidad}
                         value={selectedItems[i] || 0}

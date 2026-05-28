@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Topbar user={session.user} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar role={session.user.role} />
-        <main style={{ flex: 1, overflowY: 'auto', background: '#0a1628' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
           {children}
         </main>
       </div>

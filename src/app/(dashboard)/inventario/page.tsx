@@ -146,8 +146,8 @@ export default function InventarioPage() {
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0' }}>Inventario</h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>{productos.length} productos activos</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Inventario</h1>
+          <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{productos.length} productos activos</p>
         </div>
         <button className="btn-primary" onClick={openNew}>+ Nuevo Producto</button>
       </div>
@@ -168,7 +168,7 @@ export default function InventarioPage() {
             <thead>
               <tr>
                 {['Codigo', 'Nombre', 'Categoria', 'Precio', 'Costo', 'Stock', 'Min.', 'Unidad', ''].map(h => (
-                  <th key={h} style={{ background: 'rgba(37,99,235,.1)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,.06)', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -177,17 +177,17 @@ export default function InventarioPage() {
                 <tr><td colSpan={9} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>Sin productos</td></tr>
               ) : productos.map(p => (
                 <tr key={p.id}>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{p.codigo || '-'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', fontWeight: 600, color: '#e2e8f0' }}>{p.nombre}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)' }}><span className="badge-blue">{p.categoria}</span></td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', fontWeight: 600 }}>{fmt(p.precio)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{fmt(p.costo)}</td>
-                  <td style={{ padding: '10px 13px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{p.codigo || '-'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', fontWeight: 600, color: '#0f172a' }}>{p.nombre}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9' }}><span className="badge-blue">{p.categoria}</span></td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{fmt(p.precio)}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{fmt(p.costo)}</td>
+                  <td style={{ padding: '10px 13px', borderBottom: '1px solid #f1f5f9' }}>
                     <span className={p.stock <= 0 ? 'badge-red' : p.stock <= p.stockMinimo ? 'badge-orange' : 'badge-green'}>{p.stock}</span>
                   </td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{p.stockMinimo}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{p.unidad}</td>
-                  <td style={{ padding: '10px 13px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{p.stockMinimo}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{p.unidad}</td>
+                  <td style={{ padding: '10px 13px', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn-ghost btn-sm" onClick={() => openEdit(p)}>Editar</button>
                       <button className="btn-ghost btn-sm" onClick={() => openKardex(p)}>Kardex</button>
@@ -203,15 +203,15 @@ export default function InventarioPage() {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0' }}>{form.id ? 'Editar' : 'Nuevo'} Producto</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{form.id ? 'Editar' : 'Nuevo'} Producto</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#475569' }}>x</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {fields.map(f => (
                 <div key={f.key} style={{ gridColumn: f.full ? '1/-1' : 'auto' }}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>{f.label}</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>{f.label}</label>
                   <input
                     className="input"
                     type={f.type || 'text'}
@@ -231,20 +231,20 @@ export default function InventarioPage() {
 
       {kardexModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0' }}>Kardex - {kardexModal.nombre}</h3>
-                <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>Stock actual: <strong style={{ color: '#60a5fa' }}>{kardexModal.stock}</strong></p>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Kardex - {kardexModal.nombre}</h3>
+                <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Stock actual: <strong style={{ color: '#2563eb' }}>{kardexModal.stock}</strong></p>
               </div>
               <button onClick={() => setKardexModal(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#475569' }}>x</button>
             </div>
 
-            <div style={{ background: 'rgba(37,99,235,.1)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase' }}>Ajuste de inventario</p>
+            <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 10, textTransform: 'uppercase' }}>Ajuste de inventario</p>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 3 }}>Tipo</label>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>Tipo</label>
                   <select className="input" value={ajusteTipo} onChange={e => setAjusteTipo(e.target.value)} style={{ width: 130 }}>
                     <option value="entrada">Entrada</option>
                     <option value="salida">Salida</option>
@@ -252,11 +252,11 @@ export default function InventarioPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 3 }}>Cantidad</label>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>Cantidad</label>
                   <input className="input" type="number" min="1" value={ajusteCantidad} onChange={e => setAjusteCantidad(e.target.value)} style={{ width: 100 }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 3 }}>Motivo</label>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>Motivo</label>
                   <input className="input" value={ajusteMotivo} onChange={e => setAjusteMotivo(e.target.value)} placeholder="Razon del ajuste" />
                 </div>
                 <button className="btn-primary" onClick={ajustar} disabled={loading}>Aplicar</button>
@@ -268,7 +268,7 @@ export default function InventarioPage() {
                 <thead>
                   <tr>
                     {['Fecha', 'Tipo', 'Cant.', 'Antes', 'Despues', 'Motivo', 'Usuario'].map(h => (
-                      <th key={h} style={{ background: 'rgba(37,99,235,.1)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,.06)' }}>{h}</th>
+                      <th key={h} style={{ background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -277,15 +277,15 @@ export default function InventarioPage() {
                     <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: '#475569' }}>Sin movimientos</td></tr>
                   ) : kardex.map((k, i) => (
                     <tr key={i}>
-                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', whiteSpace: 'nowrap' }}>{fmtDateTime(k.fecha)}</td>
-                      <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>{fmtDateTime(k.fecha)}</td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9' }}>
                         <span className={k.tipo === 'entrada' ? 'badge-green' : k.tipo === 'salida' ? 'badge-red' : 'badge-orange'} style={{ textTransform: 'capitalize' }}>{k.tipo}</span>
                       </td>
-                      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,.04)' }}>{k.cantidad}</td>
-                      <td style={{ padding: '8px 12px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{k.stockAntes}</td>
-                      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#60a5fa' }}>{k.stockDespues}</td>
-                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{k.motivo || '-'}</td>
-                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8' }}>{k.usuarioNombre || '-'}</td>
+                      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>{k.cantidad}</td>
+                      <td style={{ padding: '8px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{k.stockAntes}</td>
+                      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid #f1f5f9', color: '#2563eb' }}>{k.stockDespues}</td>
+                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{k.motivo || '-'}</td>
+                      <td style={{ padding: '8px 12px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{k.usuarioNombre || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

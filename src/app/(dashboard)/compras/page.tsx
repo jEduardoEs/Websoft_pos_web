@@ -56,8 +56,8 @@ export default function ComprasPage() {
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2e8f0' }}>Compras</h1>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>Órdenes de compra a proveedores</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Compras</h1>
+          <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>Órdenes de compra a proveedores</p>
         </div>
         <button className="btn-primary" onClick={() => { setForm({ proveedorId: '', proveedorNombre: '', estado: 'recibida', notas: '' }); setItems([]); setShowModal(true) }}>+ Nueva Compra</button>
       </div>
@@ -67,18 +67,18 @@ export default function ComprasPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>{['#', 'Fecha', 'Proveedor', 'Total', 'Estado'].map(h => (
-                <th key={h} style={{ background: 'rgba(37,99,235,.1)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,.06)' }}>{h}</th>
+                <th key={h} style={{ background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {compras.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>Sin compras</td></tr>
               : compras.map(c => (
                 <tr key={c.id}>
-                  <td style={{ padding: '10px 13px', fontWeight: 700, fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#60a5fa' }}>{c.numero}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,.04)', color: '#94a3b8', whiteSpace: 'nowrap' }}>{fmtDateTime(c.fecha)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,.04)' }}>{c.proveedorNombre || '—'}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,.04)' }}>{fmt(c.total)}</td>
-                  <td style={{ padding: '10px 13px', borderBottom: '1px solid rgba(255,255,255,.04)' }}><span className={c.estado === 'recibida' ? 'badge-green' : 'badge-orange'} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
+                  <td style={{ padding: '10px 13px', fontWeight: 700, fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#2563eb' }}>{c.numero}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{fmtDateTime(c.fecha)}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9' }}>{c.proveedorNombre || '—'}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9' }}>{fmt(c.total)}</td>
+                  <td style={{ padding: '10px 13px', borderBottom: '1px solid #f1f5f9' }}><span className={c.estado === 'recibida' ? 'badge-green' : 'badge-orange'} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -88,35 +88,35 @@ export default function ComprasPage() {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0' }}>Nueva Compra</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Nueva Compra</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#475569' }}>×</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Proveedor</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Proveedor</label>
                 <select className="input" value={form.proveedorId} onChange={e => { const p = proveedores.find(x => x.id === Number(e.target.value)); setForm(f => ({ ...f, proveedorId: e.target.value, proveedorNombre: p?.nombre || '' })) }}>
                   <option value="">Sin proveedor</option>
                   {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Estado</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Estado</label>
                 <select className="input" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}>
                   <option value="recibida">Recibida (actualiza stock)</option>
                   <option value="pendiente">Pendiente</option>
                 </select>
               </div>
               <div style={{ gridColumn: '1/-1' }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Notas</label>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Notas</label>
                 <input className="input" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>Productos</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Productos</span>
                 <button className="btn-ghost btn-sm" onClick={addItem}>+ Agregar</button>
               </div>
               {items.map((item, i) => (
@@ -134,7 +134,7 @@ export default function ComprasPage() {
               ))}
             </div>
 
-            <div style={{ background: 'rgba(37,99,235,.1)', borderRadius: 8, padding: '12px 16px', marginBottom: 20 }}>
+            <div style={{ background: '#f8fafc', borderRadius: 8, padding: '12px 16px', marginBottom: 20 }}>
               {[['Subtotal', fmt(subtotal)], ['IVA (12%)', fmt(impuesto)], ['Total', fmt(total)]].map(([l, v], i) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: i === 2 ? 16 : 13, fontWeight: i === 2 ? 700 : 400, color: i === 2 ? '#1a1f36' : '#4a5568', padding: '3px 0', borderTop: i === 2 ? '1px solid #e2eaf4' : 'none', paddingTop: i === 2 ? 8 : 3, marginTop: i === 2 ? 6 : 0 }}>
                   <span>{l}</span><span>{v}</span>
