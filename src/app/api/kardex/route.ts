@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -12,14 +12,13 @@ export async function GET(req: NextRequest)
     const where: any = {}
     if (productoId) where.productoId = Number(productoId)
     return NextResponse.json(await prisma.kardex.findMany({ where, orderBy: { id: 'desc' }, take: 100 }))
-  }
 
   } catch (e: any) {
     console.error('kardex/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -33,7 +32,6 @@ export async function POST(req: NextRequest)
       prisma.kardex.create({ data: { productoId: prod.id, tipo, cantidad, stockAntes: prod.stock, stockDespues: newStock, motivo, usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name } }),
     ])
     return NextResponse.json({ ok: true, newStock })
-  }
 
   } catch (e: any) {
     console.error('kardex/route.ts error:', e?.message)

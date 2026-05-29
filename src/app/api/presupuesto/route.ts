@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -41,14 +41,13 @@ export async function GET(req: NextRequest)
     const totalReal = meses.reduce((s, m) => s + m.real, 0)
 
     return NextResponse.json({ anio, meses, totalMeta, totalReal, diferencia: totalReal - totalMeta })
-  }
 
   } catch (e: any) {
     console.error('presupuesto/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -63,7 +62,6 @@ export async function POST(req: NextRequest)
       create: { anio: Number(anio), mes: Number(mes), meta: +meta, notas },
     })
     return NextResponse.json({ ok: true, presupuesto: p })
-  }
 
   } catch (e: any) {
     console.error('presupuesto/route.ts error:', e?.message)

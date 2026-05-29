@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -15,7 +15,6 @@ export async function GET(req: NextRequest)
     })
     if (cliente) return NextResponse.json({ encontrado: true, cliente })
     return NextResponse.json({ encontrado: false })
-  }
 
   } catch (e: any) {
     console.error('clientes/buscar-nit/route.ts error:', e?.message)

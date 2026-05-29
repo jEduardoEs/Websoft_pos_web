@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET() 
+export async function GET()  {
   try {
 
     const session = await auth()
@@ -36,7 +36,6 @@ export async function GET()
       totalMes: totalMes._sum.total || 0,
       productosLow, topProductos, productosStockBajo,
     })
-  }
 
   } catch (e: any) {
     console.error('dashboard/route.ts error:', e?.message)

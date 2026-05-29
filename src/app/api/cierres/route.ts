@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET() 
+export async function GET()  {
   try {
 
     const session = await auth()
     if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     return NextResponse.json(await prisma.cierre.findMany({ orderBy: { id: 'desc' }, take: 50 }))
-  }
 
   } catch (e: any) {
     console.error('cierres/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -38,7 +37,6 @@ export async function POST(req: NextRequest)
       },
     })
     return NextResponse.json({ ok: true, cierre: c })
-  }
 
   } catch (e: any) {
     console.error('cierres/route.ts error:', e?.message)

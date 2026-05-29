@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -59,7 +59,6 @@ export async function GET(req: NextRequest)
       porDia, porMes, porMetodo, topProductos, porCajero,
       detalle: ventas.map(v => ({ id: v.id, numero: v.numero, fecha: v.fecha, clienteNombre: v.clienteNombre, total: v.total, metodoPago: v.metodoPago, usuarioNombre: v.usuarioNombre })),
     })
-  }
 
   } catch (e: any) {
     console.error('reportes/route.ts error:', e?.message)

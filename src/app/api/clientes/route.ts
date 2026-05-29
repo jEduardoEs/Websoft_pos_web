@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest) {
   try {
-
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const { searchParams } = new URL(req.url)
@@ -16,16 +15,13 @@ export async function GET(req: NextRequest)
       { telefono: { contains: buscar, mode: 'insensitive' } },
     ]
     return NextResponse.json(await prisma.cliente.findMany({ where, orderBy: { nombre: 'asc' } }))
-  }
-
   } catch (e: any) {
-    console.error('clientes/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
-  try {
 
+export async function POST(req: NextRequest) {
+  try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const body = await req.json()
@@ -37,16 +33,13 @@ export async function POST(req: NextRequest)
     }
     const c = await prisma.cliente.create({ data: { nombre, nit, telefono, email, direccion, notas } })
     return NextResponse.json({ ok: true, cliente: c })
-  }
-
   } catch (e: any) {
-    console.error('clientes/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function DELETE(req: NextRequest) 
-  try {
 
+export async function DELETE(req: NextRequest) {
+  try {
     const session = await auth()
     if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const { searchParams } = new URL(req.url)
@@ -54,10 +47,7 @@ export async function DELETE(req: NextRequest)
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     await prisma.cliente.update({ where: { id: Number(id) }, data: { activo: false } })
     return NextResponse.json({ ok: true })
-  }
-
   } catch (e: any) {
-    console.error('clientes/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }

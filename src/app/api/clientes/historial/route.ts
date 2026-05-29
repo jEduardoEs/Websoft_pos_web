@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -36,7 +36,6 @@ export async function GET(req: NextRequest)
       garantias, ordenes,
       cliente: ventas[0] ? { nombre: ventas[0].clienteNombre, nit: ventas[0].clienteNit } : null,
     })
-  }
 
   } catch (e: any) {
     console.error('clientes/historial/route.ts error:', e?.message)

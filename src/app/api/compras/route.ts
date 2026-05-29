@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET() 
+export async function GET()  {
   try {
 
     const session = await auth()
     if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     return NextResponse.json(await prisma.compra.findMany({ orderBy: { id: 'desc' }, take: 100, include: { items: true } }))
-  }
 
   } catch (e: any) {
     console.error('compras/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest)
       await tx.config.upsert({ where: { clave: 'numero_siguiente_compra' }, update: { valor: String(num + 1) }, create: { clave: 'numero_siguiente_compra', valor: String(num + 1) } })
     })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('compras/route.ts error:', e?.message)

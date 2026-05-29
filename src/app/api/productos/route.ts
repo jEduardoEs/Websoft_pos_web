@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -24,14 +24,13 @@ export async function GET(req: NextRequest)
 
     const productos = await prisma.producto.findMany({ where, orderBy: { nombre: 'asc' } })
     return NextResponse.json(productos)
-  }
 
   } catch (e: any) {
     console.error('productos/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -54,14 +53,13 @@ export async function POST(req: NextRequest)
       data: { nombre, codigo, descripcion, precio: +precio || 0, costo: +costo || 0, stock: +stock || 0, stockMinimo: +stockMinimo || 5, categoria: categoria || 'General', unidad: unidad || 'unidad', imagenUrl: imagenUrl || null },
     })
     return NextResponse.json({ ok: true, producto: prod })
-  }
 
   } catch (e: any) {
     console.error('productos/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function DELETE(req: NextRequest) 
+export async function DELETE(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -73,7 +71,6 @@ export async function DELETE(req: NextRequest)
 
     await prisma.producto.update({ where: { id: Number(id) }, data: { activo: false } })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('productos/route.ts error:', e?.message)

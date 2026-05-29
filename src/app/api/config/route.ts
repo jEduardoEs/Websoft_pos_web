@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET() 
+export async function GET()  {
   try {
 
     const session = await auth()
@@ -11,14 +11,13 @@ export async function GET()
     const cfg: Record<string, string> = {}
     rows.forEach(r => { cfg[r.clave] = r.valor })
     return NextResponse.json(cfg)
-  }
 
   } catch (e: any) {
     console.error('config/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -28,7 +27,6 @@ export async function POST(req: NextRequest)
       prisma.config.upsert({ where: { clave }, update: { valor: String(valor) }, create: { clave, valor: String(valor) } })
     ))
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('config/route.ts error:', e?.message)

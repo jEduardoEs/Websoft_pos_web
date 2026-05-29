@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
-export async function GET() 
+export async function GET()  {
   try {
 
     const session = await auth()
@@ -13,14 +13,13 @@ export async function GET()
       orderBy: { nombre: 'asc' },
     })
     return NextResponse.json(users)
-  }
 
   } catch (e: any) {
     console.error('usuarios/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -37,14 +36,13 @@ export async function POST(req: NextRequest)
     if (!password) return NextResponse.json({ error: 'Contraseña requerida' }, { status: 400 })
     await prisma.usuario.create({ data: { nombre, usuario, password: await bcrypt.hash(password, 12), rol: rol || 'cajero' } })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('usuarios/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function DELETE(req: NextRequest) 
+export async function DELETE(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -55,7 +53,6 @@ export async function DELETE(req: NextRequest)
     if (Number(id) === parseInt(session.user.id)) return NextResponse.json({ error: 'No puedes eliminarte' }, { status: 400 })
     await prisma.usuario.update({ where: { id: Number(id) }, data: { activo: false } })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('usuarios/route.ts error:', e?.message)

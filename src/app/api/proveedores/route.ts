@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest) 
+export async function GET(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -12,14 +12,13 @@ export async function GET(req: NextRequest)
     const where: any = { activo: true }
     if (buscar) where.OR = [{ nombre: { contains: buscar, mode: 'insensitive' } }, { nit: { contains: buscar, mode: 'insensitive' } }]
     return NextResponse.json(await prisma.proveedor.findMany({ where, orderBy: { nombre: 'asc' } }))
-  }
 
   } catch (e: any) {
     console.error('proveedores/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest) 
+export async function POST(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -33,14 +32,13 @@ export async function POST(req: NextRequest)
     }
     await prisma.proveedor.create({ data: { nombre, nit, telefono, email, direccion, contacto, notas } })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('proveedores/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function DELETE(req: NextRequest) 
+export async function DELETE(req: NextRequest)  {
   try {
 
     const session = await auth()
@@ -50,7 +48,6 @@ export async function DELETE(req: NextRequest)
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     await prisma.proveedor.update({ where: { id: Number(id) }, data: { activo: false } })
     return NextResponse.json({ ok: true })
-  }
 
   } catch (e: any) {
     console.error('proveedores/route.ts error:', e?.message)
