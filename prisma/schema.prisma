@@ -350,7 +350,6 @@ model ActiveSession {
   usuarioId     Int      @unique @map("usuario_id")
   sessionToken  String   @map("session_token")
   ip            String?
-  userAgent     String?  @map("user_agent")
   lastActivity  DateTime @default(now()) @map("last_activity")
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -362,7 +361,6 @@ model OrdenTrabajo {
   id              Int      @id @default(autoincrement())
   numero          String   @unique
   fecha           DateTime @default(now())
-  clienteId       Int?     @map("cliente_id")
   clienteNombre   String   @map("cliente_nombre")
   clienteTelefono String?  @map("cliente_telefono")
   clienteNit      String?  @map("cliente_nit")
@@ -388,7 +386,6 @@ model OrdenTrabajo {
   fechaPromesa    DateTime? @map("fecha_promesa")
   fechaEntrega    DateTime? @map("fecha_entrega")
   // Asignado
-  tecnicoId       Int?     @map("tecnico_id")
   tecnicoNombre   String?  @map("tecnico_nombre")
   usuarioId       Int?     @map("usuario_id")
   usuarioNombre   String?  @map("usuario_nombre")
@@ -462,9 +459,6 @@ model Presupuesto {
   @@unique([anio, mes])
   @@map("presupuestos")
 }
-
-// ─── PRODUCTOS - imagen ──────────────────────────────────
-// (Se agrega campo imagenUrl al modelo Producto existente via migration)
 
 model ReclamoGarantia {
   id              Int      @id @default(autoincrement())
