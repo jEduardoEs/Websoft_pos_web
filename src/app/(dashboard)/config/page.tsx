@@ -28,6 +28,29 @@ export default function ConfigPage() {
   const [cfg, setCfg] = useState<Cfg>({})
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [asignando, setAsignando] = useState(false)
+  const [resultadoAsignacion, setResultadoAsignacion] = useState<any>(null)
+
+  const asignarCodigos = async (soloSinCodigo: boolean) => {
+    if (!confirm(soloSinCodigo
+      ? '¿Asignar códigos automáticos solo a productos sin código?'
+      : '¿Reasignar códigos a TODOS los productos? Esto sobreescribirá códigos existentes.'))
+      return
+    setAsignando(true)
+    setResultadoAsignacion(null)
+    const res = await fetch('/api/productos/asignar-codigos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ soloSinCodigo }),
+    })
+    const data = await res.json()
+    setAsignando(false)
+    if (data.ok) {
+      setResultadoAsignacion(data)
+      toast.success(data.mensaje)
+    } else {
+      toast.error(data.error || 'Error')
+    }
+  }
   const [activeTab, setActiveTab] = useState('empresa')
 
   useEffect(() => {
@@ -161,6 +184,61 @@ export default function ConfigPage() {
           <FIELD label="Validez de cotizaciones (días)" helpText="Días por defecto para nuevas cotizaciones">
             <input className="input" type="number" min="1" value={cfg.cotizacion_validez || '15'} onChange={e => set('cotizacion_validez', e.target.value)} style={{ maxWidth: 120 }} />
           </FIELD>
+
+          <div style={{ gridColumn: '1/-1', borderTop: '1px solid #e2e8f0', paddingTop: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+              🔄 Asignación masiva de códigos
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.6 }}>
+              Los productos que ya existen en la base de datos sin código pueden recibir uno automáticamente con el prefijo configurado arriba (<strong>{cfg.producto_prefijo || 'WSP'}</strong>).
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => asignarCodigos(true)}
+                disabled={asignando}
+                className="btn-primary"
+                style={{ fontSize: 13 }}
+              >
+                {asignando ? 'Asignando...' : `Asignar a productos sin código`}
+              </button>
+              <button
+                onClick={() => asignarCodigos(false)}
+                disabled={asignando}
+                className="btn-ghost"
+                style={{ fontSize: 13, borderColor: '#fca5a5', color: '#dc2626' }}
+              >
+                Reasignar a TODOS los productos
+              </button>
+            </div>
+
+            {resultadoAsignacion && (
+              <div style={{ marginTop: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14 }}>
+                <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 8, fontSize: 13 }}>
+                  ✅ {resultadoAsignacion.mensaje}
+                </div>
+                {resultadoAsignacion.productos?.length > 0 && (
+                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                      <thead>
+                        <tr style={{ background: '#dcfce7' }}>
+                          <th style={{ padding: '4px 8px', textAlign: 'left', color: '#166534' }}>Código asignado</th>
+                          <th style={{ padding: '4px 8px', textAlign: 'left', color: '#166534' }}>Producto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultadoAsignacion.productos.map((p: any) => (
+                          <tr key={p.id} style={{ borderBottom: '1px solid #dcfce7' }}>
+                            <td style={{ padding: '3px 8px', fontWeight: 700, color: '#2563eb', fontFamily: 'monospace' }}>{p.codigo}</td>
+                            <td style={{ padding: '3px 8px', color: '#374151' }}>{p.nombre}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </SECTION>
       )}
 
