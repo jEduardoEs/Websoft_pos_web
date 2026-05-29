@@ -9,14 +9,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect('/login')
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', flexDirection: 'column' }}>
-      <Topbar user={session.user} />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar />
-        <main style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
-          <Providers>{children}</Providers>
-        </main>
+    <Providers>
+      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', flexDirection: 'column' }}>
+        <Topbar user={session.user} />
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <Sidebar />
+          <main style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </Providers>
   )
 }
