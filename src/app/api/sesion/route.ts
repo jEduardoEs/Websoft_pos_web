@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // Update last activity
 export async function POST() {
   const session = await auth()
