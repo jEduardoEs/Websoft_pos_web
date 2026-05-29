@@ -465,3 +465,30 @@ model Presupuesto {
 
 // ─── PRODUCTOS - imagen ──────────────────────────────────
 // (Se agrega campo imagenUrl al modelo Producto existente via migration)
+
+model ReclamoGarantia {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  garantiaId      Int      @map("garantia_id")
+  garantiaNumero  String   @map("garantia_numero")
+  clienteNombre   String   @map("cliente_nombre")
+  clienteNit      String?  @map("cliente_nit")
+  clienteDpi      String?  @map("cliente_dpi")
+  clienteTelefono String?  @map("cliente_telefono")
+  productoNombre  String   @map("producto_nombre")
+  productoSerie   String?  @map("producto_serie")
+  motivoReclamo   String   @map("motivo_reclamo")
+  descripcionFalla String  @map("descripcion_falla")
+  tieneFactura    Boolean  @default(false) @map("tiene_factura")
+  numeroFactura   String?  @map("numero_factura")
+  estado          String   @default("recibido") // recibido | en_revision | aprobado | rechazado | resuelto
+  decision        String?  // reparar | reemplazar | rechazar
+  resolucion      String?
+  ordenTrabajoId  Int?     @map("orden_trabajo_id")
+  usuarioNombre   String?  @map("usuario_nombre")
+  notas           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("reclamos_garantia")
+}

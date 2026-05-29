@@ -426,7 +426,7 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
     setTimeout(() => w.print(), 700)
   }
 
-  const estadoBadge = (e: string) => ({ pendiente: 'badge-orange', aceptada: 'badge-green', rechazada: 'badge-red', vencida: 'badge-gray' }[e] || 'badge-gray')
+  const estadoBadge = (e: string) => ({ pendiente: 'badge-orange', aceptada: 'badge-green', rechazada: 'badge-red', vencida: 'badge-gray', facturada: 'badge-blue' }[e] || 'badge-gray')
 
   const lbl = { display: 'block' as const, fontSize: 10, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '.5px', marginBottom: 4 }
   const sec = { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, marginBottom: 14 }
@@ -468,6 +468,12 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {(c.estado === 'aceptada' || c.estado === 'pendiente') && c.estado !== 'facturada' && (
+                        <a href="/pos" onClick={() => { localStorage.setItem('cot_facturar', c.id.toString()); }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                          💰 Facturar
+                        </a>
+                      )}
                       {c.estado === 'pendiente' && (
                         <>
                           <button onClick={() => solicitarCambioEstado(c.id, 'aceptada', c.numero)}
