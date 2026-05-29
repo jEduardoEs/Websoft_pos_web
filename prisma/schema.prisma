@@ -17,6 +17,7 @@ model Usuario {
   usuario    String   @unique
   password   String
   rol        String   @default("cajero") // admin | cajero
+  permisos   String   @default("") // JSON array of module permissions
   activo     Boolean  @default(true)
   createdAt  DateTime @default(now()) @map("created_at")
 

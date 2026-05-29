@@ -63,6 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.usuario,
           role: user.rol,
           sessionToken,
+          permisos: user.permisos || '',
         }
       },
     }),
@@ -73,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = (user as any).role
         token.id = user.id
         token.sessionToken = (user as any).sessionToken
+        token.permisos = (user as any).permisos || ''
       }
       return token
     },
@@ -81,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role as string
         session.user.id = token.id as string
         session.user.sessionToken = token.sessionToken as string
+        session.user.permisos = token.permisos as string
       }
       return session
     },
@@ -91,6 +94,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 declare module 'next-auth' {
   interface Session {
-    user: { id: string; name: string; email: string; role: string; sessionToken: string }
+    user: { id: string; name: string; email: string; role: string; sessionToken: string; permisos: string }
   }
 }

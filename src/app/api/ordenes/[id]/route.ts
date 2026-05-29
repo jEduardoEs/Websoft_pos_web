@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
-export async function GET(req: NextRequest,  {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-   params }: { params: { id: string } }) {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const orden = await prisma.ordenTrabajo.findUnique({
@@ -13,20 +15,21 @@ export async function GET(req: NextRequest,  {
     })
     if (!orden) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     return NextResponse.json(orden)
-
   } catch (e: any) {
-    console.error('ordenes/[id]/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function PATCH(req: NextRequest,  {
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-   params }: { params: { id: string } }) {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await req.json()
-    const { estado, diagnostico, trabajoRealizado, costoReparacion, costoRepuestos, tecnicoNombre, comentario, fechaEntrega } = body
+    const { estado, diagnostico, trabajoRealizado, costoReparacion, costoRepuestos, tecnicoNombre, comentario } = body
 
     const orden = await prisma.ordenTrabajo.findUnique({ where: { id: Number(params.id) } })
     if (!orden) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
@@ -61,22 +64,23 @@ export async function PATCH(req: NextRequest,  {
     })
 
     return NextResponse.json({ ok: true })
-
   } catch (e: any) {
-    console.error('ordenes/[id]/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function DELETE(req: NextRequest,  {
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-   params }: { params: { id: string } }) {
     const session = await auth()
-    if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
     await prisma.ordenTrabajo.delete({ where: { id: Number(params.id) } })
     return NextResponse.json({ ok: true })
-
   } catch (e: any) {
-    console.error('ordenes/[id]/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
