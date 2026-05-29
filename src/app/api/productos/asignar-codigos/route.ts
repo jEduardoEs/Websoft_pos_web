@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     const prefix = cfg?.valor || 'WSP'
 
     // Get products to update
-    const where = soloSinCodigo ? { OR: [{ codigo: null }, { codigo: '' }] } : {}
+    const where = soloSinCodigo
+      ? { OR: [{ codigo: null }, { codigo: '' }] }
+      : {}
     const productos = await prisma.producto.findMany({
       where, orderBy: { id: 'asc' }, select: { id: true, nombre: true, codigo: true },
     })
@@ -27,28 +29,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, actualizados: 0, mensaje: 'Todos los productos ya tienen código' })
     }
 
-    // Get max existing number to continue from there
+    // Get ALL currently used numbers for this prefix
     const todos = await prisma.producto.findMany({
       where: { codigo: { startsWith: prefix + '-' } },
       select: { codigo: true },
     })
-    let maxNum = 0
+    const usados = new Set<number>()
     todos.forEach(p => {
       const n = parseInt(p.codigo?.replace(prefix + '-', '') || '0')
-      if (!isNaN(n) && n > maxNum) maxNum = n
+      if (!isNaN(n) && n > 0) usados.add(n)
     })
 
-    // Assign codes sequentially
-    let counter = maxNum
+    // Build a generator that yields unused numbers starting from 1
+    // filling gaps first, then continuing after max
+    function* numerosLibres() {
+      let n = 1
+      while (true) {
+        if (!usados.has(n)) yield n
+        n++
+      }
+    }
+
+    const gen = numerosLibres()
     const updates: { id: number; codigo: string; nombre: string }[] = []
 
     for (const prod of productos) {
-      counter++
-      const codigo = `${prefix}-${String(counter).padStart(4, '0')}`
+      const n = gen.next().value as number
+      const codigo = `${prefix}-${String(n).padStart(4, '0')}`
+      // Mark as used so next product doesn't get same number
+      usados.add(n)
       updates.push({ id: prod.id, codigo, nombre: prod.nombre })
     }
 
-    // Apply all updates
+    // Apply all updates in one transaction
     await prisma.$transaction(
       updates.map(u => prisma.producto.update({
         where: { id: u.id },

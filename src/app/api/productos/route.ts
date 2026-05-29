@@ -36,20 +36,24 @@ export async function POST(req: NextRequest) {
 
     let codigoFinal = codigo
 
-    // Auto-generate codigo if empty
+    // Auto-generate codigo if empty — fills gaps starting from 1
     if (!codigoFinal || codigoFinal.trim() === '') {
       const cfg = await prisma.config.findUnique({ where: { clave: 'producto_prefijo' } })
       const prefix = cfg?.valor || 'WSP'
-      const count = await prisma.producto.count()
-      codigoFinal = `${prefix}-${String(count + 1).padStart(4, '0')}`
-      // Ensure unique
-      let exists = await prisma.producto.findFirst({ where: { codigo: codigoFinal } })
-      let n = count + 2
-      while (exists) {
-        codigoFinal = `${prefix}-${String(n).padStart(4, '0')}`
-        exists = await prisma.producto.findFirst({ where: { codigo: codigoFinal } })
-        n++
-      }
+      // Get all used numbers for this prefix
+      const existentes = await prisma.producto.findMany({
+        where: { codigo: { startsWith: prefix + '-' } },
+        select: { codigo: true },
+      })
+      const usados = new Set<number>()
+      existentes.forEach(p => {
+        const n = parseInt(p.codigo?.replace(prefix + '-', '') || '0')
+        if (!isNaN(n) && n > 0) usados.add(n)
+      })
+      // Find first gap starting from 1
+      let n = 1
+      while (usados.has(n)) n++
+      codigoFinal = `${prefix}-${String(n).padStart(4, '0')}`
     }
 
     if (id) {
