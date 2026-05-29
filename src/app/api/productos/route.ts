@@ -29,20 +29,20 @@ export async function POST(req: NextRequest) {
   if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json()
-  const { id, nombre, codigo, descripcion, precio, costo, stock, stockMinimo, categoria, unidad } = body
+  const { id, nombre, codigo, descripcion, precio, costo, stock, stockMinimo, categoria, unidad, imagenUrl } = body
 
   if (!nombre) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
 
   if (id) {
     const prod = await prisma.producto.update({
       where: { id: Number(id) },
-      data: { nombre, codigo, descripcion, precio: +precio || 0, costo: +costo || 0, stock: +stock || 0, stockMinimo: +stockMinimo || 5, categoria: categoria || 'General', unidad: unidad || 'unidad' },
+      data: { nombre, codigo, descripcion, precio: +precio || 0, costo: +costo || 0, stock: +stock || 0, stockMinimo: +stockMinimo || 5, categoria: categoria || 'General', unidad: unidad || 'unidad', imagenUrl: imagenUrl || null },
     })
     return NextResponse.json({ ok: true, producto: prod })
   }
 
   const prod = await prisma.producto.create({
-    data: { nombre, codigo, descripcion, precio: +precio || 0, costo: +costo || 0, stock: +stock || 0, stockMinimo: +stockMinimo || 5, categoria: categoria || 'General', unidad: unidad || 'unidad' },
+    data: { nombre, codigo, descripcion, precio: +precio || 0, costo: +costo || 0, stock: +stock || 0, stockMinimo: +stockMinimo || 5, categoria: categoria || 'General', unidad: unidad || 'unidad', imagenUrl: imagenUrl || null },
   })
   return NextResponse.json({ ok: true, producto: prod })
 }

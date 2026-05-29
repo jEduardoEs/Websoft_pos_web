@@ -142,6 +142,26 @@ export default function POSPage() {
     }
   }
 
+  // Barcode scanner support — reads keyboard input from USB scanner
+  const barcodeBuffer = { val: '', timer: null as any }
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && barcodeBuffer.val.length > 2) {
+      setBuscar(barcodeBuffer.val)
+      barcodeBuffer.val = ''
+      return
+    }
+    if (e.key.length === 1) {
+      barcodeBuffer.val += e.key
+      clearTimeout(barcodeBuffer.timer)
+      barcodeBuffer.timer = setTimeout(() => { barcodeBuffer.val = '' }, 100)
+    }
+  }
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const ejecutarBusquedaNit = async () => {
     if (clienteNit.length < 3 || clienteNit.toUpperCase() === 'CF') return
     try {

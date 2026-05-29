@@ -28,6 +28,7 @@ interface FormData {
   stockMinimo: string
   categoria: string
   unidad: string
+  imagenUrl: string
 }
 
 interface KardexItem {
@@ -41,7 +42,7 @@ interface KardexItem {
   usuarioNombre: string | null
 }
 
-const empty: FormData = { id: 0, codigo: '', nombre: '', descripcion: '', precio: '', costo: '', stock: '', stockMinimo: '5', categoria: 'General', unidad: 'unidad' }
+const empty: FormData = { id: 0, codigo: '', nombre: '', descripcion: '', precio: '', costo: '', stock: '', stockMinimo: '5', categoria: 'General', unidad: 'unidad', imagenUrl: '' }
 
 export default function InventarioPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -55,6 +56,21 @@ export default function InventarioPage() {
   const [ajusteCantidad, setAjusteCantidad] = useState('')
   const [ajusteTipo, setAjusteTipo] = useState('entrada')
   const [ajusteMotivo, setAjusteMotivo] = useState('')
+  const [uploading, setUploading] = useState(false)
+
+  const uploadImage = async (file: File) => {
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    const data = await res.json()
+    setUploading(false)
+    if (data.ok) {
+      setForm(prev => ({ ...prev, imagenUrl: data.url }))
+    } else {
+      alert(data.error || 'Error al subir imagen. Configura Cloudinary en Vercel.')
+    }
+  }
 
   const load = async () => {
     const p = new URLSearchParams({ buscar, ...(categoria ? { categoria } : {}) })
@@ -221,9 +237,26 @@ export default function InventarioPage() {
                 </div>
               ))}
             </div>
+            {/* Image upload */}
+            <div style={{ gridColumn: '1/-1', marginTop: 4 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Imagen del producto</label>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {form.imagenUrl ? (
+                  <img src={form.imagenUrl} alt="preview" style={{ width: 70, height: 70, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                ) : (
+                  <div style={{ width: 70, height: 70, background: '#f8fafc', border: '1px dashed #e2e8f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📦</div>
+                )}
+                <div>
+                  <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])} style={{ fontSize: 12 }} />
+                  {uploading && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4 }}>Subiendo imagen...</div>}
+                  {form.imagenUrl && <div style={{ fontSize: 10, color: '#16a34a', marginTop: 4 }}>✓ Imagen guardada</div>}
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>Requiere Cloudinary configurado en Vercel</div>
+                </div>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
               <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
+              <button className="btn-primary" onClick={save} disabled={loading || uploading}>{loading ? 'Guardando...' : 'Guardar'}</button>
             </div>
           </div>
         </div>

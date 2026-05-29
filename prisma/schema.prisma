@@ -43,6 +43,7 @@ model Producto {
   categoria   String   @default("General")
   unidad      String   @default("unidad")
   activo      Boolean  @default(true)
+  imagenUrl   String?  @map("imagen_url")
   createdAt   DateTime @default(now()) @map("created_at")
 
   ventaItems       VentaItem[]
@@ -354,3 +355,112 @@ model ActiveSession {
 
   @@map("active_sessions")
 }
+
+// ─── SERVICIO TÉCNICO ───────────────────────────────────
+model OrdenTrabajo {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  clienteId       Int?     @map("cliente_id")
+  clienteNombre   String   @map("cliente_nombre")
+  clienteTelefono String?  @map("cliente_telefono")
+  clienteNit      String?  @map("cliente_nit")
+  // Equipo
+  tipoEquipo      String   @map("tipo_equipo")
+  marca           String?
+  modelo          String?
+  serie           String?
+  accesorios      String?
+  descripcionFalla String  @map("descripcion_falla")
+  observaciones   String?
+  // Estado
+  estado          String   @default("recibido") // recibido | diagnostico | en_proceso | listo | entregado | cancelado
+  prioridad       String   @default("normal")   // normal | urgente | vip
+  // Diagnóstico
+  diagnostico     String?
+  trabajoRealizado String? @map("trabajo_realizado")
+  // Costos
+  costoReparacion Float    @default(0) @map("costo_reparacion")
+  costoRepuestos  Float    @default(0) @map("costo_repuestos")
+  total           Float    @default(0)
+  // Fechas
+  fechaPromesa    DateTime? @map("fecha_promesa")
+  fechaEntrega    DateTime? @map("fecha_entrega")
+  // Asignado
+  tecnicoId       Int?     @map("tecnico_id")
+  tecnicoNombre   String?  @map("tecnico_nombre")
+  usuarioId       Int?     @map("usuario_id")
+  usuarioNombre   String?  @map("usuario_nombre")
+  notas           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  repuestos OrdenRepuesto[]
+  historial OrdenHistorial[]
+
+  @@map("ordenes_trabajo")
+}
+
+model OrdenRepuesto {
+  id          Int    @id @default(autoincrement())
+  ordenId     Int    @map("orden_id")
+  nombre      String
+  cantidad    Float
+  precioUnit  Float  @map("precio_unit")
+  subtotal    Float
+
+  orden OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  @@map("orden_repuestos")
+}
+
+model OrdenHistorial {
+  id            Int      @id @default(autoincrement())
+  ordenId       Int      @map("orden_id")
+  fecha         DateTime @default(now())
+  estadoAnterior String? @map("estado_anterior")
+  estadoNuevo   String  @map("estado_nuevo")
+  comentario    String?
+  usuarioNombre String?  @map("usuario_nombre")
+
+  orden OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  @@map("orden_historial")
+}
+
+// ─── GARANTÍAS ──────────────────────────────────────────
+model Garantia {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fechaVenta      DateTime @map("fecha_venta")
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  diasGarantia    Int      @map("dias_garantia")
+  clienteNombre   String   @map("cliente_nombre")
+  clienteTelefono String?  @map("cliente_telefono")
+  clienteNit      String?  @map("cliente_nit")
+  productoNombre  String   @map("producto_nombre")
+  productoSerie   String?  @map("producto_serie")
+  ventaNumero     String?  @map("venta_numero")
+  ventaId         Int?     @map("venta_id")
+  estado          String   @default("vigente") // vigente | vencida | reclamada | anulada
+  condiciones     String?
+  notas           String?
+  usuarioNombre   String?  @map("usuario_nombre")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("garantias")
+}
+
+// ─── PRESUPUESTO ────────────────────────────────────────
+model Presupuesto {
+  id        Int      @id @default(autoincrement())
+  anio      Int
+  mes       Int
+  meta      Float    @default(0)
+  notas     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([anio, mes])
+  @@map("presupuestos")
+}
+
+// ─── PRODUCTOS - imagen ──────────────────────────────────
+// (Se agrega campo imagenUrl al modelo Producto existente via migration)
