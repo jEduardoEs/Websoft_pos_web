@@ -30,9 +30,14 @@ export async function POST(req: NextRequest) {
 
     const total = items.reduce((s: number, i: any) => s + (+i.cantidad * +i.precioUnitario), 0)
 
+    // Generate numero
+    const count = await prisma.compra.count()
+    const numero = `CMP-${String(count + 1).padStart(6, '0')}`
+
     const compra = await prisma.$transaction(async (tx) => {
       const c = await tx.compra.create({
         data: {
+          numero,
           proveedorId: proveedorId ? Number(proveedorId) : null,
           fecha: fecha ? new Date(fecha) : new Date(),
           total,

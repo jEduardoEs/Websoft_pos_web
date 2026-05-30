@@ -150,8 +150,10 @@ model Compra {
   subtotal        Float    @default(0)
   impuesto        Float    @default(0)
   total           Float    @default(0)
-  estado          String   @default("pendiente")
-  fechaVencimiento DateTime? @map("fecha_vencimiento")
+  numeroFactura   String?  @map("numero_factura")
+  serieFactura    String?  @map("serie_factura")
+  facturaUrl      String?  @map("factura_url")
+  estado          String   @default("recibida")
   notas           String?
   usuarioId       Int?     @map("usuario_id")
   usuarioNombre   String?  @map("usuario_nombre")
