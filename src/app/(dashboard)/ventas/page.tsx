@@ -18,17 +18,18 @@ export default function VentasPage() {
   const [estado, setEstado] = useState('')
   const [selected, setSelected] = useState<Venta | null>(null)
   const [loading, setLoading] = useState(false)
+  const [buscar, setBuscar] = useState('')
 
   const load = async () => {
     setLoading(true)
-    const p = new URLSearchParams({ fecha_ini: fi, fecha_fin: ff, ...(estado ? { estado } : {}) })
+    const p = new URLSearchParams({ fecha_ini: fi, fecha_fin: ff, ...(estado ? { estado } : {}, ...(buscar ? { buscar } : {})) })
     const res = await fetch(`/api/ventas?${p}`)
     const data = await res.json()
     setVentas(data)
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [fi, ff, estado, buscar])
 
   const anular = async () => {
     if (!selected) return
