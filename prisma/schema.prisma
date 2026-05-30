@@ -18,6 +18,7 @@ model Usuario {
   password   String
   rol        String   @default("cajero") // admin | cajero
   permisos   String   @default("") // JSON array of module permissions
+  metaMensual Float    @default(0) @map("meta_mensual")
   activo     Boolean  @default(true)
   createdAt  DateTime @default(now()) @map("created_at")
 

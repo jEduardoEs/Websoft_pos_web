@@ -1,152 +1,157 @@
-import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { fmt, fmtDateTime } from '@/lib/utils'
+'use client'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { fmt } from '@/lib/utils'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-export const dynamic = 'force-dynamic'
-
-async function getDashboardData() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-
-  const ventasHoy = await prisma.venta.count({ where: { fecha: { gte: today }, estado: 'completada' } })
-  const totalHoyAgg = await prisma.venta.aggregate({ where: { fecha: { gte: today }, estado: 'completada' }, _sum: { total: true } })
-  const totalMesAgg = await prisma.venta.aggregate({ where: { fecha: { gte: monthStart }, estado: 'completada' }, _sum: { total: true } })
-  const productosLow = await prisma.producto.count({ where: { activo: true, stock: { lte: 5 } } })
-
-  const topProductos = await prisma.ventaItem.groupBy({
-    by: ['nombre'],
-    where: { venta: { fecha: { gte: today }, estado: 'completada' } },
-    _sum: { cantidad: true, subtotal: true },
-    orderBy: { _sum: { cantidad: 'desc' } },
-    take: 5,
-  })
-
-  const ultimasVentas = await prisma.venta.findMany({
-    where: { estado: 'completada' },
-    orderBy: { fecha: 'desc' },
-    take: 8,
-  })
-
-  const lowProds = await prisma.producto.findMany({
-    where: { activo: true, stock: { lte: 5 } },
-    orderBy: { stock: 'asc' },
-    take: 8,
-    select: { nombre: true, stock: true, stockMinimo: true, categoria: true },
-  })
-
-  return {
-    ventasHoy,
-    totalHoy: totalHoyAgg._sum.total || 0,
-    totalMes: totalMesAgg._sum.total || 0,
-    productosLow,
-    topProductos,
-    ultimasVentas,
-    lowProds,
-  }
+function MetaBar({ meta, real, nombre, hoy }: { meta: number; real: number; nombre?: string; hoy?: number }) {
+  const pct = meta > 0 ? Math.min(100, Math.round((real / meta) * 100)) : 0
+  const color = pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626'
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px' }}>
+      {nombre && <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 8 }}>{nombre}</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div>
+          <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5 }}>Ventas del mes</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{fmt(real)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5 }}>Meta</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#475569' }}>{meta > 0 ? fmt(meta) : '—'}</div>
+        </div>
+      </div>
+      {meta > 0 && (
+        <>
+          <div style={{ height: 10, background: '#f1f5f9', borderRadius: 5, overflow: 'hidden', marginBottom: 6 }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 5, transition: 'width .5s' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span style={{ fontWeight: 700, color }}>{pct}% completado</span>
+            <span style={{ color: '#94a3b8' }}>Faltan {fmt(Math.max(0, meta - real))}</span>
+          </div>
+        </>
+      )}
+      {hoy !== undefined && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f1f5f9', fontSize: 12, color: '#64748b' }}>
+          Hoy: <strong style={{ color: '#2563eb' }}>{fmt(hoy)}</strong>
+        </div>
+      )}
+    </div>
+  )
 }
 
-export default async function DashboardPage() {
-  const session = await auth()
-  const d = await getDashboardData()
+export default function DashboardPage() {
+  const { data: session } = useSession()
+  const [data, setData] = useState<any>(null)
+  const isAdmin = session?.user?.role === 'admin'
 
-  const stats = [
-    { label: 'Ventas hoy', value: String(d.ventasHoy), color: '#2563eb', bg: '#e8f3fd', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-    { label: 'Total hoy', value: fmt(d.totalHoy), color: '#16a34a', bg: '#dcfce7', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 8v1m0 4a9 9 0 110-18 9 9 0 010 18z' },
-    { label: 'Total mes', value: fmt(d.totalMes), color: '#d97706', bg: '#fff7ed', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-    { label: 'Stock bajo', value: String(d.productosLow), color: '#dc2626', bg: '#fef2f2', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-  ]
+  useEffect(() => {
+    fetch('/api/dashboard').then(r => r.json()).then(setData)
+  }, [])
+
+  if (!data) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: 40, height: 40, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <span style={{ color: '#94a3b8', fontSize: 14 }}>Cargando dashboard...</span>
+    </div>
+  )
+
+  const now = new Date()
+  const mesNombre = now.toLocaleString('es-GT', { month: 'long', year: 'numeric' })
 
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Dashboard</h1>
-        <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>Bienvenido, {session?.user?.name}</p>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
+          {isAdmin ? 'Dashboard — Administrador' : `Hola, ${session?.user?.name}`}
+        </h1>
+        <p style={{ fontSize: 12, color: '#64748b', marginTop: 3, textTransform: 'capitalize' }}>{mesNombre}</p>
       </div>
 
+      {/* KPIs generales */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-        {stats.map(s => (
-          <div key={s.label} className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" fill="none" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d={s.icon} />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{s.label}</div>
-            </div>
+        {[
+          { label: 'Ventas hoy', value: fmt(data.ventasHoy.total), sub: `${data.ventasHoy.count} transacciones`, color: '#2563eb', bg: '#eff6ff' },
+          { label: 'Ventas esta semana', value: fmt(data.ventasSemana.total), sub: `${data.ventasSemana.count} transacciones`, color: '#7c3aed', bg: '#f5f3ff' },
+          { label: 'Ventas este mes', value: fmt(data.ventasMes.total), sub: `${data.ventasMes.count} transacciones`, color: '#16a34a', bg: '#f0fdf4' },
+          { label: 'Clientes registrados', value: String(data.totalClientes), sub: `${data.productosbajostock} productos con stock bajo`, color: '#d97706', bg: '#fffbeb' },
+        ].map(s => (
+          <div key={s.label} className="card" style={{ padding: '16px 18px', borderTop: `3px solid ${s.color}` }}>
+            <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 6 }}>{s.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <div className="card">
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-            Top Productos Hoy
-          </div>
-          <div style={{ padding: '0 18px' }}>
-            {d.topProductos.length === 0 ? (
-              <p style={{ color: '#475569', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Sin ventas hoy</p>
-            ) : d.topProductos.map((p, i) => (
-              <div key={p.nombre} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: i < d.topProductos.length - 1 ? '1px solid #f4f7fb' : 'none' }}>
-                <span style={{ width: 22, height: 22, background: 'rgba(37,99,235,.15)', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2563eb', marginRight: 10, flexShrink: 0 }}>{i + 1}</span>
-                <span style={{ flex: 1, fontSize: 13, color: '#0f172a' }}>{p.nombre}</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>{p._sum.cantidad} uds</span>
-              </div>
+      {/* META — Cajero ve su propia */}
+      {!isAdmin && data.miMeta && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>📊 Mi Meta — {mesNombre}</div>
+          <MetaBar
+            meta={data.miMeta.meta}
+            real={data.miMeta.realMes}
+            hoy={data.miMeta.realHoy}
+          />
+          {!data.miMeta.meta && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px' }}>
+              No tienes una meta mensual asignada. Pide al administrador que la configure en Usuarios.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* META GENERAL — Admin ve el total + barra */}
+      {isAdmin && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>📊 Meta del negocio — {mesNombre}</div>
+          <MetaBar meta={data.metaMes} real={data.ventasMes.total} hoy={data.ventasHoy.total} />
+        </div>
+      )}
+
+      {/* ADMIN: meta individual por usuario */}
+      {isAdmin && data.usuariosStats?.length > 0 && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>👥 Meta por usuario</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 12 }}>
+            {data.usuariosStats.map((u: any) => (
+              <MetaBar key={u.id} nombre={`${u.nombre} (${u.rol})`} meta={u.meta} real={u.realMes} hoy={u.realHoy} />
             ))}
           </div>
         </div>
+      )}
 
-        <div className="card">
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-            Productos con Stock Bajo
-          </div>
-          <div style={{ padding: '0 18px' }}>
-            {d.lowProds.length === 0 ? (
-              <p style={{ color: '#475569', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>Todo en orden</p>
-            ) : d.lowProds.map((p, i) => (
-              <div key={p.nombre} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: i < d.lowProds.length - 1 ? '1px solid #f4f7fb' : 'none' }}>
-                <span style={{ flex: 1, fontSize: 13, color: '#0f172a' }}>{p.nombre}</span>
-                <span className={p.stock <= 0 ? 'badge-red' : 'badge-orange'} style={{ marginLeft: 8 }}>
-                  {p.stock <= 0 ? 'Sin stock' : `${p.stock} uds`}
-                </span>
-              </div>
+      {/* Gráfica 7 días */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 16 }}>Ventas últimos 7 días</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={data.ventasDia}>
+              <XAxis dataKey="dia" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `Q${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: any) => fmt(v)} />
+              <Bar dataKey="total" fill="#2563eb" radius={[4, 4, 0, 0]} name="Total" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Alertas rápidas */}
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 14 }}>⚡ Pendientes</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Órdenes de servicio activas', value: data.ordenesPendientes, href: '/servicio', accentColor: '#2563eb' },
+              { label: 'Cotizaciones pendientes', value: data.cotizacionesPendientes, href: '/cotizaciones', accentColor: '#d97706' },
+              { label: 'Garantías por vencer (30 días)', value: data.garantiasPorVencer, href: '/garantias', accentColor: '#dc2626' },
+              { label: 'Productos stock bajo', value: data.productosbajostock, href: '/inventario', accentColor: '#7c3aed' },
+            ].map(item => (
+              <a key={item.label} href={item.href} style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', transition: 'all .15s' }}>
+                <span style={{ fontSize: 12, color: '#475569' }}>{item.label}</span>
+                <span style={{ fontWeight: 800, fontSize: 16, color: item.value > 0 ? item.accentColor : '#94a3b8' }}>{item.value}</span>
+              </a>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-          Ultimas Ventas
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['#', 'Fecha', 'Cliente', 'Metodo', 'Total', 'Estado'].map(h => (
-                  <th key={h} style={{ background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', padding: '9px 13px', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {d.ultimasVentas.map(v => (
-                <tr key={v.id}>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', fontWeight: 600, color: '#2563eb' }}>{v.numero}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{fmtDateTime(v.fecha)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{v.clienteNombre}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9' }}>
-                    <span className="badge-blue" style={{ textTransform: 'capitalize' }}>{v.metodoPago}</span>
-                  </td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9', fontWeight: 700, color: '#0f172a' }}>{fmt(v.total)}</td>
-                  <td style={{ padding: '10px 13px', fontSize: 13, borderBottom: '1px solid #f1f5f9' }}>
-                    <span className={v.estado === 'completada' ? 'badge-green' : 'badge-red'} style={{ textTransform: 'capitalize' }}>{v.estado}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

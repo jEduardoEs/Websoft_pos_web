@@ -6,10 +6,10 @@ import { MODULOS, PERMISOS_CAJERO_DEFAULT, parsePermisos } from '@/lib/permisos'
 
 interface Usuario {
   id: number; nombre: string; usuario: string; rol: string
-  permisos: string; activo: boolean; createdAt: string
+  permisos: string; activo: boolean; createdAt: string; metaMensual: number
 }
 
-const emptyForm = { id: 0, nombre: '', usuario: '', password: '', rol: 'cajero', permisos: [] as string[] }
+const emptyForm = { id: 0, nombre: '', usuario: '', password: '', rol: 'cajero', permisos: [] as string[], metaMensual: '' }
 
 const GROUPS = Array.from(new Set(MODULOS.map(m => m.group)))
 
@@ -38,6 +38,7 @@ export default function UsuariosPage() {
       id: u.id, nombre: u.nombre, usuario: u.usuario,
       password: '', rol: u.rol,
       permisos: perms.length > 0 ? perms : [...PERMISOS_CAJERO_DEFAULT],
+      metaMensual: String(u.metaMensual || ''),
     })
     setShowModal(true)
     setShowPermisos(false)
@@ -62,7 +63,7 @@ export default function UsuariosPage() {
     setLoading(true)
     const res = await fetch('/api/usuarios', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, permisos: form.rol === 'admin' ? [] : form.permisos }),
+      body: JSON.stringify({ ...form, permisos: form.rol === 'admin' ? [] : form.permisos, metaMensual: form.metaMensual }),
     })
     const data = await res.json()
     setLoading(false)
@@ -103,7 +104,7 @@ export default function UsuariosPage() {
                 const modulosActivos = isAdmin ? MODULOS.length : (perms.length > 0 ? perms.length : PERMISOS_CAJERO_DEFAULT.length)
                 return (
                   <tr key={u.id}>
-                    <td style={{ ...tdS, fontWeight: 600 }}>{u.nombre}</td>
+                    <td style={{ ...tdS, fontWeight: 600 }}>{u.nombre}{u.metaMensual > 0 && <div style={{ fontSize: 10, color: '#2563eb' }}>Meta: Q {u.metaMensual.toLocaleString('es-GT')}/mes</div>}</td>
                     <td style={{ ...tdS, fontFamily: 'monospace', fontSize: 12, color: '#475569' }}>{u.usuario}</td>
                     <td style={tdS}>
                       <span className={u.rol === 'admin' ? 'badge-blue' : 'badge-gray'} style={{ textTransform: 'capitalize' }}>{u.rol}</span>
@@ -167,6 +168,11 @@ export default function UsuariosPage() {
                   <option value="cajero">Cajero (permisos personalizables)</option>
                   <option value="admin">Administrador (acceso total)</option>
                 </select>
+              </div>
+              <div>
+                <label style={lbl}>Meta mensual de ventas (Q)</label>
+                <input className="input" type="number" min="0" value={form.metaMensual} onChange={e => setForm(p => ({ ...p, metaMensual: e.target.value }))} placeholder="0.00" />
+                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>Aparece en el dashboard como objetivo del mes</div>
               </div>
             </div>
 

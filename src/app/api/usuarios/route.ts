@@ -35,9 +35,10 @@ export async function POST(req: NextRequest) {
     }
 
     const permisosStr = Array.isArray(permisos) ? JSON.stringify(permisos) : (permisos || '')
+    const { metaMensual } = body
 
     if (id) {
-      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: permisosStr }
+      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: permisosStr, metaMensual: parseFloat(metaMensual || '0') || 0 }
       if (password) data.password = await bcrypt.hash(password, 12)
       await prisma.usuario.update({ where: { id: Number(id) }, data })
       return NextResponse.json({ ok: true })
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
         password: await bcrypt.hash(password, 12),
         rol: rol || 'cajero',
         permisos: permisosStr,
+        metaMensual: parseFloat(metaMensual || '0') || 0,
       },
     })
     return NextResponse.json({ ok: true })

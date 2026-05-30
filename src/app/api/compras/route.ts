@@ -4,58 +4,80 @@ import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET()  {
+export async function GET() {
   try {
-
     const session = await auth()
-    if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    return NextResponse.json(await prisma.compra.findMany({ orderBy: { id: 'desc' }, take: 100, include: { items: true } }))
-
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const compras = await prisma.compra.findMany({
+      orderBy: { id: 'desc' }, take: 100,
+      include: { items: true, proveedor: { select: { nombre: true } } },
+    })
+    return NextResponse.json(compras)
   } catch (e: any) {
-    console.error('compras/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
-export async function POST(req: NextRequest)  {
-  try {
 
+export async function POST(req: NextRequest) {
+  try {
     const session = await auth()
     if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
     const body = await req.json()
-    const { proveedorId, proveedorNombre, items, subtotal, impuesto, total, estado, fechaVencimiento, notas } = body
+    const { proveedorId, fecha, numeroFactura, serieFactura, facturaUrl, items, notas } = body
 
-    const cfg = await prisma.config.findUnique({ where: { clave: 'numero_siguiente_compra' } })
-    const num = parseInt(cfg?.valor || '1')
-    const numero = `OC-${String(num).padStart(6, '0')}`
+    if (!items || items.length === 0) return NextResponse.json({ error: 'Agrega al menos un producto' }, { status: 400 })
 
-    await prisma.$transaction(async (tx) => {
+    const total = items.reduce((s: number, i: any) => s + (+i.cantidad * +i.precioUnitario), 0)
+
+    const compra = await prisma.$transaction(async (tx) => {
       const c = await tx.compra.create({
         data: {
-          numero, proveedorId: proveedorId ? Number(proveedorId) : null,
-          proveedorNombre, subtotal: +subtotal, impuesto: +impuesto, total: +total,
-          estado: estado || 'recibida', fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : null,
-          notas, usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-          items: { create: items.map((i: any) => ({ productoId: i.productoId ? Number(i.productoId) : null, nombre: i.nombre, cantidad: +i.cantidad, precioUnitario: +i.precioUnitario, subtotal: +i.subtotal })) },
+          proveedorId: proveedorId ? Number(proveedorId) : null,
+          fecha: fecha ? new Date(fecha) : new Date(),
+          total,
+          numeroFactura: numeroFactura || null,
+          serieFactura: serieFactura || null,
+          facturaUrl: facturaUrl || null,
+          notas,
+          usuarioId: parseInt(session.user.id),
+          usuarioNombre: session.user.name,
+          items: {
+            create: items.map((item: any) => ({
+              productoId: item.productoId ? Number(item.productoId) : null,
+              nombre: item.nombre,
+              cantidad: +item.cantidad,
+              precioUnitario: +item.precioUnitario,
+              subtotal: +item.cantidad * +item.precioUnitario,
+            })),
+          },
         },
+        include: { items: true },
       })
-      // Update stock if received
-      if (estado === 'recibida') {
-        for (const item of items) {
-          if (!item.productoId) continue
-          const prod = await tx.producto.findUnique({ where: { id: Number(item.productoId) } })
-          if (prod) {
-            const newStock = prod.stock + item.cantidad
-            await tx.producto.update({ where: { id: prod.id }, data: { stock: newStock } })
-            await tx.kardex.create({ data: { productoId: prod.id, tipo: 'entrada', cantidad: item.cantidad, stockAntes: prod.stock, stockDespues: newStock, motivo: `Compra ${numero}`, referencia: numero, usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name } })
-          }
-        }
-      }
-      await tx.config.upsert({ where: { clave: 'numero_siguiente_compra' }, update: { valor: String(num + 1) }, create: { clave: 'numero_siguiente_compra', valor: String(num + 1) } })
-    })
-    return NextResponse.json({ ok: true })
 
+      // Update stock for each item that has a productoId
+      for (const item of items) {
+        if (!item.productoId) continue
+        const prod = await tx.producto.findUnique({ where: { id: Number(item.productoId) } })
+        if (!prod) continue
+        const newStock = prod.stock + Number(item.cantidad)
+        await tx.producto.update({ where: { id: prod.id }, data: { stock: newStock } })
+        await tx.kardex.create({
+          data: {
+            productoId: prod.id, tipo: 'entrada',
+            cantidad: Number(item.cantidad),
+            stockAntes: prod.stock, stockDespues: newStock,
+            motivo: `Compra${numeroFactura ? ` — Factura ${serieFactura || ''}${numeroFactura}` : ''}`,
+            referencia: numeroFactura || null,
+            usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
+          },
+        })
+      }
+      return c
+    })
+
+    return NextResponse.json({ ok: true, compra })
   } catch (e: any) {
-    console.error('compras/route.ts error:', e?.message)
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
