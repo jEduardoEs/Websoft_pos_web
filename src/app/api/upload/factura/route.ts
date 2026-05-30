@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    return NextResponse.json({ ok: true, url: data.secure_url, publicId: data.public_id, tipo: data.resource_type })
+    // Make PDF downloadable by adding fl_attachment to URL
+    let url = data.secure_url
+    if (data.resource_type === 'raw' || url.includes('.pdf')) {
+      url = url.replace('/upload/', '/upload/fl_attachment/')
+    }
+    return NextResponse.json({ ok: true, url, publicId: data.public_id, tipo: data.resource_type })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
