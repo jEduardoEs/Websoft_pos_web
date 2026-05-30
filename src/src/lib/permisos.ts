@@ -9,7 +9,6 @@ export const MODULOS = [
   { id: 'garantias',    label: 'Garantías',             group: 'Clientes' },
   { id: 'servicio',     label: 'Servicio Técnico',      group: 'Servicios' },
   { id: 'caja',         label: 'Control de Caja',       group: 'Caja' },
-  { id: 'pedidos',      label: 'Pedidos Web',            group: 'Ventas' },
   { id: 'proveedores',  label: 'Proveedores',           group: 'Compras' },
   { id: 'compras',      label: 'Compras',               group: 'Compras' },
   { id: 'descuentos',   label: 'Descuentos',            group: 'Admin' },

@@ -102,6 +102,7 @@ export default function ConfigPage() {
     { id: 'ventas',       label: '💰 Ventas y Tickets' },
     { id: 'fel',          label: '🇬🇹 FEL / SAT' },
     { id: 'alertas',      label: '🔔 Alertas' },
+    { id: 'tienda',       label: '🛒 Tienda Online' },
   ]
 
   return (
@@ -339,6 +340,50 @@ export default function ConfigPage() {
             </div>
           </FIELD>
         </SECTION>
+      )}
+
+      {/* TIENDA ONLINE */}
+      {activeTab === 'tienda' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '14px 18px', fontSize: 13, color: '#1e40af' }}>
+            🛒 Tu tienda en línea se conecta automáticamente al POS. Los precios y stock se sincronizan en tiempo real. Los pedidos llegan al módulo <strong>Pedidos Web</strong>.
+          </div>
+
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 14 }}>Variables de entorno necesarias en Vercel</div>
+            {[
+              { key: 'STRIPE_SECRET_KEY', desc: 'Clave secreta de Stripe (stripe.com → Developers → API Keys)', req: true },
+              { key: 'STRIPE_WEBHOOK_SECRET', desc: 'Secret del webhook de Stripe (para confirmar pagos automáticamente)', req: true },
+              { key: 'NEXT_PUBLIC_POS_URL', desc: 'URL de tu POS (ej: https://websoft-pos-web.vercel.app)', req: true },
+              { key: 'NEXT_PUBLIC_LANDING_URL', desc: 'URL de tu landing (ej: https://websoft-solutions.vercel.app)', req: true },
+            ].map(v => (
+              <div key={v.key} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 5, fontSize: 12, fontFamily: 'monospace', color: '#2563eb', fontWeight: 700 }}>{v.key}</code>
+                  {v.req && <span style={{ fontSize: 10, background: '#fef2f2', color: '#dc2626', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>Requerido</span>}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{v.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 14 }}>API pública del catálogo</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>Tu landing page puede llamar a estas URLs para obtener datos en tiempo real:</div>
+            {[
+              { url: '/api/tienda/productos', desc: 'Lista todos los productos con precio y stock actual' },
+              { url: '/api/tienda/productos?categoria=CCTV', desc: 'Filtra por categoría' },
+              { url: '/api/tienda/productos?buscar=camara', desc: 'Busca por nombre' },
+              { url: '/api/tienda/pedidos (POST)', desc: 'Recibe pedidos de la tienda' },
+              { url: '/api/tienda/checkout (POST)', desc: 'Crea sesión de pago en Stripe' },
+            ].map(e => (
+              <div key={e.url} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <code style={{ fontSize: 11, color: '#2563eb', fontFamily: 'monospace' }}>{e.url}</code>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{e.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Save button bottom */}

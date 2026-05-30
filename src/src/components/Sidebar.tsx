@@ -15,7 +15,6 @@ const NAV = [
   { href: '/servicio',     label: 'Servicio Tec.', modulo: 'servicio',     icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z', adminOnly: false },
   { href: '/devoluciones', label: 'Devoluciones',  modulo: 'devoluciones', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6', adminOnly: false },
   { href: '/caja',         label: 'Caja',          modulo: 'caja',         icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', adminOnly: false },
-  { href: '/pedidos',      label: 'Pedidos Web',   modulo: 'pedidos',      icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z', adminOnly: false },
   { href: '/proveedores',  label: 'Proveedores',   modulo: 'proveedores',  icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', adminOnly: true, section: 'Administracion' },
   { href: '/compras',      label: 'Compras',       modulo: 'compras',      icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', adminOnly: true },
   { href: '/descuentos',   label: 'Descuentos',    modulo: 'descuentos',   icon: 'M7 7h.01M17 17h.01M7 7l10 10M3.5 3.5l17 17', adminOnly: true },

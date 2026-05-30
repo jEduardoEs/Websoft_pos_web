@@ -489,3 +489,51 @@ model ReclamoGarantia {
 
   @@map("reclamos_garantia")
 }
+
+model PedidoWeb {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  // Cliente
+  clienteNombre   String   @map("cliente_nombre")
+  clienteEmail    String   @map("cliente_email")
+  clienteTelefono String?  @map("cliente_telefono")
+  clienteNit      String?  @map("cliente_nit")
+  clienteDireccion String? @map("cliente_direccion")
+  // Pago
+  metodoPago      String   @default("stripe") @map("metodo_pago")
+  stripeSessionId String?  @map("stripe_session_id")
+  stripePaymentId String?  @map("stripe_payment_id")
+  // Totales
+  subtotal        Float    @default(0)
+  envio           Float    @default(0)
+  total           Float    @default(0)
+  // Estado
+  estado          String   @default("pendiente") // pendiente | pagado | confirmado | enviado | entregado | cancelado
+  notas           String?
+  // Procesado
+  ventaId         Int?     @map("venta_id")
+  procesadoPor    String?  @map("procesado_por")
+  fechaProcesado  DateTime? @map("fecha_procesado")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  items PedidoWebItem[]
+
+  @@map("pedidos_web")
+}
+
+model PedidoWebItem {
+  id             Int    @id @default(autoincrement())
+  pedidoId       Int    @map("pedido_id")
+  productoId     Int?   @map("producto_id")
+  nombre         String
+  codigo         String?
+  cantidad       Int
+  precioUnitario Float  @map("precio_unitario")
+  subtotal       Float
+  imagenUrl      String? @map("imagen_url")
+
+  pedido PedidoWeb @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@map("pedido_web_items")
+}
