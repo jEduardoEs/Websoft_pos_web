@@ -9,8 +9,12 @@ export async function GET() {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     const compras = await prisma.compra.findMany({
-      orderBy: { id: 'desc' }, take: 100,
-      include: { items: true, proveedor: { select: { nombre: true } } },
+      orderBy: { id: 'desc' },
+      take: 100,
+      include: {
+        items: true,
+        proveedor: { select: { nombre: true } },
+      },
     })
     return NextResponse.json(compras)
   } catch (e: any) {
@@ -21,16 +25,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
 
     const body = await req.json()
     const { proveedorId, fecha, numeroFactura, serieFactura, facturaUrl, items, notas } = body
 
-    if (!items || items.length === 0) return NextResponse.json({ error: 'Agrega al menos un producto' }, { status: 400 })
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: 'Agrega al menos un producto' }, { status: 400 })
+    }
 
     const total = items.reduce((s: number, i: any) => s + (+i.cantidad * +i.precioUnitario), 0)
 
-    // Generate numero
     const count = await prisma.compra.count()
     const numero = `CMP-${String(count + 1).padStart(6, '0')}`
 
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
           numeroFactura: numeroFactura || null,
           serieFactura: serieFactura || null,
           facturaUrl: facturaUrl || null,
-          notas,
+          notas: notas || null,
           usuarioId: parseInt(session.user.id),
           usuarioNombre: session.user.name,
           items: {
@@ -60,7 +67,7 @@ export async function POST(req: NextRequest) {
         include: { items: true },
       })
 
-      // Update stock for each item that has a productoId
+      // Update stock for each item with a product
       for (const item of items) {
         if (!item.productoId) continue
         const prod = await tx.producto.findUnique({ where: { id: Number(item.productoId) } })
@@ -69,15 +76,19 @@ export async function POST(req: NextRequest) {
         await tx.producto.update({ where: { id: prod.id }, data: { stock: newStock } })
         await tx.kardex.create({
           data: {
-            productoId: prod.id, tipo: 'entrada',
+            productoId: prod.id,
+            tipo: 'entrada',
             cantidad: Number(item.cantidad),
-            stockAntes: prod.stock, stockDespues: newStock,
-            motivo: `Compra${numeroFactura ? ` — Factura ${serieFactura || ''}${numeroFactura}` : ''}`,
+            stockAntes: prod.stock,
+            stockDespues: newStock,
+            motivo: `Compra ${numero}${numeroFactura ? ` — Factura ${serieFactura || ''}${numeroFactura}` : ''}`,
             referencia: numeroFactura || null,
-            usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
+            usuarioId: parseInt(session.user.id),
+            usuarioNombre: session.user.name,
           },
         })
       }
+
       return c
     })
 
