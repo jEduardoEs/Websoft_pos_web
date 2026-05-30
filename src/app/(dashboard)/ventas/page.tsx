@@ -70,6 +70,14 @@ export default function VentasPage() {
               <option value="anulada">Anulada</option>
             </select>
           </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <input
+              className="input"
+              placeholder="Buscar por cliente, NIT o # factura..."
+              value={buscar}
+              onChange={e => setBuscar(e.target.value)}
+            />
+          </div>
           <button className="btn-primary" onClick={load} disabled={loading}>
             {loading ? 'Buscando...' : 'Buscar'}
           </button>

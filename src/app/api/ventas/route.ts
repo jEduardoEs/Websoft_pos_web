@@ -12,9 +12,15 @@ export async function GET(req: NextRequest) {
   const fechaIni = searchParams.get('fecha_ini')
   const fechaFin = searchParams.get('fecha_fin')
   const estado = searchParams.get('estado') || ''
+  const buscar = searchParams.get('buscar') || ''
 
   const where: any = {}
   if (estado) where.estado = estado
+  if (buscar) where.OR = [
+    { clienteNombre: { contains: buscar, mode: 'insensitive' } },
+    { clienteNit: { contains: buscar, mode: 'insensitive' } },
+    { numero: { contains: buscar, mode: 'insensitive' } },
+  ]
   if (fechaIni || fechaFin) {
     where.fecha = {}
     if (fechaIni) where.fecha.gte = new Date(fechaIni)
