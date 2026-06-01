@@ -158,7 +158,6 @@ export default function InventarioPage() {
     { label: 'Costo', key: 'costo' as keyof FormData, type: 'number' },
     { label: 'Stock inicial', key: 'stock' as keyof FormData, type: 'number' },
     { label: 'Stock minimo', key: 'stockMinimo' as keyof FormData, type: 'number' },
-    { label: 'Categoria', key: 'categoria' as keyof FormData },
     { label: 'Unidad', key: 'unidad' as keyof FormData },
   ]
 
