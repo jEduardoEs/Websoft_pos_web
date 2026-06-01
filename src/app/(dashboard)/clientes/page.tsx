@@ -66,7 +66,14 @@ export default function ClientesPage() {
                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>Sin clientes</td></tr>
               ) : clientes.map(c => (
                 <tr key={c.id}>
-                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{c.nombre}</td>
+                  <td style={{ padding: '10px 13px', fontSize: 13, fontWeight: 600, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>{c.nombre}</span>
+                      {c.notas?.includes('Prospecto') && (
+                        <span style={{ fontSize: 10, background: '#fef3c7', color: '#d97706', padding: '2px 7px', borderRadius: 10, fontWeight: 700, flexShrink: 0 }}>Prospecto</span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.nit || '—'}</td>
                   <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.telefono || '—'}</td>
                   <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.email || '—'}</td>
@@ -74,8 +81,8 @@ export default function ClientesPage() {
                   <td style={{ padding: '10px 13px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{fmtDateTime(c.createdAt)}</td>
                   <td style={{ padding: '10px 13px', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn-ghost btn-sm" onClick={() => openEdit(c)}></button>
-                      <button className="btn-danger btn-sm" onClick={() => del(c)}></button>
+                      <button className="btn-ghost btn-sm" onClick={() => openEdit(c)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                      <button className="btn-danger btn-sm" onClick={() => del(c)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
                     </div>
                   </td>
                 </tr>

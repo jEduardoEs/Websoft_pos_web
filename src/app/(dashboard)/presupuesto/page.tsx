@@ -114,7 +114,7 @@ export default function PresupuestoPage() {
                         <div style={{ display: 'flex', gap: 6 }}>
                           <input className="input" type="number" value={metaInput} onChange={e => setMetaInput(e.target.value)} style={{ width: 120, fontSize: 12 }} autoFocus onKeyDown={e => e.key === 'Enter' && saveMeta(m.mes)} />
                           <button className="btn-primary btn-sm" onClick={() => saveMeta(m.mes)} disabled={loading}></button>
-                          <button className="btn-ghost btn-sm" onClick={() => setEditMes(null)}></button>
+                          <button className="btn-ghost btn-sm" onClick={() => setEditMes(null)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                         </div>
                       ) : (
                         <span onClick={() => { setEditMes(m.mes); setMetaInput(String(m.meta)) }}
