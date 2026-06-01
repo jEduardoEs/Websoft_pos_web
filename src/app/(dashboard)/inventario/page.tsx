@@ -237,6 +237,25 @@ export default function InventarioPage() {
                     type={f.type || 'text'}
                     value={form[f.key]}
                     onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+              {/* Categoria */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Categoria</label>
+                <select className="input" value={form.categoria}
+                  onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}>
+                  {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <input className="input" value={nuevaCategoria}
+                    onChange={e => setNuevaCategoria(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && nuevaCategoria.trim()) { setForm(p => ({ ...p, categoria: nuevaCategoria.trim() })); setNuevaCategoria('') }}}
+                    placeholder="Nueva categoria..." style={{ flex: 1, fontSize: 12 }} />
+                  <button type="button" onClick={() => { if (nuevaCategoria.trim()) { setForm(p => ({ ...p, categoria: nuevaCategoria.trim() })); setNuevaCategoria('') }}}
+                    style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    + Agregar
+                  </button>
+                </div>
+                {form.categoria && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4 }}>Seleccionada: <strong>{form.categoria}</strong></div>}
+              </div>
                   />
                 </div>
               ))}
