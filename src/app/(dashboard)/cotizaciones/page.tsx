@@ -334,8 +334,10 @@ export default function CotizacionesPage() {
   .t-iva{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:#d97706;font-weight:600}
   .t-final{font-size:15px;font-weight:800;color:#2563eb;border-top:2px solid #bfdbfe;padding-top:7px;margin-top:5px;display:flex;justify-content:space-between}
   .notice{font-size:9px;font-weight:700;color:#dc2626;margin-bottom:7px;line-height:1.6}
-  .conds{font-size:8.5px;color:#64748b;line-height:1.6;margin-bottom:14px}
+  .conds{font-size:8.5px;color:#64748b;line-height:1.6;margin-bottom:10px}
   .conds strong{color:#374151}
+  .highlight-block{font-size:10px;font-weight:700;color:#0f172a;background:#f0f9ff;border-left:3px solid #2563eb;padding:7px 12px;margin-bottom:7px;border-radius:0 6px 6px 0;line-height:1.6}
+  .highlight-block strong{color:#1e40af;font-size:11px}
   .signs{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px}
   .sign-line{border-top:1.5px solid #0f172a;padding-top:4px;font-size:10px;font-weight:700}
   .footer{margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
@@ -407,9 +409,11 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
   <strong>CONDICIONES:</strong>
   1. <strong>PAGO:</strong> Anticipado, contra entrega, financiado o tarjeta. Cheques a nombre de WebSoft Solutions.
   2. <strong>ENTREGA:</strong> Inmediata a 3 dias segun pago. Sin existencia puede variar hasta 3 semanas.
-  ${cot.tiempoInstalacion ? `2. <strong>TIEMPO DE INSTALACION:</strong> ${cot.tiempoInstalacion}` + '\n  ' : ''}3. <strong>GARANTIA:</strong> Se atiende en instalaciones de WebSoft. Danos fisicos anulan garantia.
+  3. <strong>GARANTIA:</strong> Se atiende en instalaciones de WebSoft. Danos fisicos anulan garantia.
   4. <strong>SERVICIO:</strong> Departamento tecnico calificado para soporte durante garantia.
 </div>
+${cot.tiempoInstalacion ? `<div class="highlight-block"><strong>TIEMPO DE INSTALACION:</strong> ${cot.tiempoInstalacion}</div>` : ''}
+${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> ${cot.notas}</div>` : ''}
 
 <div class="signs">
   <div>
