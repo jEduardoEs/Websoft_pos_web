@@ -9,9 +9,8 @@ export async function GET(req: NextRequest) {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // Get all config values needed
     const keys = [
-      'empresa_nombre', 'empresa_nit', 'empresa_telefono', 'empresa_web',
+      'empresa_nombre', 'empresa_nit', 'empresa_telefono', 'empresa_web', 'empresa_direccion',
       'banco1_nombre', 'banco1_cuenta', 'banco1_titular',
       'banco2_nombre', 'banco2_cuenta', 'banco2_titular',
       'banco3_nombre', 'banco3_cuenta', 'banco3_titular',
@@ -23,109 +22,331 @@ export async function GET(req: NextRequest) {
     const cfg: Record<string, string> = {}
     rows.forEach(r => { cfg[r.clave] = r.valor })
 
-    // Defaults
-    const defaults: Record<string, string> = {
-      empresa_nombre: 'WebSoft Solutions',
-      empresa_nit: '',
-      empresa_telefono: '3836-1044 / 3671-4377',
-      empresa_web: 'websoft-solutions.vercel.app',
-      banco1_nombre: 'BANRURAL',
-      banco1_cuenta: '',
-      banco1_titular: 'WebSoft Solutions',
-      banco2_nombre: 'BANCO INDUSTRIAL (Bi)',
-      banco2_cuenta: '',
-      banco2_titular: 'WebSoft Solutions',
-      banco3_nombre: 'G&T CONTINENTAL',
-      banco3_cuenta: '',
-      banco3_titular: 'WebSoft Solutions',
-      banco4_nombre: 'BAC',
-      banco4_cuenta: '',
-      banco4_titular: 'WebSoft Solutions',
-      cuentas_nota: 'Estas son las únicas cuentas bancarias donde puede realizar su depósito o transferencia. No se estarán procesando órdenes si su depósito es realizado a otra cuenta.',
+    const d = {
+      empresa_nombre:   cfg.empresa_nombre   || 'WebSoft Solutions',
+      empresa_nit:      cfg.empresa_nit      || '',
+      empresa_telefono: cfg.empresa_telefono || '3836-1044 / 3671-4377',
+      empresa_web:      cfg.empresa_web      || 'websoft-solutions.vercel.app',
+      empresa_direccion:cfg.empresa_direccion|| 'Guastatoya, El Progreso',
+      cuentas_nota:     cfg.cuentas_nota     || 'Estas son las únicas cuentas bancarias autorizadas para recibir depósitos y transferencias. No procesamos órdenes si el depósito se realiza a otra cuenta.',
     }
 
-    const data = { ...defaults, ...cfg }
-
-    // Generate HTML for PDF
     const bancos = [1,2,3,4].map(i => ({
-      nombre: data[`banco${i}_nombre`],
-      cuenta: data[`banco${i}_cuenta`],
-      titular: data[`banco${i}_titular`],
-    })).filter(b => b.cuenta && b.cuenta.trim())
+      nombre:  cfg[`banco${i}_nombre`]  || '',
+      cuenta:  cfg[`banco${i}_cuenta`]  || '',
+      titular: cfg[`banco${i}_titular`] || '',
+    })).filter(b => b.nombre && b.cuenta)
+
+    const bancosHTML = bancos.map(b => `
+      <div class="banco">
+        <div class="banco-header">
+          <div class="banco-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B7FD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="banco-nombre">${b.nombre}</div>
+        </div>
+        <div class="banco-datos">
+          <div class="dato-row">
+            <span class="dato-lbl">Número de cuenta</span>
+            <span class="dato-val">${b.cuenta}</span>
+          </div>
+          <div class="dato-row">
+            <span class="dato-lbl">A nombre de</span>
+            <span class="dato-val">${b.titular}</span>
+          </div>
+        </div>
+      </div>`).join('')
 
     const html = `<!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cuentas Bancarias — ${d.empresa_nombre}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Montserrat',Arial,sans-serif;background:#fff;min-height:100vh;display:flex;flex-direction:column}
-  .page{display:grid;grid-template-columns:38% 62%;min-height:100vh}
-  .left{background:linear-gradient(170deg,#1a3a5c 0%,#0d1f35 100%);position:relative;overflow:hidden}
-  .left-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(13,31,53,.3),rgba(13,31,53,.8));display:flex;flex-direction:column;justify-content:flex-end;padding:32px}
-  .left-text{color:rgba(255,255,255,.7);font-size:13px;line-height:1.6}
-  .left-accent{width:4px;height:60px;background:#2B7FD4;border-radius:2px;margin-bottom:16px}
-  .right{background:#fff;padding:48px 44px;display:flex;flex-direction:column}
-  .logo-area{text-align:center;margin-bottom:36px;padding-bottom:28px;border-bottom:2px solid #f1f5f9}
-  .logo-name{font-size:28px;font-weight:800;color:#0d1f35;letter-spacing:-0.5px}
-  .logo-name span{color:#2B7FD4}
-  .logo-sub{font-size:12px;color:#64748b;margin-top:4px;letter-spacing:1px;text-transform:uppercase}
-  .title{font-size:16px;font-weight:600;color:#475569;text-align:center;margin-bottom:32px;letter-spacing:.5px}
-  .banco{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid #f1f5f9}
-  .banco:last-of-type{border-bottom:none}
-  .banco-nombre{font-size:15px;font-weight:800;color:#2B7FD4;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-  .banco-row{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
-  .banco-lbl{font-size:13px;color:#64748b;min-width:130px}
-  .banco-val{font-size:15px;font-weight:700;color:#0d1f35;letter-spacing:.5px}
-  .nota{margin-top:auto;padding:16px 18px;background:#f8fafc;border-left:4px solid #2B7FD4;border-radius:0 8px 8px 0;font-size:11.5px;color:#475569;line-height:1.7}
-  .nota strong{color:#0d1f35}
-  .footer-bar{background:#0d1f35;padding:12px 44px;display:flex;justify-content:space-between;align-items:center}
-  .footer-text{font-size:11px;color:rgba(255,255,255,.4)}
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #0f172a;
+    background: #fff;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 3px solid #2B7FD4;
+    margin-bottom: 18px;
+  }
+  .empresa-nombre {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+  }
+  .empresa-nombre span { color: #2B7FD4; }
+  .empresa-sub {
+    font-size: 9px;
+    color: #64748b;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+    font-size: 9px;
+    color: #64748b;
+    line-height: 1.7;
+  }
+  .header-badge {
+    background: #2B7FD4;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+
+  /* TITLE */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e40af;
+    text-align: center;
+    margin-bottom: 16px;
+    padding: 8px;
+    background: #eff6ff;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* BANCOS GRID */
+  .bancos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .banco {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+
+  .banco-header {
+    background: #f8fafc;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .banco-icon {
+    width: 28px;
+    height: 28px;
+    background: #eff6ff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .banco-nombre {
+    font-size: 12px;
+    font-weight: 800;
+    color: #1e40af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .banco-datos {
+    padding: 10px 12px;
+  }
+
+  .dato-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+    gap: 8px;
+  }
+  .dato-row:last-child { margin-bottom: 0; }
+
+  .dato-lbl {
+    font-size: 9px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .dato-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+    text-align: right;
+  }
+
+  /* NOTA */
+  .nota {
+    border: 1.5px solid #fde68a;
+    background: #fffbeb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .nota-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .nota-text {
+    font-size: 9.5px;
+    color: #78350f;
+    line-height: 1.6;
+  }
+  .nota-text strong {
+    color: #92400e;
+    font-size: 10px;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left {
+    font-size: 9px;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+  .footer-right {
+    font-size: 9px;
+    color: #94a3b8;
+    text-align: right;
+  }
+  .footer-logo {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .footer-logo span { color: #2B7FD4; }
+
+  /* WATERMARK LINE */
+  .secure-bar {
+    background: #0f172a;
+    color: rgba(255,255,255,0.7);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 5px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .banco-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .nota { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .secure-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
 </style>
 </head>
 <body>
-<div class="page">
-  <div class="left">
-    <div style="position:absolute;inset:0;background:url('data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%230d1f35\\'/></svg>');background-size:cover"></div>
-    <div class="left-overlay">
-      <div class="left-accent"></div>
-      <div class="left-text">
-        <strong style="color:#fff;font-size:15px;display:block;margin-bottom:8px">Pagos seguros</strong>
-        Realice sus depósitos o transferencias únicamente a las cuentas indicadas en este documento.
-      </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="empresa-nombre">Web<span>Soft</span> Solutions</div>
+      <div class="empresa-sub">Tecnología y Seguridad · ${d.empresa_direccion}</div>
+    </div>
+    <div class="header-right">
+      <div class="header-badge">Documento oficial</div><br/>
+      ${d.empresa_telefono}<br/>
+      ${d.empresa_web}${d.empresa_nit ? `<br/>NIT: ${d.empresa_nit}` : ''}
     </div>
   </div>
-  <div class="right">
-    <div class="logo-area">
-      <div class="logo-name">Web<span>Soft</span> Solutions</div>
-      <div class="logo-sub">Tecnología y Seguridad · Guastatoya</div>
+
+  <!-- SECURE BAR -->
+  <div class="secure-bar">Cuentas bancarias autorizadas para depósitos y transferencias</div>
+
+  <!-- TITLE -->
+  <div class="section-title">Realice sus pagos únicamente a las siguientes cuentas</div>
+
+  <!-- BANCOS -->
+  <div class="bancos-grid">
+    ${bancosHTML}
+  </div>
+
+  <!-- NOTA -->
+  <div class="nota">
+    <div class="nota-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
     </div>
-    <div class="title">Cuentas para depósitos y transferencias</div>
-    ${bancos.map(b => `
-    <div class="banco">
-      <div class="banco-nombre">${b.nombre}:</div>
-      <div class="banco-row"><span class="banco-lbl">Número de cuenta:</span><span class="banco-val">${b.cuenta}</span></div>
-      <div class="banco-row"><span class="banco-lbl">Nombre:</span><span class="banco-val">${b.titular}</span></div>
-    </div>`).join('')}
-    <div class="nota">
-      <strong>Importante:</strong> ${data.cuentas_nota}
+    <div class="nota-text">
+      <strong>Importante — Lea antes de realizar su pago</strong>
+      ${d.cuentas_nota}
     </div>
   </div>
-</div>
-<div class="footer-bar">
-  <span class="footer-text">${data.empresa_nombre} · NIT: ${data.empresa_nit || 'CF'}</span>
-  <span class="footer-text">${data.empresa_telefono}</span>
-  <span class="footer-text">${data.empresa_web}</span>
-</div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">
+      <div class="footer-logo">Web<span>Soft</span> Solutions</div>
+      ${d.empresa_direccion} · ${d.empresa_telefono}
+    </div>
+    <div class="footer-right">
+      Documento generado el ${new Date().toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })}<br/>
+      Para verificar autenticidad contacte al ${d.empresa_telefono}
+    </div>
+  </div>
+
+<script>
+  // Auto-print when opened for printing
+  window.onload = function() {
+    document.title = 'Cuentas Bancarias — ${d.empresa_nombre}';
+  }
+</script>
 </body>
 </html>`
 
     return new NextResponse(html, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'X-Frame-Options': 'SAMEORIGIN',
-      },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
