@@ -96,101 +96,50 @@ export default function ComprasPage() {
       const parser = new DOMParser()
       const xml = parser.parseFromString(text, 'application/xml')
 
-      // SAT Guatemala FEL uses dte: namespace prefix
-      // Use getElementsByTagNameNS with wildcard or local name matching
-      const getByLocal = (localName: string): Element | null => {
-        const all = xml.getElementsByTagName('*')
-        for (let i = 0; i < all.length; i++) {
-          if (all[i].localName === localName) return all[i]
-        }
-        return null
-      }
-      const getAllByLocal = (localName: string): Element[] => {
-        const all = xml.getElementsByTagName('*')
-        const result: Element[] = []
-        for (let i = 0; i < all.length; i++) {
-          if (all[i].localName === localName) result.push(all[i])
-        }
-        return result
-      }
-      const getAttrFromEl = (el: Element | null, attr: string) => el?.getAttribute(attr) || ''
-      const getText = (localName: string) => getByLocal(localName)?.textContent?.trim() || ''
+      // SAT Guatemala FEL XML structure
+      const get = (tag: string) => xml.getElementsByTagName(tag)[0]?.textContent?.trim() || ''
+      const getAttr = (tag: string, attr: string) => xml.getElementsByTagName(tag)[0]?.getAttribute(attr) || ''
 
-      // Emisor data — attributes on Emisor element
-      const emisorEl = getByLocal('Emisor')
-      const nitEmisor = getAttrFromEl(emisorEl, 'NITEmisor')
-      const nombreComercial = getAttrFromEl(emisorEl, 'NombreComercial')
-      const nombreEmisor = getAttrFromEl(emisorEl, 'NombreEmisor')
+      // Try standard DTE format
+      const nitEmisor = get('NITEmisor') || get('NitEmisor') || getAttr('Emisor', 'NITEmisor')
+      const nombreEmisor = get('NombreEmisor') || get('NombreComercial') || getAttr('Emisor', 'NombreComercial')
+      const totalAux = get('GranTotal') || get('Total') || get('MontoTotal')
+      const numAut = get('NumeroAutorizacion') || getAttr('DatosEmision', 'NumeroAutorizacion')
+      const serie = get('Serie') || getAttr('DatosEmision', 'Serie')
+      const numero = get('Numero') || getAttr('DatosEmision', 'Numero')
 
-      // Gran total
-      const granTotal = getText('GranTotal')
-
-      // Numero de autorizacion — content of NumeroAutorizacion element
-      const numAutEl = getByLocal('NumeroAutorizacion')
-      const numAutorizacion = numAutEl?.textContent?.trim() || ''
-      const serie = getAttrFromEl(numAutEl, 'Serie')
-      const numero = getAttrFromEl(numAutEl, 'Numero')
-
-      // Fecha emision
-      const datosGeneralesEl = getByLocal('DatosGenerales')
-      const fechaEmision = getAttrFromEl(datosGeneralesEl, 'FechaHoraEmision')?.slice(0, 10) || ''
-
-      // Items
-      const itemEls = getAllByLocal('Item')
+      // Parse items
+      const itemNodes = xml.getElementsByTagName('Item')
       const xmlItems: any[] = []
-      for (const item of itemEls) {
-        const getItemText = (ln: string) => {
-          const all = item.getElementsByTagName('*')
-          for (let i = 0; i < all.length; i++) {
-            if (all[i].localName === ln) return all[i].textContent?.trim() || ''
-          }
-          return ''
-        }
-        const desc = getItemText('Descripcion')
-        const cantidad = +(getItemText('Cantidad') || '1')
-        const precioConIva = +(getItemText('PrecioUnitario') || '0')
-        // Guatemala IVA 12% — price already includes IVA in FEL
-        const montoGravable = +(getItemText('MontoGravable') || '0')
-        const precioSinIva = montoGravable > 0 ? montoGravable / cantidad : precioConIva / 1.12
-        if (desc) xmlItems.push({
-          nombre: desc.replace(/\s+/g, ' ').trim(),
-          cantidad,
-          precioUnitario: precioSinIva.toFixed(2),
-          subtotal: (cantidad * precioSinIva).toFixed(2)
-        })
+      for (let i = 0; i < itemNodes.length; i++) {
+        const item = itemNodes[i]
+        const desc = item.getElementsByTagName('Descripcion')[0]?.textContent?.trim() ||
+                     item.getElementsByTagName('NombreCorto')[0]?.textContent?.trim() || ''
+        const cantidad = +(item.getElementsByTagName('Cantidad')[0]?.textContent?.trim() || '1')
+        const precio = +(item.getElementsByTagName('PrecioUnitario')[0]?.textContent?.trim() ||
+                        item.getElementsByTagName('MontoItem')[0]?.textContent?.trim() || '0')
+        if (desc) xmlItems.push({ nombre: desc, cantidad, precioUnitario: (precio/1.05).toFixed(2), subtotal: (cantidad*precio/1.05).toFixed(2) })
       }
 
       const parsed = {
-        nitEmisor,
-        nombreEmisor: nombreComercial || nombreEmisor,
-        total: granTotal,
-        numAutorizacion,
-        serie,
-        numero,
-        fechaEmision,
+        nitEmisor: nitEmisor || '',
+        nombreEmisor: nombreEmisor || '',
+        total: totalAux || '',
+        numAutorizacion: numAut || '',
+        serie: serie || '',
+        numero: numero || '',
         items: xmlItems,
       }
 
       setXmlParsed(parsed)
-
-      // Autocomplete form fields - use correct field names matching the form state
+      // Autocomplete form
+      if (parsed.nombreEmisor) setForm(p => ({ ...p, proveedorNombre: parsed.nombreEmisor }))
+      if (parsed.total) setForm(p => ({ ...p, total: parsed.total }))
       if (parsed.numAutorizacion) setForm(p => ({ ...p, numeroFactura: parsed.numAutorizacion }))
       if (parsed.serie) setForm(p => ({ ...p, serieFactura: parsed.serie }))
-      if (parsed.fechaEmision) setForm(p => ({ ...p, fecha: parsed.fechaEmision }))
-      // Map XML items to the format compras expects (cantidad and precioUnitario as strings)
-      if (xmlItems.length > 0) {
-        setItems(xmlItems.map((item: any) => ({
-          productoId: '',
-          nombre: item.nombre,
-          cantidad: String(item.cantidad),
-          precioUnitario: String(item.precioUnitario),
-          subtotal: item.cantidad * parseFloat(item.precioUnitario),
-        })))
-      }
-
-      toast.success(`XML leido: ${parsed.nombreEmisor} · ${xmlItems.length} productos cargados`)
-    } catch (err) {
-      console.error('XML parse error:', err)
+      if (xmlItems.length > 0) setItems(xmlItems.map((i: any) => ({ ...i, productoId: '' })))
+      toast.success('XML leido correctamente — datos autocompletados')
+    } catch {
       toast.error('Error al leer el XML. Verifica que sea un archivo FEL valido.')
     }
     setXmlLoading(false)
@@ -304,18 +253,6 @@ export default function ComprasPage() {
                   <input className="input" value={form.numeroFactura} onChange={e => setF('numeroFactura', e.target.value)} placeholder="Ej: 000123" />
                 </div>
                 <div style={{ gridColumn: '3', gridRow: '1/3' }}>
-                  <label style={lbl}>XML de factura SAT (FEL) — opcional</label>
-                  <div style={{ marginBottom: 12 }}>
-                    <input type="file" accept=".xml" onChange={e => e.target.files?.[0] && parseXML(e.target.files[0])}
-                      style={{ fontSize: 12, width: '100%' }} />
-                    {xmlLoading && <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4 }}>Leyendo XML...</div>}
-                    {xmlParsed && (
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#166534', marginTop: 6 }}>
-                        Leido: {xmlParsed.nombreEmisor || 'Emisor desconocido'} · Auth: {(xmlParsed.numAutorizacion||'').slice(0,20)}{xmlParsed.numAutorizacion?.length > 20 ? '...' : ''} · {xmlParsed.items?.length || 0} items autocargados
-                      </div>
-                    )}
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Sube el .xml de tu factura electrónica y los datos se completan automáticamente</div>
-                  </div>
                   <label style={lbl}>Factura PDF o imagen</label>
                   <div style={{ border: '2px dashed #e2e8f0', borderRadius: 8, padding: 16, textAlign: 'center', cursor: 'pointer', background: form.facturaUrl ? '#f0fdf4' : '#fff' }}
                     onClick={() => document.getElementById('upload-factura')?.click()}>

@@ -29,32 +29,51 @@ export default function ReportesPage() {
   const exportarInventarioPDF = () => {
     if (!invReporte) return
     const { resumen, porCategoria } = invReporte
-    const genDate = new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,sans-serif;font-size:11px;color:#0f172a;padding:20px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:2px solid #2563eb;margin-bottom:16px}
+      .logo{font-size:18px;font-weight:700}.logo span{color:#2563eb}
+      .badge{font-size:9px;font-weight:700;background:#2563eb;color:#fff;padding:3px 10px;border-radius:20px}
+      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+      .kpi{border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;border-top:3px solid}
+      .kpi-label{font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:4px}
+      .kpi-value{font-size:16px;font-weight:700}
+      table{width:100%;border-collapse:collapse;margin-bottom:14px}
+      th{background:#f8fafc;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;padding:7px 10px;text-align:left;border-bottom:1px solid #e2e8f0}
+      td{padding:7px 10px;font-size:11px;border-bottom:1px solid #f1f5f9}
+      .right{text-align:right}.center{text-align:center}
+      .total-row td{font-weight:700;background:#f8fafc;border-top:2px solid #e2e8f0}
+      .footer{margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
+      @media print{@page{margin:8mm;size:A4}}
+    </style></head><body>
+    <div class="header">
+      <div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b;margin-top:2px">Guastatoya, El Progreso</div></div>
+      <div style="text-align:right"><div class="badge">VALORACION DE INVENTARIO</div><div style="font-size:9px;color:#64748b;margin-top:5px">Generado: ${new Date().toLocaleDateString('es-GT')}</div></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total productos</div><div class="kpi-value" style="color:#2563eb">${resumen.totalProductos}</div></div>
+      <div class="kpi" style="border-top-color:#d97706"><div class="kpi-label">Inversion total</div><div class="kpi-value" style="color:#d97706">Q ${resumen.totalInversion.toFixed(2)}</div></div>
+      <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-label">Valor de venta</div><div class="kpi-value" style="color:#16a34a">Q ${resumen.totalValorVenta.toFixed(2)}</div></div>
+      <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-label">Ganancia proyectada</div><div class="kpi-value" style="color:#7c3aed">Q ${resumen.gananciaProyectada.toFixed(2)}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Categoria</th><th class="center">Productos</th><th class="center">Unidades</th><th class="right">Inversion (costo)</th><th class="right">Valor venta</th><th class="right">Ganancia</th><th class="right">Margen</th></tr></thead>
+      <tbody>
+        ${porCategoria.map((cat: any) => {
+          const gan = cat.valorVenta - cat.inversion
+          const mar = cat.inversion > 0 ? Math.round((gan/cat.inversion)*100) : 0
+          return `<tr><td style="font-weight:600">${cat.categoria}</td><td class="center">${cat.items}</td><td class="center">${cat.stock}</td><td class="right">Q ${cat.inversion.toFixed(2)}</td><td class="right">Q ${cat.valorVenta.toFixed(2)}</td><td class="right" style="color:#7c3aed">Q ${gan.toFixed(2)}</td><td class="right" style="font-weight:700;color:${mar>=30?'#16a34a':mar>=15?'#d97706':'#dc2626'}">${mar}%</td></tr>`
+        }).join('')}
+        <tr class="total-row"><td>TOTALES</td><td class="center">${resumen.totalProductos}</td><td class="center">${resumen.totalUnidades}</td><td class="right">Q ${resumen.totalInversion.toFixed(2)}</td><td class="right">Q ${resumen.totalValorVenta.toFixed(2)}</td><td class="right">Q ${resumen.gananciaProyectada.toFixed(2)}</td><td class="right">${resumen.margenProyectado}%</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e"><strong>Alertas:</strong> ${resumen.productosStockBajo} productos con stock bajo · ${resumen.productosAgotados} productos agotados</div>
+    <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Este reporte es confidencial</span></div>
+    <script>window.onload=function(){window.print()}</script></body></html>`
     const w = window.open('', '_blank')
-    if (!w) return
-    const catRows = porCategoria.map((cat: any) => {
-      const gan = cat.valorVenta - cat.inversion
-      const mar = cat.inversion > 0 ? Math.round((gan/cat.inversion)*100) : 0
-      return `<tr><td class="b">${cat.categoria}</td><td class="c">${cat.items}</td><td class="c">${cat.stock}</td><td class="r">Q ${cat.inversion.toFixed(2)}</td><td class="r">Q ${cat.valorVenta.toFixed(2)}</td><td class="r b" style="color:#7c3aed">Q ${gan.toFixed(2)}</td><td class="r b" style="color:${mar>=30?'#16a34a':mar>=15?'#d97706':'#dc2626'}">${mar}%</td></tr>`
-    }).join('')
-    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Valoracion de Inventario</title><style>@page{margin:8mm;size:A4}@media print{html,body{height:100%}table{font-size:10px}}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:11px;line-height:1.5}.page{min-height:297mm;display:flex;flex-direction:column}.accent{height:5px;background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{padding:18px 28px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0}.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:44px;height:44px;object-fit:contain}.brand-text .name{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px}.brand-text .name span{color:#1581E3}.brand-text .sub{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:1px}.doc-right{text-align:right}.doc-badge{font-size:9px;font-weight:700;color:#fff;background:#1581E3;padding:3px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.doc-num{font-size:18px;font-weight:700;color:#1581E3}.doc-date{font-size:10px;color:#64748b;margin-top:3px}.body{padding:20px 28px;flex:1}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.info-box{background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.info-box-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.info-box p{font-size:11px;color:#0f172a;line-height:1.65}.info-box strong{font-weight:600}.sec-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th{padding:8px 11px;font-size:9px;font-weight:700;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:0.8px}th.r,td.r{text-align:right}th.c,td.c{text-align:center}tbody tr:nth-child(even){background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}tbody td{padding:8px 11px;font-size:11px;color:#334155;border-bottom:1px solid #f1f5f9}td.b{font-weight:600;color:#0f172a}.totals{display:flex;justify-content:flex-end;margin-bottom:18px}.totals-box{width:260px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}.t-row{display:flex;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #e2e8f0;font-size:11px}.t-grand{background:#1581E3;padding:11px 14px;display:flex;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact}.t-grand span{color:#fff;font-weight:700;font-size:13px}.highlight{background:#eff8ff;border-left:3px solid #1581E3;border-radius:0 6px 6px 0;padding:9px 13px;margin-bottom:10px;font-size:10px;font-weight:600;color:#1e40af;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}.highlight strong{font-size:11.5px;display:block;margin-bottom:3px}.conds{font-size:10px;color:#475569;line-height:1.75}.conds strong{color:#0f172a}.signs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}.sign-line{border-top:1.5px solid #0f172a;padding-top:6px;font-size:10px;color:#475569}.sign-line strong{display:block;font-size:11px;color:#0f172a;margin-bottom:40px}.footer{padding:12px 28px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}.footer-txt{font-size:9px;color:#94a3b8;line-height:1.6}.footer-brand{font-size:11px;font-weight:700;color:#0f172a}.footer-brand span{color:#1581E3}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="accent"></div><div class="header"><div class="brand"><img src="https://websoft-solutions.vercel.app/logo.png" class="brand-logo" alt="WebSoft" onerror="this.style.display='none'"/><div class="brand-text"><div class="name">WebSoft<span> Solutions</span></div><div class="sub">Valoracion de Inventario &middot; Guastatoya, El Progreso</div></div></div><div class="doc-right"><div class="doc-badge">Valoracion de Inventario</div><div class="doc-num" style="font-size:13px">${genDate}</div><div class="doc-date">${resumen.totalProductos} productos &middot; ${resumen.totalUnidades} unidades</div></div></div>
-<div class="body">
-<div class="info-grid">
-  <div class="info-box"><div class="info-box-title">Inversion total</div><p><strong style="font-size:18px;color:#d97706">Q ${resumen.totalInversion.toFixed(2)}</strong><br/>Costo total del inventario actual</p></div>
-  <div class="info-box"><div class="info-box-title">Valor de venta proyectado</div><p><strong style="font-size:18px;color:#16a34a">Q ${resumen.totalValorVenta.toFixed(2)}</strong><br/>Margen proyectado: ${resumen.margenProyectado}%</p></div>
-</div>
-<div class="info-grid">
-  <div class="info-box"><div class="info-box-title">Ganancia proyectada</div><p><strong style="font-size:18px;color:#7c3aed">Q ${resumen.gananciaProyectada.toFixed(2)}</strong><br/>Diferencia venta vs costo</p></div>
-  <div class="info-box" style="border-left-color:#dc2626"><div class="info-box-title">Alertas de stock</div><p><strong style="color:#dc2626">${resumen.productosStockBajo}</strong> productos con stock bajo<br/><strong style="color:#dc2626">${resumen.productosAgotados}</strong> productos agotados</p></div>
-</div>
-<div class="sec-title">Resumen por categoria</div>
-<table><thead><tr><th>Categoria</th><th class="c">Productos</th><th class="c">Unidades</th><th class="r">Inversion</th><th class="r">Valor venta</th><th class="r">Ganancia</th><th class="r">Margen</th></tr></thead>
-<tbody>${catRows}<tr style="background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact"><td class="b" style="color:#fff">TOTALES</td><td class="c" style="color:#fff">${resumen.totalProductos}</td><td class="c" style="color:#fff">${resumen.totalUnidades}</td><td class="r" style="color:#fde68a;font-weight:700">Q ${resumen.totalInversion.toFixed(2)}</td><td class="r" style="color:#d1fae5;font-weight:700">Q ${resumen.totalValorVenta.toFixed(2)}</td><td class="r" style="color:#e9d5ff;font-weight:700">Q ${resumen.gananciaProyectada.toFixed(2)}</td><td class="r" style="color:#fff;font-weight:700">${resumen.margenProyectado}%</td></tr></tbody>
-</table>
-</div><div class="footer"><div class="footer-txt"><div class="footer-brand">WebSoft<span> Solutions</span></div>Guastatoya, El Progreso &middot; Tel: 3836-1044 / 3671-4377</div><div class="footer-txt" style="text-align:right">Generado el ${genDate}<br/>Documento confidencial</div></div></div><script>setTimeout(()=>window.print(),600)</script></body></html>`)
-    w.document.close()
+    if (w) { w.document.write(html); w.document.close() }
   }
-
 
   const loadInventario = async () => {
     setInvLoading(true)
@@ -153,7 +172,10 @@ export default function ReportesPage() {
             <>
               {/* Export button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn-ghost" onClick={exportarInventarioPDF}>🖨 
+                <button className="btn-ghost" onClick={exportarInventarioPDF} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                  </svg>
                   Exportar PDF
                 </button>
               </div>

@@ -88,24 +88,49 @@ export default function ServicioPage() {
   }
 
   const printOrden = (orden: any) => {
-    const w = window.open('', '_blank', 'width=860,height=700')
+    const w = window.open('', '_blank', 'width=700,height=600')
     if (!w) return
-    const genDate = new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
-    const otDate = new Date(orden.fecha||orden.createdAt).toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
-    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>OT ${orden.numero||orden.id}</title><style>@page{margin:8mm;size:A4}@media print{html,body{height:100%}table{font-size:10px}}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:11px;line-height:1.5}.page{min-height:297mm;display:flex;flex-direction:column}.accent{height:5px;background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{padding:18px 28px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0}.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:44px;height:44px;object-fit:contain}.brand-text .name{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px}.brand-text .name span{color:#1581E3}.brand-text .sub{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:1px}.doc-right{text-align:right}.doc-badge{font-size:9px;font-weight:700;color:#fff;background:#1581E3;padding:3px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.doc-num{font-size:18px;font-weight:700;color:#1581E3}.doc-date{font-size:10px;color:#64748b;margin-top:3px}.body{padding:20px 28px;flex:1}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.info-box{background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.info-box-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.info-box p{font-size:11px;color:#0f172a;line-height:1.65}.info-box strong{font-weight:600}.sec-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th{padding:8px 11px;font-size:9px;font-weight:700;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:0.8px}th.r,td.r{text-align:right}th.c,td.c{text-align:center}tbody tr:nth-child(even){background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}tbody td{padding:8px 11px;font-size:11px;color:#334155;border-bottom:1px solid #f1f5f9}td.b{font-weight:600;color:#0f172a}.totals{display:flex;justify-content:flex-end;margin-bottom:18px}.totals-box{width:260px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}.t-row{display:flex;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #e2e8f0;font-size:11px}.t-grand{background:#1581E3;padding:11px 14px;display:flex;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact}.t-grand span{color:#fff;font-weight:700;font-size:13px}.highlight{background:#eff8ff;border-left:3px solid #1581E3;border-radius:0 6px 6px 0;padding:9px 13px;margin-bottom:10px;font-size:10px;font-weight:600;color:#1e40af;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}.highlight strong{font-size:11.5px;display:block;margin-bottom:3px}.conds{font-size:10px;color:#475569;line-height:1.75}.conds strong{color:#0f172a}.signs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}.sign-line{border-top:1.5px solid #0f172a;padding-top:6px;font-size:10px;color:#475569}.sign-line strong{display:block;font-size:11px;color:#0f172a;margin-bottom:40px}.footer{padding:12px 28px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}.footer-txt{font-size:9px;color:#94a3b8;line-height:1.6}.footer-brand{font-size:11px;font-weight:700;color:#0f172a}.footer-brand span{color:#1581E3}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="accent"></div><div class="header"><div class="brand"><img src="https://websoft-solutions.vercel.app/logo.png" class="brand-logo" alt="WebSoft" onerror="this.style.display='none'"/><div class="brand-text"><div class="name">WebSoft<span> Solutions</span></div><div class="sub">Tecnologia y Seguridad &middot; Guastatoya, El Progreso</div></div></div><div class="doc-right"><div class="doc-badge">Orden de Trabajo</div><div class="doc-num">${orden.numero||'OT-'+String(orden.id).padStart(6,'0')}</div><div class="doc-date">Fecha: ${otDate}</div></div></div>
-<div class="body">
-<div class="info-grid">
-  <div class="info-box"><div class="info-box-title">Cliente</div><p><strong>${orden.clienteNombre}</strong><br/>${orden.clienteTelefono?'Tel: '+orden.clienteTelefono+'<br/>':''}${orden.clienteNit&&orden.clienteNit!=='CF'?'NIT: '+orden.clienteNit:''}</p></div>
-  <div class="info-box"><div class="info-box-title">Equipo recibido</div><p><strong>${orden.equipo||orden.descripcion||'Equipo'}</strong><br/>${orden.marca?'Marca: '+orden.marca+'<br/>':''}${orden.modelo?'Modelo: '+orden.modelo+'<br/>':''}${orden.serie?'Serie: '+orden.serie:''}</p></div>
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#0f172a}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #2563eb}
+  .logo{font-size:18px;font-weight:800}.logo span{color:#2563eb}
+  .title{background:#2563eb;color:#fff;text-align:center;padding:8px;font-size:14px;font-weight:700;letter-spacing:3px;border-radius:5px;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:10px}
+  .row{display:flex;gap:6px;margin-bottom:4px}.lbl{font-weight:700;min-width:90px;color:#374151}.val{color:#475569}
+  .falla{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px;margin-bottom:12px;font-size:11px}
+  .falla strong{color:#dc2626}
+  .sign{border-top:1px solid #0f172a;padding-top:4px;font-size:10px;font-weight:700;margin-top:30px}
+  .footer{margin-top:16px;text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
+</style></head><body>
+<div class="header">
+  <div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b">Guastatoya, El Progreso · Tel: 3836-1044</div></div>
+  <div style="text-align:right;font-size:10px;color:#64748b">Orden: <b style="color:#2563eb;font-size:14px">${orden.numero}</b><br>Fecha: ${new Date(orden.fecha).toLocaleDateString('es-GT')}</div>
 </div>
-<div class="sec-title">Falla reportada por el cliente</div>
-<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;padding:10px 13px;margin-bottom:14px;font-size:11px;color:#334155;line-height:1.7">${orden.fallaReportada||orden.descripcion||'Sin descripcion'}</div>
-${orden.diagnostico?'<div class="sec-title">Diagnostico tecnico</div><div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 6px 6px 0;padding:10px 13px;margin-bottom:14px;font-size:11px;color:#334155;line-height:1.7">'+orden.diagnostico+'</div>':''}
-${orden.trabajoRealizado?'<div class="highlight"><strong>Trabajo realizado</strong>'+orden.trabajoRealizado+'</div>':''}
-<div class="sec-title">Condiciones del servicio</div>
-<div class="conds">1. <strong>GARANTIA DEL SERVICIO:</strong> 30 dias por el trabajo realizado.<br/>2. <strong>EXCLUSIONES:</strong> Danos posteriores a la entrega o mal uso del equipo.<br/>3. <strong>EQUIPOS SIN REPARACION:</strong> Deben retirarse en un plazo de 30 dias.<br/>4. <strong>RESPONSABILIDAD:</strong> WebSoft no se responsabiliza por perdida de datos.</div>
-<div class="signs"><div class="sign-line"><strong>Tecnico responsable</strong>WebSoft Solutions</div><div class="sign-line"><strong>Cliente conformidad</strong>${orden.clienteNombre}</div></div>
-</div><div class="footer"><div class="footer-txt"><div class="footer-brand">WebSoft<span> Solutions</span></div>Guastatoya, El Progreso &middot; Tel: 3836-1044 / 3671-4377<br/>websoftsolutions.com.gt</div><div class="footer-txt" style="text-align:right">Generado el ${genDate}<br/>Documento confidencial</div></div></div><script>setTimeout(()=>window.print(),600)</script></body></html>`)
+<div class="title">ORDEN DE SERVICIO TÉCNICO</div>
+<div class="grid">
+  <div>
+    <div class="row"><span class="lbl">Cliente:</span><span class="val">${orden.clienteNombre}</span></div>
+    <div class="row"><span class="lbl">Teléfono:</span><span class="val">${orden.clienteTelefono || ''}</span></div>
+    <div class="row"><span class="lbl">NIT:</span><span class="val">${orden.clienteNit || 'CF'}</span></div>
+  </div>
+  <div>
+    <div class="row"><span class="lbl">Equipo:</span><span class="val">${orden.tipoEquipo}</span></div>
+    <div class="row"><span class="lbl">Marca/Modelo:</span><span class="val">${orden.marca || ''} ${orden.modelo || ''}</span></div>
+    <div class="row"><span class="lbl">Serie:</span><span class="val">${orden.serie || ''}</span></div>
+    <div class="row"><span class="lbl">Accesorios:</span><span class="val">${orden.accesorios || ''}</span></div>
+    <div class="row"><span class="lbl">Fecha promesa:</span><span class="val">${orden.fechaPromesa ? new Date(orden.fechaPromesa).toLocaleDateString('es-GT') : ''}</span></div>
+  </div>
+</div>
+<div class="falla"><strong>Descripción de la falla:</strong><br>${orden.descripcionFalla}</div>
+${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#475569"><strong>Observaciones:</strong> ${orden.observaciones}</div>` : ''}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+  <div><div class="sign">Firma del cliente: ___________________</div></div>
+  <div><div class="sign">Recibido por: ___________________</div></div>
+</div>
+<div class="footer">WebSoft Solutions · Sistema POS · ${orden.numero}</div>
+</body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 500)
   }
@@ -181,7 +206,7 @@ ${orden.trabajoRealizado?'<div class="highlight"><strong>Trabajo realizado</stro
                       <span style={{ background: est.bg, color: est.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{est.label}</span>
                     </td>
                     <td style={{ ...tdS }} onClick={e => e.stopPropagation()}>
-                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}>🖨 </button>
+                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
                     </td>
                   </tr>
                 )

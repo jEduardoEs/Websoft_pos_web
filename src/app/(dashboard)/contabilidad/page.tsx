@@ -281,26 +281,28 @@ export default function ContabilidadPage() {
 
   const imprimirIVA = () => {
     if (!ivaData) return
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{font-family:Arial,sans-serif;font-size:12px;padding:24px;color:#0f172a}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #2563eb}.logo{font-size:18px;font-weight:700}.logo span{color:#2563eb}h2{font-size:13px;font-weight:700;margin:16px 0 8px;border-left:3px solid #2563eb;padding-left:8px}.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px}.total-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center}.total-label{font-size:13px;font-weight:700}.total-value{font-size:22px;font-weight:800;color:#2563eb}@media print{@page{margin:10mm;size:A4}}</style></head><body>
+    <div class="header"><div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:10px;color:#64748b;margin-top:2px">Guastatoya, El Progreso, Guatemala</div></div><div style="text-align:right"><div style="font-size:11px;font-weight:700;background:#2563eb;color:#fff;padding:3px 10px;border-radius:20px;display:inline-block">DECLARACIÓN IVA</div><div style="font-size:10px;color:#64748b;margin-top:6px">Periodo: ${ivaData.periodo.fi} — ${ivaData.periodo.ff}</div></div></div>
+    <h2>IVA Débito — Ventas</h2>
+    <div class="row"><span>Facturas emitidas</span><span>${ivaData.ventas.count}</span></div>
+    <div class="row"><span>Total ventas (con IVA)</span><span>Q ${ivaData.ventas.total.toFixed(2)}</span></div>
+    <div class="row"><span>Base imponible</span><span>Q ${ivaData.ventas.base.toFixed(2)}</span></div>
+    <div class="row" style="font-weight:700"><span>IVA débito (5%)</span><span style="color:#dc2626">Q ${ivaData.ventas.iva.toFixed(2)}</span></div>
+    <h2>IVA Crédito — Compras</h2>
+    <div class="row"><span>Facturas recibidas</span><span>${ivaData.compras.count}</span></div>
+    <div class="row"><span>Total compras (con IVA)</span><span>Q ${ivaData.compras.total.toFixed(2)}</span></div>
+    <div class="row"><span>Base imponible</span><span>Q ${ivaData.compras.base.toFixed(2)}</span></div>
+    <div class="row" style="font-weight:700"><span>IVA crédito (5%)</span><span style="color:#16a34a">Q ${ivaData.compras.iva.toFixed(2)}</span></div>
+    <div class="total-box"><div><div class="total-label">IVA líquido a pagar al SAT</div><div style="font-size:10px;color:#64748b;margin-top:3px">Formulario SAT 2046 · Vence día 15</div></div><div class="total-value">Q ${ivaData.liquidacion.aPagar.toFixed(2)}</div></div>
+    ${ivaData.liquidacion.saldoFavor > 0 ? `<div style="margin-top:10px;font-size:12px;color:#16a34a;font-weight:700">Saldo a favor: Q ${ivaData.liquidacion.saldoFavor.toFixed(2)}</div>` : ''}
+    <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div style="border-top:2px solid #0f172a;padding-top:8px"><div style="font-size:10px;color:#64748b">Firma del Contador</div></div>
+      <div style="border-top:2px solid #0f172a;padding-top:8px"><div style="font-size:10px;color:#64748b">Sello y firma del Representante Legal</div></div>
+    </div>
+    <div style="margin-top:16px;font-size:9px;color:#94a3b8;text-align:center">Generado el ${new Date().toLocaleDateString('es-GT')} · WebSoft Solutions</div>
+    <script>window.onload=function(){window.print()}</script></body></html>`
     const w = window.open('', '_blank')
-    if (!w) return
-    const genDate = new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
-    const mesLabel = new Date(ivaMes+'-01').toLocaleDateString('es-GT',{month:'long',year:'numeric'})
-    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Declaracion IVA ${mesLabel}</title><style>@page{margin:8mm;size:A4}@media print{html,body{height:100%}table{font-size:10px}}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:11px;line-height:1.5}.page{min-height:297mm;display:flex;flex-direction:column}.accent{height:5px;background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{padding:18px 28px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0}.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:44px;height:44px;object-fit:contain}.brand-text .name{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px}.brand-text .name span{color:#1581E3}.brand-text .sub{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:1px}.doc-right{text-align:right}.doc-badge{font-size:9px;font-weight:700;color:#fff;background:#1581E3;padding:3px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.doc-num{font-size:18px;font-weight:700;color:#1581E3}.doc-date{font-size:10px;color:#64748b;margin-top:3px}.body{padding:20px 28px;flex:1}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.info-box{background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.info-box-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.info-box p{font-size:11px;color:#0f172a;line-height:1.65}.info-box strong{font-weight:600}.sec-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th{padding:8px 11px;font-size:9px;font-weight:700;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:0.8px}th.r,td.r{text-align:right}th.c,td.c{text-align:center}tbody tr:nth-child(even){background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}tbody td{padding:8px 11px;font-size:11px;color:#334155;border-bottom:1px solid #f1f5f9}td.b{font-weight:600;color:#0f172a}.totals{display:flex;justify-content:flex-end;margin-bottom:18px}.totals-box{width:260px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}.t-row{display:flex;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #e2e8f0;font-size:11px}.t-grand{background:#1581E3;padding:11px 14px;display:flex;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact}.t-grand span{color:#fff;font-weight:700;font-size:13px}.highlight{background:#eff8ff;border-left:3px solid #1581E3;border-radius:0 6px 6px 0;padding:9px 13px;margin-bottom:10px;font-size:10px;font-weight:600;color:#1e40af;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}.highlight strong{font-size:11.5px;display:block;margin-bottom:3px}.conds{font-size:10px;color:#475569;line-height:1.75}.conds strong{color:#0f172a}.signs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}.sign-line{border-top:1.5px solid #0f172a;padding-top:6px;font-size:10px;color:#475569}.sign-line strong{display:block;font-size:11px;color:#0f172a;margin-bottom:40px}.footer{padding:12px 28px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}.footer-txt{font-size:9px;color:#94a3b8;line-height:1.6}.footer-brand{font-size:11px;font-weight:700;color:#0f172a}.footer-brand span{color:#1581E3}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="accent"></div><div class="header"><div class="brand"><img src="https://websoft-solutions.vercel.app/logo.png" class="brand-logo" alt="WebSoft" onerror="this.style.display='none'"/><div class="brand-text"><div class="name">WebSoft<span> Solutions</span></div><div class="sub">Contabilidad &middot; Guastatoya, El Progreso</div></div></div><div class="doc-right"><div class="doc-badge">Declaracion IVA</div><div class="doc-num" style="font-size:13px">${mesLabel}</div><div class="doc-date">Formulario SAT 2046 &middot; Vence dia 15</div></div></div>
-<div class="body">
-<div class="info-grid">
-  <div class="info-box"><div class="info-box-title">IVA Debito (Ventas)</div><p><strong>Facturas emitidas:</strong> ${ivaData.ventas.count}<br/><strong>Total ventas:</strong> Q ${ivaData.ventas.total.toFixed(2)}<br/><strong>Base imponible:</strong> Q ${ivaData.ventas.base.toFixed(2)}<br/><strong style="color:#dc2626">IVA debito (5%):</strong> Q ${ivaData.ventas.iva.toFixed(2)}</p></div>
-  <div class="info-box"><div class="info-box-title">IVA Credito (Compras)</div><p><strong>Facturas recibidas:</strong> ${ivaData.compras.count}<br/><strong>Total compras:</strong> Q ${ivaData.compras.total.toFixed(2)}<br/><strong>Base imponible:</strong> Q ${ivaData.compras.base.toFixed(2)}<br/><strong style="color:#16a34a">IVA credito (5%):</strong> Q ${ivaData.compras.iva.toFixed(2)}</p></div>
-</div>
-<div class="sec-title">Liquidacion del periodo</div>
-<table><thead><tr><th>Concepto</th><th class="r">Monto</th></tr></thead><tbody>
-<tr><td>IVA Debito (ventas del periodo)</td><td class="r">Q ${ivaData.liquidacion.ivaDebito.toFixed(2)}</td></tr>
-<tr><td>IVA Credito (compras del periodo)</td><td class="r" style="color:#16a34a">- Q ${ivaData.liquidacion.ivaCredito.toFixed(2)}</td></tr>
-</tbody></table>
-<div class="totals"><div class="totals-box"><div class="t-grand"><span>IVA LIQUIDO A PAGAR</span><span>Q ${ivaData.liquidacion.aPagar.toFixed(2)}</span></div></div></div>
-${ivaData.liquidacion.saldoFavor>0?'<div class="highlight"><strong>Saldo a favor para el proximo mes</strong>Q '+ivaData.liquidacion.saldoFavor.toFixed(2)+'</div>':''}
-<div class="signs"><div class="sign-line"><strong>Contador</strong>&nbsp;</div><div class="sign-line"><strong>Representante Legal</strong>&nbsp;</div></div>
-</div><div class="footer"><div class="footer-txt"><div class="footer-brand">WebSoft<span> Solutions</span></div>Guastatoya, El Progreso &middot; Tel: 3836-1044 / 3671-4377</div><div class="footer-txt" style="text-align:right">Generado el ${genDate}<br/>Documento confidencial</div></div></div><script>setTimeout(()=>window.print(),600)</script></body></html>`)
-    w.document.close()
+    if (w) { w.document.write(html); w.document.close() }
   }
 
   const cerrarPeriodo = async (id: number) => {
@@ -547,7 +549,7 @@ ${ivaData.liquidacion.saldoFavor>0?'<div class="highlight"><strong>Saldo a favor
             <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
               <div><label style={lbl}>Mes de declaración</label><input className="input" type="month" value={ivaMes} onChange={e => setIvaMes(e.target.value)} /></div>
               <button className="btn-primary" onClick={loadIva} disabled={loading}>Calcular</button>
-              {ivaData && <button className="btn-ghost" onClick={imprimirIVA}>🖨 Imprimir PDF</button>}
+              {ivaData && <button className="btn-ghost" onClick={imprimirIVA}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir PDF</button>}
             </div>
           </div>
           {ivaData && (
@@ -1184,7 +1186,7 @@ ${ivaData.liquidacion.saldoFavor>0?'<div class="highlight"><strong>Saldo a favor
             </div>
             {activoForm.costoOriginal && activoForm.vidaUtilAnios && (
               <div style={{ background:'#eff6ff', borderRadius:8, padding:'10px 14px', marginTop:12, fontSize:13, color:'#1e40af' }}>
-                {'Depreciacion mensual: '}<strong>{'Q ' + (((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong>{' · Linea recta por ' + activoForm.vidaUtilAnios + ' años'}
+                Depreciacion mensual: <strong>Q {(((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong> · Linea recta por {activoForm.vidaUtilAnios} años
               </div>
             )}
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:18 }}>
