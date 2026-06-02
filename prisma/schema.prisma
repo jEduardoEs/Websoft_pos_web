@@ -538,3 +538,127 @@ model PedidoWebItem {
 
   @@map("pedido_web_items")
 }
+
+model CuentaCobrar {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  clienteNombre   String   @map("cliente_nombre")
+  clienteNit      String?  @map("cliente_nit")
+  clienteTelefono String?  @map("cliente_telefono")
+  ventaNumero     String?  @map("venta_numero")
+  concepto        String
+  monto           Float
+  montoPagado     Float    @default(0) @map("monto_pagado")
+  estado          String   @default("pendiente") // pendiente | parcial | pagado | vencido
+  notas           String?
+  usuarioNombre   String?  @map("usuario_nombre")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("cuentas_cobrar")
+}
+
+model CuentaPagar {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  fecha           DateTime @default(now())
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  proveedorNombre String   @map("proveedor_nombre")
+  proveedorId     Int?     @map("proveedor_id")
+  compraNumero    String?  @map("compra_numero")
+  concepto        String
+  monto           Float
+  montoPagado     Float    @default(0) @map("monto_pagado")
+  estado          String   @default("pendiente") // pendiente | parcial | pagado | vencido
+  notas           String?
+  usuarioNombre   String?  @map("usuario_nombre")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("cuentas_pagar")
+}
+
+// ── MÓDULO CONTABLE ──────────────────────────────────────────────────────────
+
+model CuentaContable {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique
+  nombre      String
+  tipo        String   // activo | pasivo | capital | ingreso | costo | gasto
+  naturaleza  String   // deudora | acreedora
+  nivel       Int      @default(1)
+  cuentaPadreId Int?   @map("cuenta_padre_id")
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  partidas    PartidaContable[]
+
+  @@map("cuentas_contables")
+}
+
+model PeriodoContable {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  fechaInicio DateTime @map("fecha_inicio")
+  fechaFin    DateTime @map("fecha_fin")
+  estado      String   @default("abierto") // abierto | cerrado
+  cerradoPor  String?  @map("cerrado_por")
+  cerradoAt   DateTime? @map("cerrado_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  asientos    AsientoContable[]
+
+  @@map("periodos_contables")
+}
+
+model AsientoContable {
+  id            Int      @id @default(autoincrement())
+  numero        String   @unique
+  fecha         DateTime @default(now())
+  concepto      String
+  tipo          String   @default("manual") // manual | venta | compra | cobro | pago | ajuste | depreciacion | cierre
+  referenciaId  Int?     @map("referencia_id")
+  referenciaTipo String? @map("referencia_tipo") // venta | compra | cobro | pago
+  referenciaNum String?  @map("referencia_num")
+  periodoId     Int?     @map("periodo_id")
+  usuarioNombre String?  @map("usuario_nombre")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  partidas      PartidaContable[]
+  periodo       PeriodoContable? @relation(fields: [periodoId], references: [id])
+
+  @@map("asientos_contables")
+}
+
+model PartidaContable {
+  id         Int      @id @default(autoincrement())
+  asientoId  Int      @map("asiento_id")
+  cuentaId   Int      @map("cuenta_id")
+  debe       Float    @default(0)
+  haber      Float    @default(0)
+  descripcion String?
+
+  asiento    AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
+  cuenta     CuentaContable  @relation(fields: [cuentaId], references: [id])
+
+  @@map("partidas_contables")
+}
+
+model ActivoFijo {
+  id                 Int      @id @default(autoincrement())
+  codigo             String   @unique
+  nombre             String
+  descripcion        String?
+  fechaAdquisicion   DateTime @map("fecha_adquisicion")
+  costoOriginal      Float    @map("costo_original")
+  vidaUtilAnios      Int      @map("vida_util_anios")
+  valorResidual      Float    @default(0) @map("valor_residual")
+  depreciacionMensual Float   @map("depreciacion_mensual")
+  depreciacionAcum   Float    @default(0) @map("depreciacion_acum")
+  valorNeto          Float    @map("valor_neto")
+  estado             String   @default("activo") // activo | dado_de_baja
+  notas              String?
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("activos_fijos")
+}
