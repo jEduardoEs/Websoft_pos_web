@@ -23,8 +23,22 @@ export const MODULOS = [
 ]
 
 export const PERMISOS_CAJERO_DEFAULT = [
-  'dashboard', 'pos', 'ventas', 'inventario', 'clientes',
+  'dashboard', 'pos', 'ventas', 'clientes',
   'cotizaciones', 'devoluciones', 'caja', 'garantias', 'servicio',
+]
+
+export const PERMISOS_SUPERVISOR_DEFAULT = [
+  'dashboard', 'pos', 'ventas', 'pedidos', 'clientes', 'inventario',
+  'cotizaciones', 'devoluciones', 'caja', 'garantias', 'servicio',
+  'descuentos', 'cierres', 'reportes', 'presupuesto',
+]
+
+export const PERMISOS_BODEGA_DEFAULT = [
+  'dashboard', 'inventario', 'compras', 'proveedores',
+]
+
+export const PERMISOS_CONTADOR_DEFAULT = [
+  'dashboard', 'contabilidad', 'cuentas',
 ]
 
 export function parsePermisos(permisos: string | null | undefined): string[] {
@@ -34,8 +48,10 @@ export function parsePermisos(permisos: string | null | undefined): string[] {
 
 export function tienePermiso(permisos: string[], modulo: string, rol: string): boolean {
   if (rol === 'admin') return true
+  if (rol === 'contador') return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
   if (!permisos || permisos.length === 0) {
-    // Default cajero permissions
+    if (rol === 'supervisor') return PERMISOS_SUPERVISOR_DEFAULT.includes(modulo)
+    if (rol === 'bodega') return PERMISOS_BODEGA_DEFAULT.includes(modulo)
     return PERMISOS_CAJERO_DEFAULT.includes(modulo)
   }
   return permisos.includes(modulo)

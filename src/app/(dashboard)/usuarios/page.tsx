@@ -107,7 +107,13 @@ export default function UsuariosPage() {
                     <td style={{ ...tdS, fontWeight: 600 }}>{u.nombre}{u.metaMensual > 0 && <div style={{ fontSize: 10, color: '#2563eb' }}>Meta: Q {u.metaMensual.toLocaleString('es-GT')}/mes</div>}</td>
                     <td style={{ ...tdS, fontFamily: 'monospace', fontSize: 12, color: '#475569' }}>{u.usuario}</td>
                     <td style={tdS}>
-                      <span className={u.rol === 'admin' ? 'badge-blue' : 'badge-gray'} style={{ textTransform: 'capitalize' }}>{u.rol}</span>
+                      <span className={
+                        u.rol === 'admin' ? 'badge-blue' :
+                        u.rol === 'contador' ? 'badge-green' :
+                        u.rol === 'supervisor' ? 'badge-orange' :
+                        u.rol === 'bodega' ? 'badge-purple' :
+                        'badge-gray'
+                      } style={{ textTransform: 'capitalize' }}>{u.rol}</span>
                     </td>
                     <td style={tdS}>
                       {isAdmin ? (
@@ -165,8 +171,11 @@ export default function UsuariosPage() {
               <div>
                 <label style={lbl}>Rol</label>
                 <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))}>
-                  <option value="cajero">Cajero (permisos personalizables)</option>
-                  <option value="admin">Administrador (acceso total)</option>
+                  <option value="cajero">Cajero — permisos personalizables</option>
+                  <option value="admin">Administrador — acceso total</option>
+                  <option value="contador">Contador — modulo contable</option>
+                  <option value="supervisor">Supervisor — ventas y operaciones</option>
+                  <option value="bodega">Bodega — inventario y compras</option>
                 </select>
               </div>
               <div>
@@ -176,8 +185,8 @@ export default function UsuariosPage() {
               </div>
             </div>
 
-            {/* Permisos — only for cajero */}
-            {form.rol === 'cajero' && (
+            {/* Permisos — for customizable roles */}
+            {['cajero','supervisor','bodega'].includes(form.rol) && (
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, cursor: 'pointer' }}
                   onClick={() => setShowPermisos(!showPermisos)}>
@@ -226,9 +235,11 @@ export default function UsuariosPage() {
               </div>
             )}
 
-            {form.rol === 'admin' && (
+            {['admin','contador'].includes(form.rol) && (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#166534' }}>
-                 El administrador tiene acceso completo a todos los módulos del sistema.
+                 {form.rol === 'admin'
+                   ? 'El administrador tiene acceso completo a todos los módulos del sistema.'
+                   : 'El contador tiene acceso exclusivo al módulo de Contabilidad y Cuentas por cobrar/pagar.'}
               </div>
             )}
 
