@@ -25,6 +25,7 @@ export default function ContabilidadPage() {
   const [asientos, setAsientos] = useState<any[]>([])
   const [diarioMeta, setDiarioMeta] = useState<any>(null)
   const [showAsientoModal, setShowAsientoModal] = useState(false)
+  const [editAsiento, setEditAsiento] = useState<any>(null)
   const [asientoForm, setAsientoForm] = useState({ concepto: '', tipo: 'manual', fecha: TODAY })
   const [partidas, setPartidas] = useState([{ cuentaId: '', debe: '', haber: '' },{ cuentaId: '', debe: '', haber: '' }])
 
@@ -163,17 +164,42 @@ export default function ContabilidadPage() {
   }
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
+  const openEditAsiento = (a: any) => {
+    setEditAsiento(a)
+    setAsientoForm({ concepto: a.concepto, tipo: a.tipo, fecha: new Date(a.fecha).toISOString().slice(0,10) })
+    setPartidas(a.partidas.map((p: any) => ({ cuentaId: String(p.cuentaId), debe: p.debe > 0 ? String(p.debe) : '', haber: p.haber > 0 ? String(p.haber) : '' })))
+    setShowAsientoModal(true)
+  }
+
+  const deleteAsiento = async (a: any) => {
+    if (!confirm(`Eliminar asiento ${a.numero}? Esta acción no se puede deshacer.`)) return
+    const res = await fetch(`/api/contabilidad/asientos?id=${a.id}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.ok) { toast.success('Asiento eliminado'); loadDiario() }
+    else toast.error(data.error)
+  }
+
   const saveAsiento = async () => {
     if (!asientoForm.concepto) { toast.error('Escribe el concepto'); return }
     const td = partidas.reduce((s, p) => s + (+p.debe||0), 0)
     const th = partidas.reduce((s, p) => s + (+p.haber||0), 0)
     if (Math.abs(td - th) > 0.01) { toast.error(`No cuadra — Debe Q${td.toFixed(2)} | Haber Q${th.toFixed(2)}`); return }
     setLoading(true)
-    const res = await fetch('/api/contabilidad/asientos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...asientoForm, partidas}) })
+    const isEdit = !!editAsiento
+    const res = await fetch('/api/contabilidad/asientos', {
+      method: isEdit ? 'PATCH' : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(isEdit ? { id: editAsiento.id, ...asientoForm, partidas } : { ...asientoForm, partidas })
+    })
     const data = await res.json()
     setLoading(false)
-    if (data.ok) { toast.success('Asiento guardado'); setShowAsientoModal(false); setPartidas([{cuentaId:'',debe:'',haber:''},{cuentaId:'',debe:'',haber:''}]); loadDiario() }
-    else toast.error(data.error)
+    if (data.ok) {
+      toast.success(isEdit ? 'Asiento actualizado' : 'Asiento guardado')
+      setShowAsientoModal(false)
+      setEditAsiento(null)
+      setPartidas([{cuentaId:'',debe:'',haber:''},{cuentaId:'',debe:'',haber:''}])
+      loadDiario()
+    } else toast.error(data.error)
   }
 
   const saveCC = async () => {
@@ -395,7 +421,7 @@ export default function ContabilidadPage() {
             <div className="card" style={{ padding:0, overflow:'hidden' }}>
               <div style={{ overflowX:'auto' }}>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr>{['Asiento','Fecha','Concepto','Tipo','Cuenta','Debe','Haber'].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
+                  <thead><tr>{['Asiento','Fecha','Concepto','Tipo','Cuenta','Debe','Haber',''].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
                   <tbody>
                     {asientos.flatMap(a => a.partidas.map((p: any, i: number) => (
                       <tr key={`${a.id}-${p.id}`} style={{ background:i===0?'#fafafa':'#fff' }}>
@@ -404,6 +430,14 @@ export default function ContabilidadPage() {
                           <td style={{ ...tdS, fontSize:11, color:'#64748b', whiteSpace:'nowrap' }} rowSpan={a.partidas.length}>{new Date(a.fecha).toLocaleDateString('es-GT')}</td>
                           <td style={{ ...tdS, fontWeight:600, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} rowSpan={a.partidas.length}>{a.concepto}</td>
                           <td style={tdS} rowSpan={a.partidas.length}><span style={{ fontSize:10, background:'#eff6ff', color:'#2563eb', padding:'2px 7px', borderRadius:10, fontWeight:700 }}>{a.tipo}</span></td>
+                          {['manual','ajuste'].includes(a.tipo) ? (
+                            <td style={{ ...tdS, whiteSpace:'nowrap' }} rowSpan={a.partidas.length}>
+                              <div style={{ display:'flex', gap:5 }}>
+                                <button onClick={()=>openEditAsiento(a)} style={{ fontSize:11, fontWeight:700, padding:'3px 9px', background:'#eff6ff', color:'#2563eb', border:'1px solid #bfdbfe', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>Editar</button>
+                                <button onClick={()=>deleteAsiento(a)} style={{ fontSize:11, fontWeight:700, padding:'3px 9px', background:'#fef2f2', color:'#dc2626', border:'1px solid #fecaca', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>Eliminar</button>
+                              </div>
+                            </td>
+                          ) : <td style={tdS} rowSpan={a.partidas.length} />}
                         </> : null}
                         <td style={{ ...tdS, fontSize:12, color:'#475569' }}>{p.cuenta?.codigo} — {p.cuenta?.nombre}</td>
                         <td style={{ ...tdS, color:'#16a34a', fontWeight:p.debe>0?700:400 }}>{p.debe>0?fmt(p.debe):'—'}</td>
@@ -806,8 +840,8 @@ export default function ContabilidadPage() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:999, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:20, overflowY:'auto' }}>
           <div style={{ background:'#fff', borderRadius:14, padding:28, width:'100%', maxWidth:680, margin:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
-              <h3 style={{ fontSize:16, fontWeight:700 }}>Nuevo asiento contable</h3>
-              <button onClick={()=>setShowAsientoModal(false)} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'#94a3b8' }}>×</button>
+              <h3 style={{ fontSize:16, fontWeight:700 }}>{editAsiento ? `Editar ${editAsiento.numero}` : 'Nuevo asiento contable'}</h3>
+              <button onClick={()=>{setShowAsientoModal(false);setEditAsiento(null);setPartidas([{cuentaId:'',debe:'',haber:''},{cuentaId:'',debe:'',haber:''}])}} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'#94a3b8' }}>×</button>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:16 }}>
               <div><label style={lbl}>Concepto *</label><input style={inp} value={asientoForm.concepto} onChange={e=>setAsientoForm(p=>({...p,concepto:e.target.value}))} placeholder="Descripcion del asiento" /></div>
@@ -838,7 +872,7 @@ export default function ContabilidadPage() {
             </div>
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
               <button className="btn-ghost" onClick={()=>setShowAsientoModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={saveAsiento} disabled={loading||!cuadra}>{loading?'Guardando...':'Guardar asiento'}</button>
+              <button className="btn-primary" onClick={saveAsiento} disabled={loading||!cuadra}>{loading ? 'Guardando...' : editAsiento ? 'Actualizar asiento' : 'Guardar asiento'}</button>
             </div>
           </div>
         </div>

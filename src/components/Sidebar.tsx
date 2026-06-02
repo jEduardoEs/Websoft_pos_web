@@ -106,7 +106,7 @@ export default function Sidebar() {
 
   const canSeeItem = (item: NavItem) => {
     if (item.roles && !item.roles.includes(rol)) return false
-    if (rol === 'admin' || rol === 'contador') return true
+    if (rol === 'admin') return true
     return tienePermiso(permisos, item.modulo, rol)
   }
 
