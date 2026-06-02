@@ -14,7 +14,10 @@ export const MODULOS = [
   { id: 'compras',      label: 'Compras',               group: 'Compras' },
   { id: 'descuentos',   label: 'Descuentos',            group: 'Admin' },
   { id: 'cierres',      label: 'Cierres de Caja',       group: 'Admin' },
+<<<<<<< HEAD
   { id: 'cuentas',       label: 'Cuentas por cobrar/pagar', group: 'Finanzas' },
+=======
+>>>>>>> 8098aebda47865c1449b97e30f14d3a469678a01
   { id: 'reportes',     label: 'Reportes',              group: 'Admin' },
   { id: 'presupuesto',  label: 'Presupuesto vs Real',   group: 'Admin' },
   { id: 'fel',          label: 'FEL / SAT',             group: 'Admin' },
