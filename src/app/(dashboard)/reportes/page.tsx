@@ -14,7 +14,6 @@ export default function ReportesPage() {
   const [reporte, setReporte] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
-<<<<<<< HEAD
   const [tabReporte, setTabReporte] = useState<'ventas'|'inventario'>('ventas')
   const [invReporte, setInvReporte] = useState<any>(null)
   const [invLoading, setInvLoading] = useState(false)
@@ -25,8 +24,6 @@ export default function ReportesPage() {
     setInvReporte(await res.json())
     setInvLoading(false)
   }
-=======
->>>>>>> 8098aebda47865c1449b97e30f14d3a469678a01
 
   const generar = async () => {
     setLoading(true)
@@ -223,7 +220,6 @@ export default function ReportesPage() {
 
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-<<<<<<< HEAD
       {/* Tab switcher */}
       <div style={{ display: 'flex', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 4, width: 'fit-content' }}>
         {[['ventas','Reporte de Ventas'],['inventario','Valoracion de Inventario']].map(([id, label]) => (
@@ -326,8 +322,6 @@ export default function ReportesPage() {
       )}
 
       {tabReporte === 'ventas' && (
-=======
->>>>>>> 8098aebda47865c1449b97e30f14d3a469678a01
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Reportes</h1>
@@ -486,10 +480,7 @@ export default function ReportesPage() {
         </>
       )}
     </div>
-<<<<<<< HEAD
       )}
     </div>
-=======
->>>>>>> 8098aebda47865c1449b97e30f14d3a469678a01
   )
 }

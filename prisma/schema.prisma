@@ -538,7 +538,6 @@ model PedidoWebItem {
 
   @@map("pedido_web_items")
 }
-<<<<<<< HEAD
 
 model CuentaCobrar {
   id              Int      @id @default(autoincrement())
@@ -578,5 +577,3 @@ model CuentaPagar {
 
   @@map("cuentas_pagar")
 }
-=======
->>>>>>> 8098aebda47865c1449b97e30f14d3a469678a01
