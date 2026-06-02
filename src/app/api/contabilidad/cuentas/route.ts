@@ -28,3 +28,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message }, { status: 500 })
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const { searchParams } = new URL(req.url)
+    const id = Number(searchParams.get('id'))
+    const body = await req.json()
+    const cuenta = await prisma.cuentaContable.update({ where: { id }, data: { activa: body.activa } })
+    return NextResponse.json({ ok: true, cuenta })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message }, { status: 500 })
+  }
+}

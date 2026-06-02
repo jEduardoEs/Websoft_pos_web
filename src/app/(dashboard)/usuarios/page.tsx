@@ -202,11 +202,13 @@ export default function UsuariosPage() {
                 </div>
                 <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Escribe el rol que quieras o selecciona uno de los predefinidos</div>
               </div>
-              <div>
-                <label style={lbl}>Meta mensual de ventas (Q)</label>
-                <input className="input" type="number" min="0" value={form.metaMensual} onChange={e => setForm(p => ({ ...p, metaMensual: e.target.value }))} placeholder="0.00" />
-                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>Aparece en el dashboard como objetivo del mes</div>
-              </div>
+              {!['admin','contador'].includes(form.rol) && (
+                <div>
+                  <label style={lbl}>Meta mensual de ventas (Q)</label>
+                  <input className="input" type="number" min="0" value={form.metaMensual} onChange={e => setForm(p => ({ ...p, metaMensual: e.target.value }))} placeholder="0.00" />
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>Aparece en el dashboard como objetivo del mes</div>
+                </div>
+              )}
             </div>
 
             {/* Permisos — for all non-admin roles */}

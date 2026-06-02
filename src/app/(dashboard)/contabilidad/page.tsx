@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
 
-type TabType = 'resumen'|'diario'|'mayor'|'iva'|'pyg'|'balance'|'cobrar'|'pagar'|'activos'|'cuentas'|'periodos'
+type TabType = 'resumen'|'diario'|'mayor'|'iva'|'pyg'|'balance'|'cobrar'|'pagar'|'activos'|'consolidacion'|'cuentas'|'periodos'
 
 const TODAY = new Date().toISOString().slice(0,10)
 const FIRST_DAY = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10)
@@ -53,6 +53,14 @@ export default function ContabilidadPage() {
   const [montoPago, setMontoPago] = useState('')
   const [formCC, setFormCC] = useState({ clienteNombre:'', clienteNit:'', clienteTelefono:'', ventaNumero:'', concepto:'', monto:'', fechaVencimiento:'', notas:'' })
   const [formCP, setFormCP] = useState({ proveedorNombre:'', compraNumero:'', concepto:'', monto:'', fechaVencimiento:'', notas:'' })
+
+  // Plan de cuentas — add/remove
+  const [showCuentaForm, setShowCuentaForm] = useState(false)
+  const [nuevaCuenta, setNuevaCuenta] = useState({ codigo:'', nombre:'', tipo:'gasto', naturaleza:'deudora', nivel:'3' })
+
+  // Consolidacion
+  const [consolData, setConsolData] = useState<any>(null)
+  const [consolLoading, setConsolLoading] = useState(false)
 
   // Activos
   const [activos, setActivos] = useState<any[]>([])
@@ -149,6 +157,35 @@ export default function ContabilidadPage() {
     setResCP(rCP.resumen)
   }
 
+  const saveCuenta = async () => {
+    if (!nuevaCuenta.codigo || !nuevaCuenta.nombre) { toast.error('Codigo y nombre son requeridos'); return }
+    const res = await fetch('/api/contabilidad/cuentas', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(nuevaCuenta) })
+    const data = await res.json()
+    if (data.ok) { toast.success('Cuenta agregada'); setShowCuentaForm(false); setNuevaCuenta({codigo:'',nombre:'',tipo:'gasto',naturaleza:'deudora',nivel:'3'}); checkSetup() }
+    else toast.error(data.error)
+  }
+
+  const toggleCuenta = async (id: number, activa: boolean) => {
+    const res = await fetch(`/api/contabilidad/cuentas?id=${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ activa: !activa }) })
+    const data = await res.json()
+    if (data.ok) { toast.success(activa ? 'Cuenta desactivada' : 'Cuenta activada'); checkSetup() }
+    else toast.error(data.error)
+  }
+
+  const loadConsolidacion = async () => {
+    setConsolLoading(true)
+    const [invRes, activosRes2, cobrarRes2, pagarRes2, pygRes2, ventasRes] = await Promise.all([
+      fetch('/api/reportes/inventario').then(r => r.json()),
+      fetch('/api/contabilidad/activos').then(r => r.json()),
+      fetch('/api/cuentas-cobrar').then(r => r.json()),
+      fetch('/api/cuentas-pagar').then(r => r.json()),
+      fetch(`/api/contabilidad/estados?tipo=pyg&fi=${new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)}&ff=${TODAY}`).then(r => r.json()),
+      fetch(`/api/reportes?fecha_ini=${new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10)}&fecha_fin=${TODAY}`).then(r => r.json()),
+    ])
+    setConsolData({ inv: invRes, activos: activosRes2, cobrar: cobrarRes2, pagar: pagarRes2, pyg: pygRes2, ventas: ventasRes })
+    setConsolLoading(false)
+  }
+
   const loadActivos = async () => {
     setLoading(true)
     const res = await fetch('/api/contabilidad/activos')
@@ -238,7 +275,7 @@ export default function ContabilidadPage() {
     const res = await fetch('/api/contabilidad/activos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(activoForm) })
     const data = await res.json()
     setLoading(false)
-    if (data.ok) { toast.success('Activo registrado'); setShowActivoModal(false); loadActivos() }
+    if (data.ok) { toast.success('Activo registrado'); setShowActivoModal(false); setActivoForm({ nombre:'', descripcion:'', fechaAdquisicion:TODAY, costoOriginal:'', vidaUtilAnios:'5', valorResidual:'0' }); loadActivos() }
     else toast.error(data.error)
   }
 
@@ -282,7 +319,7 @@ export default function ContabilidadPage() {
   const lbl = { display:'block' as const, fontSize:11, fontWeight:700 as const, color:'#64748b', textTransform:'uppercase' as const, marginBottom:4 }
   const inp = { width:'100%', padding:'9px 12px', border:'1.5px solid #e2e8f0', borderRadius:8, fontFamily:'inherit', fontSize:13, color:'#0f172a', outline:'none' }
   const kpiColor = ['#2563eb','#16a34a','#d97706','#7c3aed','#dc2626']
-  const TABS: [TabType, string][] = [['resumen','Resumen'],['diario','Libro diario'],['mayor','Libro mayor'],['iva','IVA'],['pyg','P & G'],['balance','Balance'],['cobrar','C. por cobrar'],['pagar','C. por pagar'],['activos','Activos fijos'],['cuentas','Plan de cuentas'],['periodos','Periodos']]
+  const TABS: [TabType, string][] = [['resumen','Resumen'],['diario','Libro diario'],['mayor','Libro mayor'],['iva','IVA'],['pyg','P & G'],['balance','Balance'],['cobrar','C. por cobrar'],['pagar','C. por pagar'],['activos','Activos fijos'],['consolidacion','Consolidacion'],['cuentas','Plan de cuentas'],['periodos','Periodos']]
 
   const diasVenc = (f: string) => Math.ceil((new Date(f).getTime() - Date.now()) / 86400000)
   const estadoBadge: any = { pendiente:'badge-orange', parcial:'badge-blue', pagado:'badge-green', vencido:'badge-red' }
@@ -313,6 +350,7 @@ export default function ContabilidadPage() {
           {tab === 'cobrar' && <button className="btn-primary" onClick={() => setShowCuentaModal('cobrar')}>+ Cuenta por cobrar</button>}
           {tab === 'pagar' && <button className="btn-primary" onClick={() => setShowCuentaModal('pagar')}>+ Cuenta por pagar</button>}
           {tab === 'activos' && <button className="btn-primary" onClick={() => { setShowActivoModal(true); loadActivos() }}>+ Activo fijo</button>}
+          {tab === 'consolidacion' && <button className="btn-ghost" onClick={loadConsolidacion} disabled={consolLoading}>{consolLoading ? 'Actualizando...' : 'Actualizar datos'}</button>}
         </div>
       </div>
 
@@ -789,23 +827,196 @@ export default function ContabilidadPage() {
         </>
       )}
 
+      {/* ── CONSOLIDACION ───────────────────────────────────────────────── */}
+      {tab === 'consolidacion' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          {!consolData && !consolLoading && (
+            <div style={{ textAlign:'center', padding:60 }}>
+              <p style={{ fontSize:14, color:'#94a3b8', marginBottom:16 }}>Vista consolidada de todos los activos y pasivos de la empresa</p>
+              <button className="btn-primary" onClick={loadConsolidacion}>Generar consolidacion</button>
+            </div>
+          )}
+          {consolLoading && <div style={{ textAlign:'center', padding:60, color:'#64748b' }}>Calculando...</div>}
+          {consolData && (
+            <>
+              {/* Header KPIs */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+                {[
+                  { l:'Inventario', v:fmt(consolData.inv?.resumen?.totalInversion||0), c:'#d97706', s:`${consolData.inv?.resumen?.totalProductos||0} productos · ${consolData.inv?.resumen?.totalUnidades||0} uds` },
+                  { l:'Activos fijos', v:fmt(consolData.activos?.resumen?.valorNeto||0), c:'#2563eb', s:`${consolData.activos?.resumen?.total||0} activos registrados` },
+                  { l:'Cuentas por cobrar', v:fmt((consolData.cobrar?.resumen?._sum?.monto||0)-(consolData.cobrar?.resumen?._sum?.montoPagado||0)), c:'#16a34a', s:'Cartera activa' },
+                  { l:'Cuentas por pagar', v:fmt((consolData.pagar?.resumen?._sum?.monto||0)-(consolData.pagar?.resumen?._sum?.montoPagado||0)), c:'#dc2626', s:'Deuda pendiente' },
+                ].map(k=>(
+                  <div key={k.l} className="card" style={{ padding:'16px 18px', borderTop:`3px solid ${k.c}` }}>
+                    <div style={{ fontSize:11, color:'#64748b', textTransform:'uppercase', marginBottom:5 }}>{k.l}</div>
+                    <div style={{ fontSize:22, fontWeight:800, color:k.c }}>{k.v}</div>
+                    <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>{k.s}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Dos columnas: ACTIVOS vs PASIVOS */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <div className="card" style={{ padding:18 }}>
+                  <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14, color:'#16a34a' }}>LO QUE TIENE LA EMPRESA</h3>
+                  {[
+                    { l:'Inventario (al costo)', v:consolData.inv?.resumen?.totalInversion||0, c:'#d97706' },
+                    { l:'Valor de venta del inventario', v:consolData.inv?.resumen?.totalValorVenta||0, c:'#16a34a' },
+                    { l:'Activos fijos (valor neto)', v:consolData.activos?.resumen?.valorNeto||0, c:'#2563eb' },
+                    { l:'Cuentas por cobrar', v:(consolData.cobrar?.resumen?._sum?.monto||0)-(consolData.cobrar?.resumen?._sum?.montoPagado||0), c:'#16a34a' },
+                  ].map(row=>(
+                    <div key={row.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid #f8fafc', fontSize:13 }}>
+                      <span style={{ color:'#475569' }}>{row.l}</span>
+                      <span style={{ fontWeight:700, color:row.c }}>{fmt(row.v)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderTop:'2px solid #e2e8f0', marginTop:6, fontWeight:700, fontSize:14, color:'#16a34a' }}>
+                    <span>TOTAL ACTIVOS</span>
+                    <span>{fmt((consolData.inv?.resumen?.totalInversion||0)+(consolData.activos?.resumen?.valorNeto||0)+((consolData.cobrar?.resumen?._sum?.monto||0)-(consolData.cobrar?.resumen?._sum?.montoPagado||0)))}</span>
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding:18 }}>
+                  <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14, color:'#dc2626' }}>LO QUE DEBE LA EMPRESA</h3>
+                  {[
+                    { l:'Cuentas por pagar', v:(consolData.pagar?.resumen?._sum?.monto||0)-(consolData.pagar?.resumen?._sum?.montoPagado||0), c:'#dc2626' },
+                    { l:'Depreciacion acumulada', v:consolData.activos?.resumen?.depreciacionAcum||0, c:'#d97706' },
+                  ].map(row=>(
+                    <div key={row.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid #f8fafc', fontSize:13 }}>
+                      <span style={{ color:'#475569' }}>{row.l}</span>
+                      <span style={{ fontWeight:700, color:row.c }}>{fmt(row.v)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderTop:'2px solid #e2e8f0', marginTop:6, fontWeight:700, fontSize:14 }}>
+                    <span>Patrimonio neto estimado</span>
+                    <span style={{ color:'#7c3aed' }}>{fmt(
+                      (consolData.inv?.resumen?.totalInversion||0)+
+                      (consolData.activos?.resumen?.valorNeto||0)+
+                      ((consolData.cobrar?.resumen?._sum?.monto||0)-(consolData.cobrar?.resumen?._sum?.montoPagado||0))-
+                      ((consolData.pagar?.resumen?._sum?.monto||0)-(consolData.pagar?.resumen?._sum?.montoPagado||0))
+                    )}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rendimiento del año */}
+              <div className="card" style={{ padding:18 }}>
+                <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Rendimiento del año en curso</h3>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+                  {[
+                    { l:'Ventas del año', v:consolData.pyg?.ingresos?.ventas||0, c:'#16a34a' },
+                    { l:'Costo de ventas', v:consolData.pyg?.costos?.costoVentas||0, c:'#d97706' },
+                    { l:'Gastos operativos', v:consolData.pyg?.gastos?.total||0, c:'#dc2626' },
+                    { l:'Utilidad neta', v:consolData.pyg?.utilidadNeta||0, c:consolData.pyg?.utilidadNeta>=0?'#7c3aed':'#dc2626' },
+                  ].map(k=>(
+                    <div key={k.l} style={{ textAlign:'center', padding:'14px', background:'#f8fafc', borderRadius:8 }}>
+                      <div style={{ fontSize:11, color:'#64748b', marginBottom:5 }}>{k.l}</div>
+                      <div style={{ fontSize:18, fontWeight:800, color:k.c }}>{fmt(k.v)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Activos fijos detalle */}
+              {(consolData.activos?.activos||[]).length > 0 && (
+                <div className="card" style={{ padding:18 }}>
+                  <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Detalle de activos fijos</h3>
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <thead><tr>{['Activo','Costo orig.','Dep. mensual','Dep. acum.','Valor neto'].map(h=><th key={h} style={{ background:'#f8fafc', fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase' as const, padding:'8px 12px', textAlign:'left' as const, borderBottom:'1px solid #e2e8f0' }}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {(consolData.activos?.activos||[]).map((a: any)=>(
+                        <tr key={a.id}>
+                          <td style={{ padding:'9px 12px', fontSize:13, borderBottom:'1px solid #f1f5f9', fontWeight:600 }}>{a.nombre}</td>
+                          <td style={{ padding:'9px 12px', fontSize:13, borderBottom:'1px solid #f1f5f9' }}>{fmt(a.costoOriginal)}</td>
+                          <td style={{ padding:'9px 12px', fontSize:13, borderBottom:'1px solid #f1f5f9', color:'#d97706' }}>{fmt(a.depreciacionMensual)}/mes</td>
+                          <td style={{ padding:'9px 12px', fontSize:13, borderBottom:'1px solid #f1f5f9', color:'#dc2626' }}>{fmt(a.depreciacionAcum)}</td>
+                          <td style={{ padding:'9px 12px', fontSize:13, borderBottom:'1px solid #f1f5f9', fontWeight:700, color:'#16a34a' }}>{fmt(a.valorNeto)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── PLAN DE CUENTAS ────────────────────────────────────────────── */}
       {tab === 'cuentas' && (
-        <div className="card" style={{ padding:0, overflow:'hidden' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
-            <thead><tr>{['Codigo','Nombre','Tipo','Naturaleza'].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
-            <tbody>
-              {cuentas.map(c=>(
-                <tr key={c.id} style={{ background:c.nivel===1?'#f8fafc':c.nivel===2?'#fafafa':'#fff' }}>
-                  <td style={{ ...tdS, fontFamily:'monospace', fontSize:12, color:'#2563eb', fontWeight:700 }}>{c.codigo}</td>
-                  <td style={{ ...tdS, fontWeight:c.nivel<=2?700:400, paddingLeft:`${(c.nivel-1)*18+13}px` }}>{c.nombre}</td>
-                  <td style={tdS}><span style={{ fontSize:10, background:'#eff6ff', color:'#2563eb', padding:'2px 7px', borderRadius:10, fontWeight:700, textTransform:'capitalize' }}>{c.tipo}</span></td>
-                  <td style={{ ...tdS, fontSize:12, color:'#64748b', textTransform:'capitalize' }}>{c.naturaleza}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <p style={{ fontSize:12, color:'#64748b' }}>{cuentas.length} cuentas activas · Para agregar una cuenta nueva el codigo debe ser unico (no tiene que ser correlativo)</p>
+            <button className="btn-primary" onClick={()=>setShowCuentaForm(!showCuentaForm)}>
+              {showCuentaForm ? 'Cancelar' : '+ Nueva cuenta'}
+            </button>
+          </div>
+
+          {showCuentaForm && (
+            <div className="card" style={{ padding:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr 1fr 1fr 1fr auto', gap:10, alignItems:'flex-end' }}>
+                <div>
+                  <label style={lbl}>Codigo *</label>
+                  <input style={inp} value={nuevaCuenta.codigo} onChange={e=>setNuevaCuenta(p=>({...p,codigo:e.target.value}))} placeholder="Ej: 6800" />
+                  <div style={{ fontSize:9, color:'#94a3b8', marginTop:2 }}>No tiene que ser correlativo</div>
+                </div>
+                <div>
+                  <label style={lbl}>Nombre *</label>
+                  <input style={inp} value={nuevaCuenta.nombre} onChange={e=>setNuevaCuenta(p=>({...p,nombre:e.target.value}))} placeholder="Nombre de la cuenta" />
+                </div>
+                <div>
+                  <label style={lbl}>Tipo</label>
+                  <select style={inp} value={nuevaCuenta.tipo} onChange={e=>setNuevaCuenta(p=>({...p,tipo:e.target.value}))}>
+                    <option value="activo">Activo</option>
+                    <option value="pasivo">Pasivo</option>
+                    <option value="capital">Capital</option>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="costo">Costo</option>
+                    <option value="gasto">Gasto</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Naturaleza</label>
+                  <select style={inp} value={nuevaCuenta.naturaleza} onChange={e=>setNuevaCuenta(p=>({...p,naturaleza:e.target.value}))}>
+                    <option value="deudora">Deudora</option>
+                    <option value="acreedora">Acreedora</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Nivel</label>
+                  <select style={inp} value={nuevaCuenta.nivel} onChange={e=>setNuevaCuenta(p=>({...p,nivel:e.target.value}))}>
+                    <option value="1">1 — Grupo</option>
+                    <option value="2">2 — Subgrupo</option>
+                    <option value="3">3 — Cuenta</option>
+                  </select>
+                </div>
+                <button className="btn-primary" onClick={saveCuenta} style={{ marginBottom:0, alignSelf:'flex-end', height:38 }}>Agregar</button>
+              </div>
+            </div>
+          )}
+
+          <div className="card" style={{ padding:0, overflow:'hidden' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse' }}>
+              <thead><tr>{['Codigo','Nombre','Tipo','Naturaleza','Estado',''].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
+              <tbody>
+                {cuentas.map(cuenta=>(
+                  <tr key={cuenta.id} style={{ background:cuenta.nivel===1?'#f8fafc':cuenta.nivel===2?'#fafafa':'#fff', opacity:cuenta.activa?1:0.5 }}>
+                    <td style={{ ...tdS, fontFamily:'monospace', fontSize:12, color:'#2563eb', fontWeight:700 }}>{cuenta.codigo}</td>
+                    <td style={{ ...tdS, fontWeight:cuenta.nivel<=2?700:400, paddingLeft:`${(cuenta.nivel-1)*18+13}px` }}>{cuenta.nombre}</td>
+                    <td style={tdS}><span style={{ fontSize:10, background:'#eff6ff', color:'#2563eb', padding:'2px 7px', borderRadius:10, fontWeight:700, textTransform:'capitalize' }}>{cuenta.tipo}</span></td>
+                    <td style={{ ...tdS, fontSize:12, color:'#64748b', textTransform:'capitalize' }}>{cuenta.naturaleza}</td>
+                    <td style={tdS}><span style={{ fontSize:10, background:cuenta.activa?'#f0fdf4':'#f8fafc', color:cuenta.activa?'#166534':'#94a3b8', padding:'2px 8px', borderRadius:10, fontWeight:700 }}>{cuenta.activa?'Activa':'Inactiva'}</span></td>
+                    <td style={tdS}>
+                      <button onClick={()=>toggleCuenta(cuenta.id, cuenta.activa)} style={{ fontSize:11, fontWeight:700, padding:'3px 9px', background:cuenta.activa?'#fef2f2':'#f0fdf4', color:cuenta.activa?'#dc2626':'#16a34a', border:`1px solid ${cuenta.activa?'#fecaca':'#bbf7d0'}`, borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>
+                        {cuenta.activa ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* ── PERIODOS ────────────────────────────────────────────────────── */}

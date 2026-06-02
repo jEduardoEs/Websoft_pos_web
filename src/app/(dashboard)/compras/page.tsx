@@ -26,6 +26,8 @@ export default function ComprasPage() {
   const [showDetalle, setShowDetalle] = useState(false)
   const [selected, setSelected] = useState<Compra | null>(null)
   const [loading, setLoading] = useState(false)
+  const [xmlParsed, setXmlParsed] = useState<any>(null)
+  const [xmlLoading, setXmlLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [buscarProd, setBuscarProd] = useState('')
 
@@ -86,6 +88,62 @@ export default function ComprasPage() {
   }
 
   const total = items.reduce((s, i) => s + i.subtotal, 0)
+
+  const parseXML = async (file: File) => {
+    setXmlLoading(true)
+    try {
+      const text = await file.text()
+      const parser = new DOMParser()
+      const xml = parser.parseFromString(text, 'application/xml')
+
+      // SAT Guatemala FEL XML structure
+      const get = (tag: string) => xml.getElementsByTagName(tag)[0]?.textContent?.trim() || ''
+      const getAttr = (tag: string, attr: string) => xml.getElementsByTagName(tag)[0]?.getAttribute(attr) || ''
+
+      // Try standard DTE format
+      const nitEmisor = get('NITEmisor') || get('NitEmisor') || getAttr('Emisor', 'NITEmisor')
+      const nombreEmisor = get('NombreEmisor') || get('NombreComercial') || getAttr('Emisor', 'NombreComercial')
+      const totalAux = get('GranTotal') || get('Total') || get('MontoTotal')
+      const numAut = get('NumeroAutorizacion') || getAttr('DatosEmision', 'NumeroAutorizacion')
+      const serie = get('Serie') || getAttr('DatosEmision', 'Serie')
+      const numero = get('Numero') || getAttr('DatosEmision', 'Numero')
+
+      // Parse items
+      const itemNodes = xml.getElementsByTagName('Item')
+      const xmlItems: any[] = []
+      for (let i = 0; i < itemNodes.length; i++) {
+        const item = itemNodes[i]
+        const desc = item.getElementsByTagName('Descripcion')[0]?.textContent?.trim() ||
+                     item.getElementsByTagName('NombreCorto')[0]?.textContent?.trim() || ''
+        const cantidad = +(item.getElementsByTagName('Cantidad')[0]?.textContent?.trim() || '1')
+        const precio = +(item.getElementsByTagName('PrecioUnitario')[0]?.textContent?.trim() ||
+                        item.getElementsByTagName('MontoItem')[0]?.textContent?.trim() || '0')
+        if (desc) xmlItems.push({ nombre: desc, cantidad, precioUnitario: (precio/1.05).toFixed(2), subtotal: (cantidad*precio/1.05).toFixed(2) })
+      }
+
+      const parsed = {
+        nitEmisor: nitEmisor || '',
+        nombreEmisor: nombreEmisor || '',
+        total: totalAux || '',
+        numAutorizacion: numAut || '',
+        serie: serie || '',
+        numero: numero || '',
+        items: xmlItems,
+      }
+
+      setXmlParsed(parsed)
+      // Autocomplete form
+      if (parsed.nombreEmisor) setForm(p => ({ ...p, proveedorNombre: parsed.nombreEmisor }))
+      if (parsed.total) setForm(p => ({ ...p, total: parsed.total }))
+      if (parsed.numAutorizacion) setForm(p => ({ ...p, numeroFactura: parsed.numAutorizacion }))
+      if (parsed.serie) setForm(p => ({ ...p, serieFactura: parsed.serie }))
+      if (xmlItems.length > 0) setItems(xmlItems.map((i: any) => ({ ...i, productoId: '' })))
+      toast.success('XML leido correctamente — datos autocompletados')
+    } catch {
+      toast.error('Error al leer el XML. Verifica que sea un archivo FEL valido.')
+    }
+    setXmlLoading(false)
+  }
 
   const save = async () => {
     if (items.length === 0) { toast.error('Agrega al menos un producto'); return }
