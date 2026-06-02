@@ -71,7 +71,7 @@ function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta
   if (item.tipo === 'producto' && item.costoCompra > 0) {
     // Solo 30% ganancia, sin IVA en el producto
-    precio = item.costoCompra * 1.30
+    precio = item.precioVenta || item.costoCompra
     item = { ...item, precioVenta: precio }
   }
   if (item.tipo === 'instalacion') {
@@ -288,146 +288,26 @@ export default function CotizacionesPage() {
     if (!w) return
     const ivaAmt = cot.total - cot.subtotal + cot.descuento
     const baseAmt = cot.subtotal - cot.descuento
-    const rows = cot.items.map(it => `
-      <tr>
-        <td class="code">${it.codigo || ''}</td>
-        <td>${it.descripcion}</td>
-        <td class="center">${it.cantidad}</td>
-        <td class="right">Q ${Number(it.precioUnitario).toFixed(2)}</td>
-        <td class="right">Q ${Number(it.subtotal).toFixed(2)}</td>
-        <td class="right">${it.descuento > 0 ? `Q ${Number(it.descuento).toFixed(2)}` : 'Q 0.00'}</td>
-        <td class="right bold">Q ${Number(it.totalItem).toFixed(2)}</td>
-      </tr>`).join('')
-
-    w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;font-size:11px;color:#0f172a;padding:24px 28px;background:#fff}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
-  .logo-wrap{display:flex;align-items:center;gap:12px}
-  .logo-img{width:56px;height:56px;border-radius:10px;object-fit:contain}
-  .brand-name{font-size:20px;font-weight:700;color:#0f172a;line-height:1}
-  .brand-name span{color:#2563eb}
-  .brand-sub{font-size:8px;letter-spacing:2px;color:#64748b;font-weight:600;margin-top:2px;text-transform:uppercase}
-  .co-info{text-align:right;font-size:10px;color:#475569;line-height:1.7}
-  .co-info strong{font-size:14px;font-weight:700;color:#0f172a;display:block;margin-bottom:2px}
-  .banner{background:#2563eb;color:#fff;text-align:center;padding:9px;font-size:16px;font-weight:700;letter-spacing:5px;border-radius:6px;margin-bottom:14px}
-  hr.blue{border:none;border-top:2px solid #2563eb;margin:10px 0}
-  hr.light{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:10px}
-  .row{display:flex;gap:6px;margin-bottom:3px}
-  .lbl{font-weight:700;color:#374151;min-width:75px;flex-shrink:0}
-  .val{color:#475569}
-  .fp{font-size:10px;margin-bottom:10px}.fp strong{color:#2563eb}
-  table{width:100%;border-collapse:collapse;margin-bottom:12px}
-  thead tr{background:#eff6ff}
-  thead th{padding:7px 9px;font-size:10px;font-weight:700;text-align:left;color:#1e40af;border-bottom:2px solid #bfdbfe}
-  tbody tr:nth-child(even){background:#f8fafc}
-  tbody td{padding:6px 9px;border-bottom:1px solid #f1f5f9;font-size:10px}
-  .code{font-family:monospace;font-size:9px;color:#2563eb;font-weight:700}
-  .center{text-align:center}.right{text-align:right}.bold{font-weight:700}
-  .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:12px}
-  .totals{background:#f8fafc;border:1.5px solid #bfdbfe;border-radius:8px;padding:11px 16px;min-width:230px}
-  .t-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:#475569}
-  .t-iva{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:#d97706;font-weight:600}
-  .t-final{font-size:15px;font-weight:800;color:#2563eb;border-top:2px solid #bfdbfe;padding-top:7px;margin-top:5px;display:flex;justify-content:space-between}
-  .notice{font-size:9px;font-weight:700;color:#dc2626;margin-bottom:7px;line-height:1.6}
-  .conds{font-size:8.5px;color:#64748b;line-height:1.6;margin-bottom:10px}
-  .conds strong{color:#374151}
-  .highlight-block{font-size:10px;font-weight:700;color:#0f172a;background:#f0f9ff;border-left:3px solid #2563eb;padding:7px 12px;margin-bottom:7px;border-radius:0 6px 6px 0;line-height:1.6}
-  .highlight-block strong{color:#1e40af;font-size:11px}
-  .signs{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px}
-  .sign-line{border-top:1.5px solid #0f172a;padding-top:4px;font-size:10px;font-weight:700}
-  .footer{margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
-  @media print{body{padding:12px}@page{margin:8mm;size:A4}}
-</style>
-</head><body>
-<div class="header">
-  <div class="logo-wrap">
-    <img class="logo-img" src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" onerror="this.style.display='none'"/>
-    <div>
-      <div class="brand-name">Web<span>Soft</span> Solutions</div>
-      <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
-    </div>
-  </div>
-  <div class="co-info">
-    <strong>WEBSOFT SOLUTIONS</strong>
-    Barrio el Calvario, Guastatoya, El Progreso<br>
-    TEL: (502) 3836-1044 / 3671-4377<br>
-    www.websoft-solutions.vercel.app
-  </div>
+    const rows = cot.items.map(it => `<tr><td class="b">${it.codigo||''}</td><td>${it.nombre}</td><td class="c">${it.cantidad}</td><td class="r">${it.unidad||'Uni'}</td><td class="r">Q ${(+it.precioUnitario||0).toFixed(2)}</td><td class="r b">Q ${(+it.subtotal||0).toFixed(2)}</td></tr>`).join('')
+    const genDate = new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
+    const cotDate = new Date(cot.fecha).toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
+    const validDate = new Date(new Date(cot.fecha).getTime()+(cot.validezDias||15)*86400000).toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'})
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Cotizacion ${cot.numero}</title><style>@page{margin:8mm;size:A4}@media print{html,body{height:100%}.page{page-break-inside:avoid}table{font-size:10px}}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:10.5px;line-height:1.4}.page{min-height:297mm;display:flex;flex-direction:column}.accent{height:5px;background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{padding:18px 28px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0}.brand{display:flex;align-items:center;gap:12px}.brand-logo{width:44px;height:44px;object-fit:contain}.brand-text .name{font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px}.brand-text .name span{color:#1581E3}.brand-text .sub{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:1px}.doc-right{text-align:right}.doc-badge{font-size:9px;font-weight:700;color:#fff;background:#1581E3;padding:3px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.doc-num{font-size:18px;font-weight:700;color:#1581E3}.doc-date{font-size:10px;color:#64748b;margin-top:3px}.body{padding:20px 28px;flex:1}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.info-box{background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.info-box-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.info-box p{font-size:11px;color:#0f172a;line-height:1.65}.info-box strong{font-weight:600}.sec-title{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}table{width:100%;border-collapse:collapse;margin-bottom:14px}thead tr{background:#1581E3;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th{padding:8px 11px;font-size:9px;font-weight:700;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:0.8px}th.r,td.r{text-align:right}th.c,td.c{text-align:center}tbody tr:nth-child(even){background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}tbody td{padding:8px 11px;font-size:11px;color:#334155;border-bottom:1px solid #f1f5f9}td.b{font-weight:600;color:#0f172a}.totals{display:flex;justify-content:flex-end;margin-bottom:18px}.totals-box{width:260px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}.t-row{display:flex;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #e2e8f0;font-size:11px}.t-grand{background:#1581E3;padding:11px 14px;display:flex;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact}.t-grand span{color:#fff;font-weight:700;font-size:13px}.highlight{background:#eff8ff;border-left:3px solid #1581E3;border-radius:0 6px 6px 0;padding:9px 13px;margin-bottom:10px;font-size:10px;font-weight:600;color:#1e40af;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}.highlight strong{font-size:11.5px;display:block;margin-bottom:3px}.conds{font-size:10px;color:#475569;line-height:1.75}.conds strong{color:#0f172a}.signs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}.sign-line{border-top:1.5px solid #0f172a;padding-top:6px;font-size:10px;color:#475569}.sign-line strong{display:block;font-size:11px;color:#0f172a;margin-bottom:40px}.footer{padding:12px 28px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;-webkit-print-color-adjust:exact;print-color-adjust:exact}.footer-txt{font-size:9px;color:#94a3b8;line-height:1.6}.footer-brand{font-size:11px;font-weight:700;color:#0f172a}.footer-brand span{color:#1581E3}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="accent"></div><div class="header">  <div class="brand">    <img src="https://websoft-solutions.vercel.app/logo.png" class="brand-logo" alt="WebSoft" onerror="this.style.display='none'"/>    <div class="brand-text">      <div class="name">WebSoft<span> Solutions</span></div>      <div class="sub">Tecnologia y Seguridad &middot; Guastatoya, El Progreso</div>    </div>  </div>  <div class="doc-right">    <div class="doc-badge">Cotizacion</div>    <div class="doc-num">${cot.numero}</div>    <div class="doc-date">Fecha: ${cotDate}</div>    <div class="doc-date" style="color:#dc2626">Valida hasta: ${validDate}</div>  </div></div>
+<div class="body">
+<div class="info-grid">
+  <div class="info-box"><div class="info-box-title">Cliente</div><p><strong>${cot.clienteNombre}</strong><br/>${cot.clienteNit&&cot.clienteNit!=='CF'?'NIT: '+cot.clienteNit+'<br/>':''}${cot.clienteTelefono?'Tel: '+cot.clienteTelefono:''}</p></div>
+  <div class="info-box"><div class="info-box-title">Informacion</div><p><strong>Forma de pago:</strong> ${cot.formaPago||'Por definir'}<br/><strong>Validez:</strong> ${cot.validezDias||15} dias<br/><strong>Elaborado por:</strong> ${cot.usuarioNombre||'WebSoft Solutions'}</p></div>
 </div>
-
-<div class="banner">C O T I Z A C I O N</div>
-<hr class="blue">
-
-<div class="grid2">
-  <div>
-    <div class="row"><span class="lbl">Nombre:</span><span class="val">${cot.clienteNombre}</span></div>
-    <div class="row"><span class="lbl">Direccion:</span><span class="val">${cot.clienteDireccion || ''}</span></div>
-    <div class="row"><span class="lbl">Telefono:</span><span class="val">${cot.clienteTelefono || ''}</span></div>
-    <div class="row"><span class="lbl">NIT:</span><span class="val">${cot.clienteNit || 'CF'}</span></div>
-  </div>
-  <div>
-    <div class="row"><span class="lbl">Atencion a:</span><span class="val">${cot.atencion || ''}</span></div>
-    <div class="row"><span class="lbl">Fecha:</span><span class="val">${new Date(cot.fecha).toLocaleDateString('es-GT')}</span></div>
-    <div class="row"><span class="lbl">No. Cotizacion:</span><span class="val"><b>${cot.numero}</b></span></div>
-    <div class="row"><span class="lbl">Validez:</span><span class="val">${cot.validezDias} dias</span></div>
-  </div>
-</div>
-<hr class="blue">
-
-<div class="fp"><strong>Forma de Pago:</strong> ${cot.formaPago || ''}</div>
-${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8px;color:#1e40af">${cot.descripcion}</div>` : ''}
-
-<table>
-  <thead><tr>
-    <th style="width:72px">Codigo</th>
-    <th>Descripcion</th>
-    <th style="width:48px;text-align:center">Cant.</th>
-    <th style="width:78px;text-align:right">P/Unit.</th>
-    <th style="width:78px;text-align:right">Subtotal</th>
-    <th style="width:72px;text-align:right">Descuento</th>
-    <th style="width:82px;text-align:right">Total</th>
-  </tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-
-<div class="totals-wrap">
-  <div class="totals">
-    <div class="t-row"><span>Base</span><span>Q ${baseAmt.toFixed(2)}</span></div>
-    ${cot.descuento > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${cot.descuento.toFixed(2)}</span></div>` : ''}
-    <div class="t-iva"><span>IVA Incluido (5%)</span><span>Q ${ivaAmt.toFixed(2)}</span></div>
-    <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${cot.total.toFixed(2)}</span></div>
-  </div>
-</div>
-
-<div class="notice">SUJETO A DISPONIBILIDAD. CONSULTAR EXISTENCIAS ANTES DE GENERAR PAGO.</div>
-<div class="conds">
-  <strong>CONDICIONES:</strong>
-  1. <strong>PAGO:</strong> Anticipado, contra entrega, financiado o tarjeta. Cheques a nombre de WebSoft Solutions.
-  2. <strong>ENTREGA:</strong> Inmediata a 3 dias segun pago. Sin existencia puede variar hasta 3 semanas.
-  3. <strong>GARANTIA:</strong> Se atiende en instalaciones de WebSoft. Danos fisicos anulan garantia.
-  4. <strong>SERVICIO:</strong> Departamento tecnico calificado para soporte durante garantia.
-</div>
-${cot.tiempoInstalacion ? `<div class="highlight-block"><strong>TIEMPO DE INSTALACION:</strong> ${cot.tiempoInstalacion}</div>` : ''}
-${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> ${cot.notas}</div>` : ''}
-
-<div class="signs">
-  <div>
-    <div class="sign-line">Aceptado (Cliente): _________________________</div>
-    <div style="font-size:9px;color:#94a3b8;margin-top:4px">Fecha: _____ / _____ / ______</div>
-  </div>
-  <div style="text-align:right;font-size:9px;color:#94a3b8">${cot.numero} · Valida ${cot.validezDias} dias</div>
-</div>
-
-<div class="footer">
-  <span>WebSoft Solutions · Sistema POS</span>
-  <span>Tel: 3836-1044 / 3671-4377 · Guastatoya, El Progreso</span>
-</div>
-</body></html>`)
+${cot.descripcion?'<div class="info-box" style="margin-bottom:16px"><div class="info-box-title">Descripcion del proyecto</div><p>'+cot.descripcion+'</p></div>':''}
+<div class="sec-title">Detalle de productos y servicios</div>
+<table><thead><tr><th style="width:80px">Codigo</th><th>Descripcion</th><th class="c" style="width:60px">Cant.</th><th class="r" style="width:70px">Unidad</th><th class="r" style="width:90px">Precio unit.</th><th class="r" style="width:100px">Subtotal</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="totals"><div class="totals-box">${cot.descuento>0?'<div class="t-row"><span>Subtotal</span><span>Q '+cot.subtotal.toFixed(2)+'</span></div><div class="t-row"><span>Descuento</span><span style="color:#dc2626">- Q '+cot.descuento.toFixed(2)+'</span></div>':''}<div class="t-row"><span>IVA (5%)</span><span>Q ${ivaAmt.toFixed(2)}</span></div><div class="t-grand"><span>TOTAL</span><span>Q ${cot.total.toFixed(2)}</span></div></div></div>
+${cot.tiempoInstalacion?'<div class="highlight"><strong>Tiempo estimado de instalacion</strong>'+cot.tiempoInstalacion+'</div>':''}
+${cot.notas?'<div class="highlight"><strong>Notas adicionales</strong>'+cot.notas+'</div>':''}
+<div class="sec-title">Condiciones</div>
+<div class="conds">1. <strong>PAGO:</strong> Anticipado, contra entrega o tarjeta. Cheques a nombre de WebSoft Solutions.<br/>2. <strong>ENTREGA:</strong> Inmediata a 3 dias segun pago. Sin existencia puede variar.<br/>3. <strong>GARANTIA:</strong> Se atiende en instalaciones de WebSoft. Danos fisicos anulan garantia.<br/>4. <strong>SERVICIO:</strong> Departamento tecnico calificado durante garantia.</div>
+<div class="signs"><div class="sign-line"><strong>Autorizado por</strong>WebSoft Solutions</div><div class="sign-line"><strong>Aceptado por</strong>${cot.clienteNombre}</div></div>
+</div><div class="footer">  <div class="footer-txt">    <div class="footer-brand">WebSoft<span> Solutions</span></div>    Guastatoya, El Progreso &middot; Tel: 3836-1044 / 3671-4377<br/>websoftsolutions.com.gt  </div>  <div class="footer-txt" style="text-align:right">    Generado el ${genDate}<br/>Documento confidencial  </div></div></div><script>setTimeout(()=>window.print(),600)</script></body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 700)
   }
@@ -498,7 +378,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨 </button>
                     </div>
                   </td>
                 </tr>
@@ -596,7 +476,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                               const updated = [...prev, newIt]
                               return updated.map((item, idx) => {
                                 if (idx !== updated.length - 1) return item
-                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.costo * 1.30 })
+                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.precio })
                               })
                             })
                           }
@@ -842,7 +722,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               <div style={{ width: 56, height: 56, background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 26 }}></div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#0f172a', marginBottom: 6 }}>Autorizacion requerida</div>
               <div style={{ fontSize: 13, color: '#64748b' }}>
-                Para <strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong> la cotizacion <strong>{pinModal.numero}</strong> se requiere el PIN del administrador.
+                {'Para '}<strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong>{' la cotizacion '}<strong>{pinModal.numero}</strong>{' se requiere el PIN del administrador.'}
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>

@@ -192,7 +192,7 @@ export default function ConfigPage() {
                Asignación masiva de códigos
             </div>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.6 }}>
-              Los productos que ya existen en la base de datos sin código pueden recibir uno automáticamente con el prefijo configurado arriba (<strong>{cfg.producto_prefijo || 'WSP'}</strong>).
+              {'Los productos que ya existen en la base de datos sin código pueden recibir uno automáticamente con el prefijo configurado arriba ('}<strong>{cfg.producto_prefijo || 'WSP'}</strong>{').'}
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button
