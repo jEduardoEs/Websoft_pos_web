@@ -842,7 +842,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               <div style={{ width: 56, height: 56, background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 26 }}></div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#0f172a', marginBottom: 6 }}>Autorizacion requerida</div>
               <div style={{ fontSize: 13, color: '#64748b' }}>
-                Para <strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong> la cotizacion <strong>{pinModal.numero}</strong> se requiere el PIN del administrador.
+                {'Para '}<strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong>{' la cotizacion '}<strong>{pinModal.numero}</strong>{' se requiere el PIN del administrador.'}
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>

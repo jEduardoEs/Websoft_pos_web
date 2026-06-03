@@ -474,7 +474,6 @@ export default function ComprasPage() {
           </div>
         </div>
       )}
-    </div>
 
       {/* MODAL NUEVO PRODUCTO desde XML */}
       {showNuevoProd && (
@@ -484,7 +483,7 @@ export default function ComprasPage() {
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>Agregar al inventario</div>
                 <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
-                  Producto del XML no encontrado: <strong>{showNuevoProd.nombre}</strong>
+                  {'Producto del XML no encontrado: '}<strong>{showNuevoProd.nombre}</strong>
                 </div>
               </div>
               <button onClick={() => setShowNuevoProd(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>

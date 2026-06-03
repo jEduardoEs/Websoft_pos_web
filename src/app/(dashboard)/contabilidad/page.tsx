@@ -1186,7 +1186,7 @@ export default function ContabilidadPage() {
             </div>
             {activoForm.costoOriginal && activoForm.vidaUtilAnios && (
               <div style={{ background:'#eff6ff', borderRadius:8, padding:'10px 14px', marginTop:12, fontSize:13, color:'#1e40af' }}>
-                Depreciacion mensual: <strong>Q {(((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong> · Linea recta por {activoForm.vidaUtilAnios} años
+                {'Depreciacion mensual: '}<strong>{'Q ' + (((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong>{' · Linea recta por ' + activoForm.vidaUtilAnios + ' años'}
               </div>
             )}
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:18 }}>
