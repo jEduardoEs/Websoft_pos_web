@@ -14,6 +14,10 @@ export const MODULOS = [
   { id: 'compras',      label: 'Compras',               group: 'Compras' },
   { id: 'descuentos',   label: 'Descuentos',            group: 'Admin' },
   { id: 'cierres',      label: 'Cierres de Caja',       group: 'Admin' },
+<<<<<<< HEAD
+=======
+  { id: 'contabilidad',   label: 'Contabilidad', group: 'Finanzas' },
+>>>>>>> 232ca409e85e0dad0bb02002b5ef8d2ccb12e461
   { id: 'cuentas',       label: 'Cuentas por cobrar/pagar', group: 'Finanzas' },
   { id: 'reportes',     label: 'Reportes',              group: 'Admin' },
   { id: 'presupuesto',  label: 'Presupuesto vs Real',   group: 'Admin' },
@@ -22,8 +26,22 @@ export const MODULOS = [
 ]
 
 export const PERMISOS_CAJERO_DEFAULT = [
-  'dashboard', 'pos', 'ventas', 'inventario', 'clientes',
+  'dashboard', 'pos', 'ventas', 'clientes',
   'cotizaciones', 'devoluciones', 'caja', 'garantias', 'servicio',
+]
+
+export const PERMISOS_SUPERVISOR_DEFAULT = [
+  'dashboard', 'pos', 'ventas', 'pedidos', 'clientes', 'inventario',
+  'cotizaciones', 'devoluciones', 'caja', 'garantias', 'servicio',
+  'descuentos', 'cierres', 'reportes', 'presupuesto',
+]
+
+export const PERMISOS_BODEGA_DEFAULT = [
+  'dashboard', 'inventario', 'compras', 'proveedores',
+]
+
+export const PERMISOS_CONTADOR_DEFAULT = [
+  'dashboard', 'contabilidad', 'cuentas',
 ]
 
 export function parsePermisos(permisos: string | null | undefined): string[] {
@@ -33,9 +51,11 @@ export function parsePermisos(permisos: string | null | undefined): string[] {
 
 export function tienePermiso(permisos: string[], modulo: string, rol: string): boolean {
   if (rol === 'admin') return true
-  if (!permisos || permisos.length === 0) {
-    // Default cajero permissions
-    return PERMISOS_CAJERO_DEFAULT.includes(modulo)
-  }
-  return permisos.includes(modulo)
+  // If user has explicit permisos set, always use those
+  if (permisos && permisos.length > 0) return permisos.includes(modulo)
+  // Fall back to role defaults
+  if (rol === 'contador') return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
+  if (rol === 'supervisor') return PERMISOS_SUPERVISOR_DEFAULT.includes(modulo)
+  if (rol === 'bodega') return PERMISOS_BODEGA_DEFAULT.includes(modulo)
+  return PERMISOS_CAJERO_DEFAULT.includes(modulo)
 }
