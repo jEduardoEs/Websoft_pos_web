@@ -577,8 +577,6 @@ model CuentaPagar {
 
   @@map("cuentas_pagar")
 }
-<<<<<<< HEAD
-=======
 
 // ── MÓDULO CONTABLE ──────────────────────────────────────────────────────────
 
@@ -664,4 +662,3 @@ model ActivoFijo {
 
   @@map("activos_fijos")
 }
->>>>>>> 232ca409e85e0dad0bb02002b5ef8d2ccb12e461
