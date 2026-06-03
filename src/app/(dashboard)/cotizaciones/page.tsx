@@ -70,8 +70,8 @@ function calcInstalacion(item: LineItem) {
 function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta
   if (item.tipo === 'producto' && item.costoCompra > 0) {
-    // Solo 30% ganancia, sin IVA en el producto
-    precio = item.costoCompra * 1.30
+    // Usar precioVenta si ya está definido, si no calcular 30% sobre costo
+    precio = item.precioVenta > 0 ? item.precioVenta : item.costoCompra * 1.30
     item = { ...item, precioVenta: precio }
   }
   if (item.tipo === 'instalacion') {
@@ -638,7 +638,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', padding: '3px 7px' }}>
                             Venta: Q {item.precioVenta.toFixed(2)}
                           </div>
-                          <div style={{ fontSize: 9, color: '#94a3b8', padding: '0 7px' }}>+30% ganancia</div>
+                          {item.precioVenta > 0 && item.costoCompra > 0 && Math.abs(item.precioVenta - item.costoCompra * 1.30) < 0.01 && <div style={{ fontSize: 9, color: '#94a3b8', padding: '0 7px' }}>+30% ganancia</div>}
                         </div>
                       ) : item.tipo === 'instalacion' ? (
                         <div>

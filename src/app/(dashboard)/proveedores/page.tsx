@@ -69,7 +69,7 @@ export default function ProveedoresPage() {
                   <td style={{ padding: '10px 13px', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn-ghost btn-sm" onClick={() => { setForm({ id: p.id, nombre: p.nombre, nit: p.nit || '', telefono: p.telefono || '', email: p.email || '', direccion: p.direccion || '', contacto: p.contacto || '', notas: p.notas || '' }); setShowModal(true) }}></button>
-                      <button className="btn-danger btn-sm" onClick={() => del(p)}></button>
+                      <button className="btn-danger btn-sm" onClick={() => del(p)}>🗑</button>
                     </div>
                   </td>
                 </tr>

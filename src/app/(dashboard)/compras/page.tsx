@@ -372,6 +372,18 @@ export default function ComprasPage() {
                 <button className="btn-ghost btn-sm" onClick={addItem}>+ Agregar item</button>
               </div>
 
+              {/* XML FEL */}
+              <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>XML Factura SAT (FEL) — opcional</div>
+                <input type="file" accept=".xml" onChange={e => e.target.files?.[0] && parseXML(e.target.files[0])} style={{ fontSize: 12 }} />
+                {xmlLoading && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4 }}>Leyendo XML...</div>}
+                {xmlParsed && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 10px' }}>
+                    Leido: {xmlParsed.nombreEmisor} · {xmlParsed.items?.length || 0} productos cargados
+                  </div>
+                )}
+              </div>
+
               {/* Buscador de productos */}
               <div style={{ marginBottom: 10 }}>
                 <input className="input" placeholder="Buscar producto del inventario..." value={buscarProd} onChange={e => setBuscarProd(e.target.value)} style={{ fontSize: 12 }} />
