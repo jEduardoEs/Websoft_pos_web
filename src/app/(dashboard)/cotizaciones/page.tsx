@@ -498,7 +498,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}></button>
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨 Imprimir</button>
                     </div>
                   </td>
                 </tr>
@@ -634,11 +634,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                     <div>
                       {item.tipo === 'producto' ? (
                         <div>
-                          <input className="input" type="number" min="0" value={item.costoCompra || ''} onChange={e => updItem(i, 'costoCompra', Number(e.target.value))} placeholder="Costo compra" style={{ fontSize: 10, padding: '4px 7px', marginBottom: 3 }} />
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', padding: '3px 7px' }}>
-                            Venta: Q {item.precioVenta.toFixed(2)}
-                          </div>
-                          {item.precioVenta > 0 && item.costoCompra > 0 && Math.abs(item.precioVenta - item.costoCompra * 1.30) < 0.01 && <div style={{ fontSize: 9, color: '#94a3b8', padding: '0 7px' }}>+30% ganancia</div>}
+                          <input className="input" type="number" min="0" value={item.precioVenta || ''} onChange={e => updItem(i, 'precioVenta', Number(e.target.value))} placeholder="Precio venta" style={{ fontSize: 11, padding: '5px 7px' }} />
+                          {item.costoCompra > 0 && (
+                            <div style={{ fontSize: 9, color: '#94a3b8', padding: '2px 7px' }}>
+                              Costo: Q {item.costoCompra.toFixed(2)}
+                              {item.precioVenta > 0 && item.costoCompra > 0 && Math.abs(item.precioVenta - item.costoCompra * 1.30) < 0.01 && ' (+30%)'}
+                            </div>
+                          )}
                         </div>
                       ) : item.tipo === 'instalacion' ? (
                         <div>

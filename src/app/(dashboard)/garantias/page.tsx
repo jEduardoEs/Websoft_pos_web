@@ -285,7 +285,7 @@ export default function GarantiasPage() {
                                   Reclamar
                                 </button>
                               )}
-                              <button className="btn-ghost btn-sm" onClick={() => printGarantia(g)}></button>
+                              <button className="btn-ghost btn-sm" onClick={() => printGarantia(g)}>🖨</button>
                             </div>
                           </td>
                         </tr>

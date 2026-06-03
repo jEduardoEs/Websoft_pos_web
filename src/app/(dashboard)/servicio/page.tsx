@@ -206,7 +206,7 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
                       <span style={{ background: est.bg, color: est.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{est.label}</span>
                     </td>
                     <td style={{ ...tdS }} onClick={e => e.stopPropagation()}>
-                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}></button>
+                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}>🖨</button>
                     </td>
                   </tr>
                 )
