@@ -158,7 +158,7 @@ export default function CotizacionesPage() {
         codigo: prod.codigo || '',
         descripcion: prod.nombre,
         costoCompra: prod.costo,
-        precioVenta: prod.costo * 1.30,
+        precioVenta: prod.precio > 0 ? prod.precio : prod.costo * 1.30,
       }
       return recalc(updated)
     }))
@@ -498,7 +498,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}></button>
                     </div>
                   </td>
                 </tr>
@@ -596,7 +596,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                               const updated = [...prev, newIt]
                               return updated.map((item, idx) => {
                                 if (idx !== updated.length - 1) return item
-                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.costo * 1.30 })
+                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.precio > 0 ? p.precio : p.costo * 1.30 })
                               })
                             })
                           }
@@ -605,7 +605,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                         <span style={{ fontWeight: 600, color: '#0f172a' }}>{p.nombre}</span>
                         <div style={{ display: 'flex', gap: 12 }}>
                           <span style={{ color: '#64748b', fontSize: 11 }}>Costo: {fmt(p.costo)}</span>
-                          <span style={{ color: '#2563eb', fontWeight: 700 }}>Venta: {fmt(p.costo * 1.30)}</span>
+                          <span style={{ color: '#2563eb', fontWeight: 700 }}>Venta: {fmt(p.precio > 0 ? p.precio : p.costo * 1.30)}</span>
                         </div>
                       </div>
                     ))}
