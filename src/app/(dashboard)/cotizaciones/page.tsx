@@ -70,9 +70,12 @@ function calcInstalacion(item: LineItem) {
 function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta
   if (item.tipo === 'producto' && item.costoCompra > 0) {
-    // Usar precioVenta si ya está definido, si no calcular 30% sobre costo
-    precio = item.precioVenta > 0 ? item.precioVenta : item.costoCompra * 1.30
-    item = { ...item, precioVenta: precio }
+    // Si viene del inventario (tiene productoId) → respetar precio tal cual
+    // Si es manual (sin productoId) → calcular 30% sobre costo
+    if (!item.productoId) {
+      precio = item.costoCompra * 1.30
+      item = { ...item, precioVenta: precio }
+    }
   }
   if (item.tipo === 'instalacion') {
     precio = calcInstalacion(item)
