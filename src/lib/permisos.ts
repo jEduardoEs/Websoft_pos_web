@@ -14,10 +14,7 @@ export const MODULOS = [
   { id: 'compras',      label: 'Compras',               group: 'Compras' },
   { id: 'descuentos',   label: 'Descuentos',            group: 'Admin' },
   { id: 'cierres',      label: 'Cierres de Caja',       group: 'Admin' },
-<<<<<<< HEAD
-=======
   { id: 'contabilidad',   label: 'Contabilidad', group: 'Finanzas' },
->>>>>>> 232ca409e85e0dad0bb02002b5ef8d2ccb12e461
   { id: 'cuentas',       label: 'Cuentas por cobrar/pagar', group: 'Finanzas' },
   { id: 'reportes',     label: 'Reportes',              group: 'Admin' },
   { id: 'presupuesto',  label: 'Presupuesto vs Real',   group: 'Admin' },

@@ -173,7 +173,6 @@ export default function ReportesPage() {
               {/* Export button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button className="btn-ghost" onClick={exportarInventarioPDF} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-<<<<<<< HEAD
 
                   Exportar PDF
                 </button>
@@ -194,30 +193,6 @@ export default function ReportesPage() {
                 ))}
               </div>
 
-=======
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-                  </svg>
-                  Exportar PDF
-                </button>
-              </div>
-              {/* KPIs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-                {[
-                  { label: 'Total productos', value: String(invReporte.resumen.totalProductos), color: '#2563eb', sub: `${invReporte.resumen.totalUnidades} unidades en stock` },
-                  { label: 'Inversion total', value: fmt(invReporte.resumen.totalInversion), color: '#d97706', sub: 'Costo total del inventario' },
-                  { label: 'Valor de venta', value: fmt(invReporte.resumen.totalValorVenta), color: '#16a34a', sub: `Margen proyectado ${invReporte.resumen.margenProyectado}%` },
-                  { label: 'Ganancia proyectada', value: fmt(invReporte.resumen.gananciaProyectada), color: '#7c3aed', sub: `${invReporte.resumen.productosStockBajo} stock bajo · ${invReporte.resumen.productosAgotados} agotados` },
-                ].map(k => (
-                  <div key={k.label} className="card" style={{ padding: '16px 18px', borderTop: `3px solid ${k.color}` }}>
-                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{k.sub}</div>
-                  </div>
-                ))}
-              </div>
-
->>>>>>> 232ca409e85e0dad0bb02002b5ef8d2ccb12e461
               {/* Por categoria */}
               <div className="card" style={{ padding: 18 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Inversion por categoria</h3>
