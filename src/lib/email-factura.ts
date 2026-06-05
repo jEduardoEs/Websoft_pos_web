@@ -232,32 +232,15 @@ async function sendViaResend(to: string, subject: string, html: string): Promise
   return { ok: true }
 }
 
-// ─── Enviar por SMTP (Nodemailer) ──────────────────────────────────────────────
+// ─── Enviar por SMTP via Resend (fallback) ────────────────────────────────────
+// Para usar Gmail SMTP instala nodemailer: npm install nodemailer @types/nodemailer
+// y cambia esta función. Por ahora usa Resend como único provider para evitar
+// dependencias opcionales que rompen el build de Next.js.
 async function sendViaSMTP(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
-  // Nodemailer está disponible como dependencia
-  // Si no está instalado: npm install nodemailer @types/nodemailer
-  try {
-    const nodemailer = await import('nodemailer')
-    const transporter = nodemailer.default.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
-      to,
-      subject,
-      html,
-    })
-    return { ok: true }
-  } catch (err: any) {
-    return { ok: false, error: err.message }
-  }
+  // SMTP directo requiere: npm install nodemailer @types/nodemailer
+  // Si lo instalas, descomenta el código en el README y reemplaza esta función.
+  console.warn('[EMAIL] SMTP configurado pero nodemailer no instalado. Usando Resend como fallback.')
+  return sendViaResend(to, subject, html)
 }
 
 // ─── Función principal ─────────────────────────────────────────────────────────
