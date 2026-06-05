@@ -70,9 +70,12 @@ function calcInstalacion(item: LineItem) {
 function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta
   if (item.tipo === 'producto' && item.costoCompra > 0) {
-    // Solo 30% ganancia, sin IVA en el producto
-    precio = item.costoCompra * 1.30
-    item = { ...item, precioVenta: precio }
+    // Si viene del inventario (tiene productoId) → respetar precio tal cual
+    // Si es manual (sin productoId) → calcular 30% sobre costo
+    if (!item.productoId) {
+      precio = item.costoCompra * 1.30
+      item = { ...item, precioVenta: precio }
+    }
   }
   if (item.tipo === 'instalacion') {
     precio = calcInstalacion(item)
@@ -158,7 +161,7 @@ export default function CotizacionesPage() {
         codigo: prod.codigo || '',
         descripcion: prod.nombre,
         costoCompra: prod.costo,
-        precioVenta: prod.costo * 1.30,
+        precioVenta: prod.precio > 0 ? prod.precio : prod.costo * 1.30,
       }
       return recalc(updated)
     }))
@@ -498,7 +501,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨 Imprimir</button>
                     </div>
                   </td>
                 </tr>
@@ -596,7 +599,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                               const updated = [...prev, newIt]
                               return updated.map((item, idx) => {
                                 if (idx !== updated.length - 1) return item
-                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.costo * 1.30 })
+                                return recalc({ ...item, productoId: p.id, codigo: p.codigo || '', descripcion: p.nombre, costoCompra: p.costo, precioVenta: p.precio > 0 ? p.precio : p.costo * 1.30 })
                               })
                             })
                           }
@@ -605,7 +608,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                         <span style={{ fontWeight: 600, color: '#0f172a' }}>{p.nombre}</span>
                         <div style={{ display: 'flex', gap: 12 }}>
                           <span style={{ color: '#64748b', fontSize: 11 }}>Costo: {fmt(p.costo)}</span>
-                          <span style={{ color: '#2563eb', fontWeight: 700 }}>Venta: {fmt(p.costo * 1.30)}</span>
+                          <span style={{ color: '#2563eb', fontWeight: 700 }}>Venta: {fmt(p.precio > 0 ? p.precio : p.costo * 1.30)}</span>
                         </div>
                       </div>
                     ))}
@@ -634,11 +637,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                     <div>
                       {item.tipo === 'producto' ? (
                         <div>
-                          <input className="input" type="number" min="0" value={item.costoCompra || ''} onChange={e => updItem(i, 'costoCompra', Number(e.target.value))} placeholder="Costo compra" style={{ fontSize: 10, padding: '4px 7px', marginBottom: 3 }} />
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', padding: '3px 7px' }}>
-                            Venta: Q {item.precioVenta.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: 9, color: '#94a3b8', padding: '0 7px' }}>+30% ganancia</div>
+                          <input className="input" type="number" min="0" value={item.precioVenta || ''} onChange={e => updItem(i, 'precioVenta', Number(e.target.value))} placeholder="Precio venta" style={{ fontSize: 11, padding: '5px 7px' }} />
+                          {item.costoCompra > 0 && (
+                            <div style={{ fontSize: 9, color: '#94a3b8', padding: '2px 7px' }}>
+                              Costo: Q {item.costoCompra.toFixed(2)}
+                              {item.precioVenta > 0 && item.costoCompra > 0 && Math.abs(item.precioVenta - item.costoCompra * 1.30) < 0.01 && ' (+30%)'}
+                            </div>
+                          )}
                         </div>
                       ) : item.tipo === 'instalacion' ? (
                         <div>
@@ -842,7 +847,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               <div style={{ width: 56, height: 56, background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 26 }}></div>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#0f172a', marginBottom: 6 }}>Autorizacion requerida</div>
               <div style={{ fontSize: 13, color: '#64748b' }}>
-                Para <strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong> la cotizacion <strong>{pinModal.numero}</strong> se requiere el PIN del administrador.
+                {'Para '}<strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong>{' la cotizacion '}<strong>{pinModal.numero}</strong>{' se requiere el PIN del administrador.'}
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>

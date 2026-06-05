@@ -27,6 +27,8 @@ export default function ComprasPage() {
   const [selected, setSelected] = useState<Compra | null>(null)
   const [loading, setLoading] = useState(false)
   const [xmlParsed, setXmlParsed] = useState<any>(null)
+  const [showNuevoProd, setShowNuevoProd] = useState<{nombre: string, idx: number} | null>(null)
+  const [nuevoForm, setNuevoForm] = useState({ nombre: '', codigo: '', categoria: '', precio: '', costo: '', stock: '0', stockMinimo: '2', unidad: 'unidad' })
   const [xmlLoading, setXmlLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [buscarProd, setBuscarProd] = useState('')
@@ -96,53 +98,144 @@ export default function ComprasPage() {
       const parser = new DOMParser()
       const xml = parser.parseFromString(text, 'application/xml')
 
-      // SAT Guatemala FEL XML structure
-      const get = (tag: string) => xml.getElementsByTagName(tag)[0]?.textContent?.trim() || ''
-      const getAttr = (tag: string, attr: string) => xml.getElementsByTagName(tag)[0]?.getAttribute(attr) || ''
+      // SAT Guatemala FEL uses dte: namespace — search by localName
+      const getByLocal = (localName: string): Element | null => {
+        const all = xml.getElementsByTagName('*')
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].localName === localName) return all[i]
+        }
+        return null
+      }
+      const getAllByLocal = (localName: string): Element[] => {
+        const all = xml.getElementsByTagName('*')
+        const result: Element[] = []
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].localName === localName) result.push(all[i])
+        }
+        return result
+      }
+      const getAttrEl = (el: Element | null, attr: string) => el?.getAttribute(attr) || ''
 
-      // Try standard DTE format
-      const nitEmisor = get('NITEmisor') || get('NitEmisor') || getAttr('Emisor', 'NITEmisor')
-      const nombreEmisor = get('NombreEmisor') || get('NombreComercial') || getAttr('Emisor', 'NombreComercial')
-      const totalAux = get('GranTotal') || get('Total') || get('MontoTotal')
-      const numAut = get('NumeroAutorizacion') || getAttr('DatosEmision', 'NumeroAutorizacion')
-      const serie = get('Serie') || getAttr('DatosEmision', 'Serie')
-      const numero = get('Numero') || getAttr('DatosEmision', 'Numero')
+      const emisorEl = getByLocal('Emisor')
+      const nitEmisor = getAttrEl(emisorEl, 'NITEmisor')
+      const nombreEmisor = getAttrEl(emisorEl, 'NombreComercial') || getAttrEl(emisorEl, 'NombreEmisor')
 
-      // Parse items
-      const itemNodes = xml.getElementsByTagName('Item')
+      const numAutEl = getByLocal('NumeroAutorizacion')
+      const numAutorizacion = numAutEl?.textContent?.trim() || ''
+      const serie = getAttrEl(numAutEl, 'Serie')
+
+      const datosEl = getByLocal('DatosGenerales')
+      const fechaEmision = getAttrEl(datosEl, 'FechaHoraEmision')?.slice(0, 10) || ''
+
+      const granTotal = getByLocal('GranTotal')?.textContent?.trim() || ''
+
+      // Parse items by localName to handle dte: namespace
+      const itemEls = getAllByLocal('Item')
       const xmlItems: any[] = []
-      for (let i = 0; i < itemNodes.length; i++) {
-        const item = itemNodes[i]
-        const desc = item.getElementsByTagName('Descripcion')[0]?.textContent?.trim() ||
-                     item.getElementsByTagName('NombreCorto')[0]?.textContent?.trim() || ''
-        const cantidad = +(item.getElementsByTagName('Cantidad')[0]?.textContent?.trim() || '1')
-        const precio = +(item.getElementsByTagName('PrecioUnitario')[0]?.textContent?.trim() ||
-                        item.getElementsByTagName('MontoItem')[0]?.textContent?.trim() || '0')
-        if (desc) xmlItems.push({ nombre: desc, cantidad, precioUnitario: (precio/1.05).toFixed(2), subtotal: (cantidad*precio/1.05).toFixed(2) })
+      for (const itemEl of itemEls) {
+        const getItemLocal = (ln: string) => {
+          const all = itemEl.getElementsByTagName('*')
+          for (let i = 0; i < all.length; i++) {
+            if (all[i].localName === ln) return all[i].textContent?.trim() || ''
+          }
+          return ''
+        }
+        const desc = getItemLocal('Descripcion')
+        const cantidad = +(getItemLocal('Cantidad') || '1')
+        const montoGravable = +(getItemLocal('MontoGravable') || '0')
+        const precioUnitario = +(getItemLocal('PrecioUnitario') || '0')
+        // Use MontoGravable/cantidad for unit cost without IVA, fallback to PrecioUnitario/1.12
+        const costoUnit = montoGravable > 0
+          ? montoGravable / cantidad
+          : precioUnitario > 0 ? precioUnitario / 1.12 : 0
+        if (desc) xmlItems.push({
+          nombre: desc,
+          cantidad,
+          precioUnitario: costoUnit.toFixed(2),
+          subtotal: (cantidad * costoUnit),
+          productoId: '',
+        })
       }
 
-      const parsed = {
-        nitEmisor: nitEmisor || '',
-        nombreEmisor: nombreEmisor || '',
-        total: totalAux || '',
-        numAutorizacion: numAut || '',
-        serie: serie || '',
-        numero: numero || '',
-        items: xmlItems,
+      setXmlParsed({ nitEmisor, nombreEmisor, numAutorizacion, serie, fechaEmision, total: granTotal, items: xmlItems })
+
+      // Autocomplete form — only fields that exist in the form state
+      if (numAutorizacion) setForm(p => ({ ...p, numeroFactura: numAutorizacion }))
+      if (serie) setForm(p => ({ ...p, serieFactura: serie }))
+      if (fechaEmision) setForm(p => ({ ...p, fecha: fechaEmision }))
+
+      // Map XML items and try to match by NAME in inventory
+      if (xmlItems.length > 0) {
+        setItems(xmlItems.map(xi => {
+          // Try to find product by name (case-insensitive partial match)
+          const match = productos.find(p =>
+            p.nombre.toLowerCase().includes(xi.nombre.toLowerCase()) ||
+            xi.nombre.toLowerCase().includes(p.nombre.toLowerCase())
+          )
+          return {
+            productoId: match ? String(match.id) : '',
+            nombre: xi.nombre,
+            cantidad: String(xi.cantidad),
+            precioUnitario: xi.precioUnitario,
+            subtotal: xi.subtotal,
+            _xmlNombre: xi.nombre,
+            _matched: !!match,
+            _matchedNombre: match?.nombre || '',
+          }
+        }))
       }
 
-      setXmlParsed(parsed)
-      // Autocomplete form
-      if (parsed.nombreEmisor) setForm(p => ({ ...p, proveedorNombre: parsed.nombreEmisor }))
-      if (parsed.total) setForm(p => ({ ...p, total: parsed.total }))
-      if (parsed.numAutorizacion) setForm(p => ({ ...p, numeroFactura: parsed.numAutorizacion }))
-      if (parsed.serie) setForm(p => ({ ...p, serieFactura: parsed.serie }))
-      if (xmlItems.length > 0) setItems(xmlItems.map((i: any) => ({ ...i, productoId: '' })))
-      toast.success('XML leido correctamente — datos autocompletados')
-    } catch {
+      const matched = xmlItems.filter(xi =>
+        productos.some(p =>
+          p.nombre.toLowerCase().includes(xi.nombre.toLowerCase()) ||
+          xi.nombre.toLowerCase().includes(p.nombre.toLowerCase())
+        )
+      ).length
+      toast.success(`XML leido: ${nombreEmisor} · ${xmlItems.length} items · ${matched} encontrados en inventario`)
+    } catch (err) {
+      console.error('XML parse error:', err)
       toast.error('Error al leer el XML. Verifica que sea un archivo FEL valido.')
     }
     setXmlLoading(false)
+  }
+
+  const saveNuevoProducto = async () => {
+    if (!nuevoForm.nombre || !nuevoForm.precio) { toast.error('Nombre y precio son requeridos'); return }
+    const res = await fetch('/api/productos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: nuevoForm.nombre,
+        codigo: nuevoForm.codigo || null,
+        categoria: nuevoForm.categoria || 'General',
+        precio: +nuevoForm.precio,
+        costo: +nuevoForm.costo || 0,
+        stock: +nuevoForm.stock || 0,
+        stockMinimo: +nuevoForm.stockMinimo || 2,
+        unidad: nuevoForm.unidad,
+      })
+    })
+    const data = await res.json()
+    if (data.ok || data.producto) {
+      const prod = data.producto || data
+      toast.success(`Producto "${prod.nombre}" creado`)
+      // Reload products list
+      const prodsRes = await fetch('/api/productos')
+      const prods = await prodsRes.json()
+      setProductos(prods)
+      // Link the item row to the new product
+      if (showNuevoProd !== null) {
+        setItems(prev => prev.map((item, i) =>
+          i === showNuevoProd.idx
+            ? { ...item, productoId: String(prod.id), nombre: prod.nombre }
+            : item
+        ))
+      }
+      setShowNuevoProd(null)
+      setNuevoForm({ nombre: '', codigo: '', categoria: '', precio: '', costo: '', stock: '0', stockMinimo: '2', unidad: 'unidad' })
+    } else {
+      toast.error(data.error || 'Error al crear producto')
+    }
   }
 
   const save = async () => {
@@ -279,6 +372,18 @@ export default function ComprasPage() {
                 <button className="btn-ghost btn-sm" onClick={addItem}>+ Agregar item</button>
               </div>
 
+              {/* XML FEL */}
+              <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>XML Factura SAT (FEL) — opcional</div>
+                <input type="file" accept=".xml" onChange={e => e.target.files?.[0] && parseXML(e.target.files[0])} style={{ fontSize: 12 }} />
+                {xmlLoading && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4 }}>Leyendo XML...</div>}
+                {xmlParsed && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 10px' }}>
+                    Leido: {xmlParsed.nombreEmisor} · {xmlParsed.items?.length || 0} productos cargados
+                  </div>
+                )}
+              </div>
+
               {/* Buscador de productos */}
               <div style={{ marginBottom: 10 }}>
                 <input className="input" placeholder="Buscar producto del inventario..." value={buscarProd} onChange={e => setBuscarProd(e.target.value)} style={{ fontSize: 12 }} />
@@ -293,10 +398,20 @@ export default function ComprasPage() {
 
               {items.map((item, i) => (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px 110px 90px 24px', gap: 6, marginBottom: 6, alignItems: 'center' }}>
-                  <select className="input" value={item.productoId} onChange={e => selProducto(i, e.target.value)} style={{ fontSize: 12 }}>
-                    <option value="">Servicio / otro</option>
-                    {(buscarProd ? prodFiltrados : productos).map(p => <option key={p.id} value={p.id}>{p.codigo ? `[${p.codigo}] ` : ''}{p.nombre}</option>)}
-                  </select>
+                  <div>
+                    <select className="input" value={item.productoId} onChange={e => selProducto(i, e.target.value)} style={{ fontSize: 12 }}>
+                      <option value="">Servicio / otro</option>
+                      {(buscarProd ? prodFiltrados : productos).map(p => <option key={p.id} value={p.id}>{p.codigo ? `[${p.codigo}] ` : ''}{p.nombre}</option>)}
+                    </select>
+                    {!item.productoId && (item as any)._xmlNombre && (
+                      <button onClick={() => {
+                        setNuevoForm(p => ({ ...p, nombre: (item as any)._xmlNombre, costo: item.precioUnitario }))
+                        setShowNuevoProd({ nombre: (item as any)._xmlNombre, idx: i })
+                      }} style={{ marginTop: 3, fontSize: 10, fontWeight: 700, padding: '2px 8px', background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', borderRadius: 5, cursor: 'pointer', fontFamily: 'inherit', display: 'block', width: '100%' }}>
+                        + Agregar al inventario
+                      </button>
+                    )}
+                  </div>
                   <input className="input" value={item.nombre} onChange={e => updItem(i, 'nombre', e.target.value)} placeholder="Descripción" style={{ fontSize: 12 }} />
                   <input className="input" type="number" min="1" value={item.cantidad} onChange={e => updItem(i, 'cantidad', e.target.value)} style={{ fontSize: 12, textAlign: 'center' }} />
                   <input className="input" type="number" min="0" value={item.precioUnitario} onChange={e => updItem(i, 'precioUnitario', e.target.value)} placeholder="0.00" style={{ fontSize: 12 }} />
@@ -368,6 +483,57 @@ export default function ComprasPage() {
             </div>
 
             {selected.notas && <div style={{ marginTop: 12, fontSize: 12, color: '#64748b', background: '#f8fafc', padding: 10, borderRadius: 8 }}>{selected.notas}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NUEVO PRODUCTO desde XML */}
+      {showNuevoProd && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Agregar al inventario</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
+                  {'Producto del XML no encontrado: '}<strong>{showNuevoProd.nombre}</strong>
+                </div>
+              </div>
+              <button onClick={() => setShowNuevoProd(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Nombre *</label>
+                <input className="input" value={nuevoForm.nombre} onChange={e => setNuevoForm(p => ({ ...p, nombre: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Codigo interno</label>
+                <input className="input" value={nuevoForm.codigo} onChange={e => setNuevoForm(p => ({ ...p, codigo: e.target.value }))} placeholder="WSP-0001" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Categoria</label>
+                <input className="input" value={nuevoForm.categoria} onChange={e => setNuevoForm(p => ({ ...p, categoria: e.target.value }))} placeholder="General" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Precio de venta Q *</label>
+                <input className="input" type="number" value={nuevoForm.precio} onChange={e => setNuevoForm(p => ({ ...p, precio: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Costo Q</label>
+                <input className="input" type="number" value={nuevoForm.costo} onChange={e => setNuevoForm(p => ({ ...p, costo: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Stock inicial</label>
+                <input className="input" type="number" value={nuevoForm.stock} onChange={e => setNuevoForm(p => ({ ...p, stock: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Stock minimo</label>
+                <input className="input" type="number" value={nuevoForm.stockMinimo} onChange={e => setNuevoForm(p => ({ ...p, stockMinimo: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn-ghost" onClick={() => setShowNuevoProd(null)}>Cancelar</button>
+              <button className="btn-primary" onClick={saveNuevoProducto}>Crear producto y vincular</button>
+            </div>
           </div>
         </div>
       )}

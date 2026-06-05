@@ -68,7 +68,6 @@ export default function ContabilidadPage() {
   const [showActivoModal, setShowActivoModal] = useState(false)
   const [activoForm, setActivoForm] = useState({ nombre:'', descripcion:'', fechaAdquisicion:TODAY, costoOriginal:'', vidaUtilAnios:'5', valorResidual:'0' })
 
-  // ─── Init ───────────────────────────────────────────────────────────────────
   useEffect(() => { checkSetup() }, [])
 
   const checkSetup = async () => {
@@ -93,7 +92,6 @@ export default function ContabilidadPage() {
     else toast.error(data.error)
   }
 
-  // ─── Loaders ─────────────────────────────────────────────────────────────────
   const loadResumen = async () => {
     const [ivaRes, pygRes, cobrarRes, pagarRes] = await Promise.all([
       fetch(`/api/contabilidad/iva?fi=${FIRST_DAY}&ff=${TODAY}`).then(r => r.json()),
@@ -200,7 +198,6 @@ export default function ContabilidadPage() {
     setPeriodos(await res.json())
   }
 
-  // ─── Actions ─────────────────────────────────────────────────────────────────
   const openEditAsiento = (a: any) => {
     setEditAsiento(a)
     setAsientoForm({ concepto: a.concepto, tipo: a.tipo, fecha: new Date(a.fecha).toISOString().slice(0,10) })
@@ -313,7 +310,6 @@ export default function ContabilidadPage() {
     else toast.error(data.error)
   }
 
-  // ─── Styles ──────────────────────────────────────────────────────────────────
   const thS = { background:'#f8fafc', fontSize:11, fontWeight:700 as const, color:'#64748b', textTransform:'uppercase' as const, padding:'9px 13px', textAlign:'left' as const, borderBottom:'1px solid #e2e8f0' }
   const tdS = { padding:'10px 13px', fontSize:13, borderBottom:'1px solid #f1f5f9' }
   const lbl = { display:'block' as const, fontSize:11, fontWeight:700 as const, color:'#64748b', textTransform:'uppercase' as const, marginBottom:4 }
@@ -327,7 +323,6 @@ export default function ContabilidadPage() {
   const totalHaber = partidas.reduce((s,p) => s+(+p.haber||0), 0)
   const cuadra = Math.abs(totalDebe - totalHaber) < 0.01
 
-  // ─── Setup screen ─────────────────────────────────────────────────────────────
   if (setupDone === false) return (
     <div style={{ padding:24, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:400, gap:16 }}>
       <div style={{ fontSize:20, fontWeight:700 }}>Inicializar módulo contable</div>
@@ -549,7 +544,7 @@ export default function ContabilidadPage() {
             <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
               <div><label style={lbl}>Mes de declaración</label><input className="input" type="month" value={ivaMes} onChange={e => setIvaMes(e.target.value)} /></div>
               <button className="btn-primary" onClick={loadIva} disabled={loading}>Calcular</button>
-              {ivaData && <button className="btn-ghost" onClick={imprimirIVA}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir PDF</button>}
+              {ivaData && <button className="btn-ghost" onClick={imprimirIVA}> Imprimir PDF</button>}
             </div>
           </div>
           {ivaData && (
@@ -1186,7 +1181,7 @@ export default function ContabilidadPage() {
             </div>
             {activoForm.costoOriginal && activoForm.vidaUtilAnios && (
               <div style={{ background:'#eff6ff', borderRadius:8, padding:'10px 14px', marginTop:12, fontSize:13, color:'#1e40af' }}>
-                Depreciacion mensual: <strong>Q {(((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong> · Linea recta por {activoForm.vidaUtilAnios} años
+                {'Depreciacion mensual: '}<strong>{'Q ' + (((+activoForm.costoOriginal)-(+activoForm.valorResidual))/((+activoForm.vidaUtilAnios)*12)).toFixed(2)}</strong>{' · Linea recta por ' + activoForm.vidaUtilAnios + ' años'}
               </div>
             )}
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:18 }}>
