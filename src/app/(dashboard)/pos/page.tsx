@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { fmt } from '@/lib/utils'
+import { buildTicketHTML, printTicketWindow } from '@/lib/ticket-printer'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Producto { id: number; codigo: string | null; nombre: string; precio: number; stock: number; imagenUrl?: string | null }
@@ -14,7 +15,7 @@ interface CartItem {
   nombre: string
   cantidad: number
   precioUnitario: number
-  stock: number       // 0 = unlimited for libre items
+  stock: number
   descuento: number
   subtotal: number
 }
@@ -22,6 +23,7 @@ interface CartItem {
 interface Config {
   empresa_nombre: string; iva_porcentaje: string; moneda_simbolo: string
   ticket_mensaje: string; empresa_nit: string; empresa_direccion: string; empresa_telefono: string
+  ticket_mostrar_logo?: string; fel_activo?: string; email_factura_activo?: string
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -34,6 +36,7 @@ export default function POSPage() {
   const [config, setConfig] = useState<Config | null>(null)
   const [clienteNombre, setClienteNombre] = useState('Consumidor Final')
   const [clienteNit, setClienteNit] = useState('CF')
+  const [clienteCorreo, setClienteCorreo] = useState('')
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [descPct, setDescPct] = useState(0)
@@ -41,12 +44,11 @@ export default function POSPage() {
   const [loading, setLoading] = useState(false)
   const [showCobro, setShowCobro] = useState(false)
   const [lastVenta, setLastVenta] = useState<any>(null)
+  const [lastFel, setLastFel] = useState<any>(null)
   const [tab, setTab] = useState<'inventario'|'cotizacion'|'libre'>('inventario')
-  // NIT lookup
   const [nitStatus, setNitStatus] = useState<'idle'|'found'|'notfound'>('idle')
   const [showRegCliente, setShowRegCliente] = useState(false)
   const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '' })
-  // Free line item
   const [libreForm, setLibreForm] = useState({ codigo: '', nombre: '', precio: '', cantidad: '1' })
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -58,7 +60,6 @@ export default function POSPage() {
   const loadCotizaciones = useCallback(async () => {
     const res = await fetch(`/api/cotizaciones`)
     const data = await res.json()
-    // Only show aceptadas or pendientes
     setCotizaciones(Array.isArray(data) ? data.filter((c: any) => ['aceptada','pendiente'].includes(c.estado)) : [])
   }, [])
 
@@ -101,7 +102,7 @@ export default function POSPage() {
     const cantidad = parseInt(libreForm.cantidad) || 1
     setCart(prev => [...prev, { tipo: 'libre', productoId: null, codigo: libreForm.codigo, nombre: libreForm.nombre, cantidad, precioUnitario: precio, stock: 99999, descuento: 0, subtotal: precio * cantidad }])
     setLibreForm({ codigo: '', nombre: '', precio: '', cantidad: '1' })
-    toast.success('Servicio/item agregado')
+    toast.success('Item agregado')
   }
 
   const cargarCotizacion = (cot: Cotizacion) => {
@@ -150,7 +151,12 @@ export default function POSPage() {
     if (clienteNit.length < 3 || clienteNit.toUpperCase() === 'CF') return
     const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(clienteNit)}`)
     const data = await res.json()
-    if (data.encontrado) { setClienteNombre(data.cliente.nombre); setNitStatus('found'); toast.success(`Cliente: ${data.cliente.nombre}`) }
+    if (data.encontrado) {
+      setClienteNombre(data.cliente.nombre)
+      setNitStatus('found')
+      if (data.cliente.correo) setClienteCorreo(data.cliente.correo)
+      toast.success(`Cliente: ${data.cliente.nombre}`)
+    }
     else { setNitStatus('notfound'); setClienteNombre('') }
   }
   const registrarCliente = async () => {
@@ -176,63 +182,77 @@ export default function POSPage() {
     try {
       const res = await fetch('/api/ventas', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clienteNombre, clienteNit, items: cart, subtotal, descuento, impuesto, total, metodoPago, montoRecibido: parseFloat(montoRecibido || '0'), cambio }),
+        body: JSON.stringify({
+          clienteNombre, clienteNit, clienteCorreo,
+          items: cart, subtotal, descuento, impuesto, total,
+          metodoPago, montoRecibido: parseFloat(montoRecibido || '0'), cambio,
+        }),
       })
       const data = await res.json()
-      if (data.ok) { setLastVenta(data.venta); setShowCobro(true); toast.success(`Venta #${data.venta.numero}`); loadProductos() }
+      if (data.ok) {
+        setLastVenta(data.venta)
+        setLastFel(data.fel)
+        setShowCobro(true)
+        // Mostrar toast según resultado FEL
+        if (data.fel?.ok && !data.fel?.sandbox) toast.success(`Venta ${data.venta.numero} — DTE certificado`)
+        else if (data.fel?.ok && data.fel?.sandbox) toast.success(`Venta ${data.venta.numero} — FEL sandbox`)
+        else if (data.fel && !data.fel.ok) toast.warning(`Venta registrada, pero FEL falló: ${data.fel.error}`)
+        else toast.success(`Venta ${data.venta.numero}`)
+        // Toast correo
+        if (data.email?.ok) toast.success(`Factura enviada a ${clienteCorreo}`)
+        loadProductos()
+      }
       else toast.error(data.error || 'Error')
     } catch { toast.error('Error de conexión') }
     setLoading(false)
   }
 
   const resetPos = () => {
-    setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF')
+    setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF'); setClienteCorreo('')
     setMetodoPago('efectivo'); setMontoRecibido(''); setDescPct(0); setCodigoDesc('')
-    setShowCobro(false); setLastVenta(null); setNitStatus('idle')
+    setShowCobro(false); setLastVenta(null); setLastFel(null); setNitStatus('idle')
     searchRef.current?.focus()
   }
 
+  // ─── Ticket Térmico ──────────────────────────────────────────────────────
   const printTicket = () => {
     if (!lastVenta || !config) return
-    const w = window.open('', '_blank', 'width=400,height=700')
-    if (!w) return
-    const rows = (lastVenta.items || []).map((it: any) =>
-      `<tr><td>${it.nombre}</td><td style="text-align:center">${it.cantidad}</td><td style="text-align:right">${fmt(it.precioUnitario)}</td><td style="text-align:right">${fmt(it.subtotal)}</td></tr>`
-    ).join('')
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Courier New',monospace;font-size:12px;width:300px;margin:0 auto;padding:10px}
-      .logo{text-align:center;margin-bottom:8px}
-      .logo img{width:50px;height:50px;border-radius:6px;object-fit:contain}
-      h2{font-size:14px;text-align:center;margin:4px 0}p{margin:2px 0;text-align:center}
-      hr{border:none;border-top:1px dashed #000;margin:6px 0}
-      table{width:100%;font-size:11px;border-collapse:collapse}
-      th{text-align:left;font-size:10px;border-bottom:1px solid #000}
-      td{padding:2px 0}.total-row{font-weight:bold;font-size:13px}
-    </style></head><body>
-      <div class="logo"><img src="https://websoft-solutions.vercel.app/logo.png" onerror="this.style.display='none'"/></div>
-      <h2>${config.empresa_nombre}</h2>
-      <p>NIT: ${config.empresa_nit}</p>
-      <p>${config.empresa_direccion || ''}</p>
-      <hr>
-      <p>Factura: <b>${lastVenta.numero}</b></p>
-      <p>${new Date(lastVenta.fecha).toLocaleString('es-GT')}</p>
-      <p>Cliente: ${lastVenta.clienteNombre}</p>
-      <hr>
-      <table><thead><tr><th>Producto</th><th>Cant</th><th>P/U</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody></table>
-      <hr>
-      <table><tbody>
-        <tr><td>Subtotal</td><td style="text-align:right">${fmt(lastVenta.subtotal)}</td></tr>
-        ${lastVenta.descuento > 0 ? `<tr><td>Descuento</td><td style="text-align:right">-${fmt(lastVenta.descuento)}</td></tr>` : ''}
-        <tr><td>IVA (${ivaPct}%)</td><td style="text-align:right">${fmt(lastVenta.impuesto)}</td></tr>
-        <tr class="total-row"><td>TOTAL</td><td style="text-align:right">${fmt(lastVenta.total)}</td></tr>
-        <tr><td>Recibido</td><td style="text-align:right">${fmt(lastVenta.montoRecibido)}</td></tr>
-        <tr><td>Cambio</td><td style="text-align:right">${fmt(lastVenta.cambio)}</td></tr>
-      </tbody></table>
-      <hr><p>${config.ticket_mensaje}</p>
-    </body></html>`)
-    w.document.close(); w.print()
+    const html = buildTicketHTML({
+      empresaNombre:   config.empresa_nombre,
+      empresaNit:      config.empresa_nit,
+      empresaDireccion: config.empresa_direccion,
+      empresaTelefono: config.empresa_telefono,
+      empresaLogoUrl:  'https://websoft-solutions.vercel.app/logo.png',
+      mostrarLogo:     config.ticket_mostrar_logo !== 'false',
+      ticketMensaje:   config.ticket_mensaje,
+      numero:          lastVenta.numero,
+      fecha:           lastVenta.fecha,
+      clienteNombre:   lastVenta.clienteNombre,
+      clienteNit:      lastVenta.clienteNit,
+      cajero:          lastVenta.usuarioNombre || 'Cajero',
+      // FEL
+      felUuid:          lastFel?.uuid,
+      felSerie:         lastFel?.serie,
+      felNumero:        lastFel?.numero,
+      felCertificacion: lastFel?.fechaCertificacion,
+      isSandbox:        lastFel?.sandbox,
+      items: (lastVenta.items || []).map((it: any) => ({
+        nombre:         it.nombre,
+        cantidad:       it.cantidad,
+        precioUnitario: it.precioUnitario,
+        descuento:      it.descuento || 0,
+        subtotal:       it.subtotal,
+      })),
+      subtotal:       lastVenta.subtotal,
+      descuento:      lastVenta.descuento,
+      impuesto:       lastVenta.impuesto,
+      total:          lastVenta.total,
+      metodoPago:     lastVenta.metodoPago,
+      montoRecibido:  lastVenta.montoRecibido,
+      cambio:         lastVenta.cambio,
+      ivaPct,
+    })
+    printTicketWindow(html)
   }
 
   const tabStyle = (t: string) => ({
@@ -247,16 +267,23 @@ export default function POSPage() {
     !buscarCot || c.numero.toLowerCase().includes(buscarCot.toLowerCase()) || c.clienteNombre.toLowerCase().includes(buscarCot.toLowerCase())
   )
 
+  const felActivo = config?.fel_activo === 'true'
+  const emailActivo = config?.email_factura_activo === 'true'
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
 
       {/* ─── LEFT: Product Selection ─── */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #e2e8f0', background: '#fff' }}>
-        {/* Tabs */}
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 6, background: '#f8fafc' }}>
-          <button style={tabStyle('inventario')} onClick={() => setTab('inventario')}> Inventario</button>
-          <button style={tabStyle('cotizacion')} onClick={() => setTab('cotizacion')}> Desde Cotización</button>
-          <button style={tabStyle('libre')} onClick={() => setTab('libre')}> Línea Libre</button>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 6, background: '#f8fafc', alignItems: 'center' }}>
+          <button style={tabStyle('inventario')} onClick={() => setTab('inventario')}>Inventario</button>
+          <button style={tabStyle('cotizacion')} onClick={() => setTab('cotizacion')}>Desde Cotización</button>
+          <button style={tabStyle('libre')} onClick={() => setTab('libre')}>Línea Libre</button>
+          {felActivo && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '3px 8px', borderRadius: 10 }}>
+              FEL activo
+            </span>
+          )}
         </div>
 
         {/* INVENTARIO */}
@@ -285,7 +312,7 @@ export default function POSPage() {
         {/* COTIZACION */}
         {tab === 'cotizacion' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
-            <p style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>Selecciona una cotización para cargarla al carrito. Se cargan todos sus items como líneas libres.</p>
+            <p style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>Selecciona una cotización para cargarla al carrito.</p>
             <input className="input" placeholder="Buscar cotización..." value={buscarCot} onChange={e => setBuscarCot(e.target.value)} style={{ marginBottom: 12 }} />
             {cotFiltradas.length === 0
               ? <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Sin cotizaciones aceptadas o pendientes</div>
@@ -306,7 +333,7 @@ export default function POSPage() {
         {tab === 'libre' && (
           <div style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 12, fontSize: 12, color: '#78350f' }}>
-               Agrega servicios, instalaciones o productos con precio especial que no están en el inventario. No descuentan stock.
+              Agrega servicios o productos con precio especial. No descuentan stock.
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Código (opcional)</label>
@@ -314,7 +341,7 @@ export default function POSPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Descripción *</label>
-              <input className="input" value={libreForm.nombre} onChange={e => setLibreForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: Instalación CCTV 4 cámaras, Servicio técnico, Cable HDMI especial..." />
+              <input className="input" value={libreForm.nombre} onChange={e => setLibreForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: Instalación CCTV, Servicio técnico..." />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
@@ -342,12 +369,12 @@ export default function POSPage() {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
           {cart.length === 0
-            ? <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8', fontSize: 13 }}>Agrega productos, servicios o carga una cotización</div>
+            ? <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8', fontSize: 13 }}>Agrega productos o carga una cotización</div>
             : cart.map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, border: '1px solid #e2e8f0', borderLeft: `3px solid ${item.tipo === 'libre' ? '#d97706' : '#2563eb'}`, borderRadius: 8, marginBottom: 6, background: '#fafbfc' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, color: item.tipo === 'libre' ? '#d97706' : '#2563eb', fontWeight: 700, textTransform: 'uppercase', marginBottom: 1 }}>
-                    {item.tipo === 'libre' ? ' Libre' : ' Stock'}
+                    {item.tipo === 'libre' ? 'Libre' : 'Stock'}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', lineHeight: 1.2 }}>{item.nombre}</div>
                   {item.tipo === 'libre'
@@ -384,10 +411,10 @@ export default function POSPage() {
               <input className="input" value={clienteNit} onChange={e => buscarNit(e.target.value)} onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12, flex: 1, borderColor: nitStatus === 'found' ? '#16a34a' : nitStatus === 'notfound' ? '#dc2626' : undefined }} />
               <button onClick={ejecutarBusquedaNit} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Buscar</button>
             </div>
-            {nitStatus === 'found' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, marginTop: 3 }}> {clienteNombre}</div>}
+            {nitStatus === 'found' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, marginTop: 3 }}>{clienteNombre}</div>}
             {nitStatus === 'notfound' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
-                <span style={{ fontSize: 10, color: '#dc2626', fontWeight: 600 }}> NIT no registrado</span>
+                <span style={{ fontSize: 10, color: '#dc2626', fontWeight: 600 }}>NIT no registrado</span>
                 <button onClick={() => setShowRegCliente(true)} style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>+ Registrar</button>
               </div>
             )}
@@ -398,6 +425,23 @@ export default function POSPage() {
             <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>Nombre</label>
             <input className="input" value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Consumidor Final" style={{ padding: '6px 8px', fontSize: 12 }} />
           </div>
+
+          {/* Correo — visible si email o FEL activos */}
+          {(emailActivo || felActivo) && (
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
+                Correo cliente {emailActivo ? '(factura por email)' : '(DTE)'}
+              </label>
+              <input
+                className="input"
+                type="email"
+                value={clienteCorreo}
+                onChange={e => setClienteCorreo(e.target.value)}
+                placeholder="cliente@correo.com (opcional)"
+                style={{ padding: '6px 8px', fontSize: 12 }}
+              />
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             <div>
@@ -461,14 +505,32 @@ export default function POSPage() {
       {/* Modal Cobro exitoso */}
       {showCobro && lastVenta && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 380, boxShadow: '0 30px 80px rgba(0,0,0,.2)', textAlign: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 400, boxShadow: '0 30px 80px rgba(0,0,0,.2)', textAlign: 'center' }}>
             <div style={{ width: 60, height: 60, background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}></div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>¡Venta Registrada!</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>Venta Registrada</h3>
             <p style={{ fontSize: 14, color: '#64748b', marginBottom: 4 }}>Factura <strong style={{ color: '#2563eb' }}>{lastVenta.numero}</strong></p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>{fmt(lastVenta.total)}</p>
-            {lastVenta.cambio > 0 && <p style={{ fontSize: 15, color: '#16a34a', marginBottom: 16 }}>Cambio: <strong>{fmt(lastVenta.cambio)}</strong></p>}
+            <p style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>{fmt(lastVenta.total)}</p>
+            {lastVenta.cambio > 0 && <p style={{ fontSize: 15, color: '#16a34a', marginBottom: 10 }}>Cambio: <strong>{fmt(lastVenta.cambio)}</strong></p>}
+
+            {/* Estado FEL */}
+            {lastFel && (
+              <div style={{ background: lastFel.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${lastFel.ok ? '#bbf7d0' : '#fecaca'}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11 }}>
+                {lastFel.ok ? (
+                  <>
+                    <div style={{ fontWeight: 700, color: lastFel.sandbox ? '#d97706' : '#166534', marginBottom: 2 }}>
+                      {lastFel.sandbox ? 'FEL Sandbox' : 'DTE Certificado'}
+                    </div>
+                    {lastFel.uuid && <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b', wordBreak: 'break-all' }}>{lastFel.uuid}</div>}
+                    {lastFel.serie && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Serie {lastFel.serie} — No. {lastFel.numero}</div>}
+                  </>
+                ) : (
+                  <div style={{ fontWeight: 700, color: '#dc2626' }}>FEL error: {lastFel.error}</div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button className="btn-ghost" onClick={printTicket}> Imprimir</button>
+              <button className="btn-ghost" onClick={printTicket}>Imprimir Ticket</button>
               <button className="btn-primary" onClick={resetPos}>Nueva Venta</button>
             </div>
           </div>

@@ -1,189 +1,204 @@
-# WS POS Web — Sistema de Facturación
-
-Sistema POS profesional full-stack para web, listo para desplegar en **Vercel + Neon (PostgreSQL)**.
-
-## Stack tecnológico
-
-| Capa | Tecnología |
-|------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Base de datos | PostgreSQL (Neon.tech) |
-| ORM | Prisma |
-| Autenticación | NextAuth v5 (JWT) |
-| Estilos | Tailwind CSS |
-| Gráficas | Recharts |
-| Hosting | Vercel |
-
-## Módulos incluidos
-
-- ✅ Login con roles (Admin / Cajero)
-- ✅ Dashboard con estadísticas del día
-- ✅ POS — punto de venta con carrito en tiempo real
-- ✅ Historial de ventas con filtros y anulación
-- ✅ Inventario con CRUD y Kardex
-- ✅ Clientes
-- ✅ Proveedores
-- ✅ Compras (actualiza stock automáticamente)
-- ✅ Devoluciones (restaura stock)
-- ✅ Códigos de descuento
-- ✅ Cierre de caja
-- ✅ Apertura/cierre de turno
-- ✅ Reportes con gráficas (barras, pie)
-- ✅ Configuración de empresa
-- ✅ Gestión de usuarios
-- ✅ Impresión de ticket (ventana del navegador)
-- ✅ Log de auditoría
+# WebSoft Solutions — FEL + Correo + Tickets
+## Instrucciones de integración
 
 ---
 
-## Despliegue en Vercel (paso a paso)
+## Archivos incluidos
 
-### 1. Base de datos — Neon (gratis)
+```
+src/
+  lib/
+    fel.ts              ← Servicio INFILE (FEL) con sandbox/pruebas/produccion
+    email-factura.ts    ← Envío de factura media carta por email (Resend/SMTP)
+    ticket-printer.ts   ← Generador ticket térmico 80mm Epson TM-T30II
+  app/
+    api/ventas/
+      route.ts          ← API de ventas actualizada con hooks FEL + email
+    (dashboard)/
+      pos/page.tsx      ← POS actualizado (ticket mejorado, correo, FEL status)
+      fel/page.tsx      ← Panel FEL (estado, historial DTEs, guía)
+prisma/
+  schema-venta-patch.prisma  ← Campos FEL para agregar al schema
+```
 
-1. Ve a [neon.tech](https://neon.tech) y crea una cuenta gratuita
-2. Crea un nuevo proyecto → copia las URLs de conexión:
-   - `DATABASE_URL` (connection pooling)
-   - `DIRECT_URL` (direct connection)
+---
 
-### 2. Subir código a GitHub
+## PASO 1 — Actualizar schema.prisma
 
+Abre `prisma/schema.prisma` y reemplaza el modelo `Venta` con el que está en
+`prisma/schema-venta-patch.prisma`.
+
+Los campos nuevos son:
+- `clienteCorreo` — correo del receptor (opcional)
+- `felUuid` — UUID de autorización SAT
+- `felSerie` — serie asignada por INFILE
+- `felNumero` — número correlativo DTE
+- `felCertificacion` — fecha y hora de certificación
+- `felXml` — XML DTE firmado (para respaldo)
+- `felEstado` — "sandbox" | "certificado" | "anulado"
+
+Luego ejecutar:
 ```bash
-git init
-git add .
-git commit -m "Initial commit - WS POS Web"
-git remote add origin https://github.com/TU_USUARIO/ws-pos-web.git
-git push -u origin main
+npx prisma@5.22.0 db push
 ```
 
-### 3. Desplegar en Vercel
+---
 
-1. Ve a [vercel.com](https://vercel.com) → New Project → importa tu repo
-2. En **Environment Variables**, agrega:
+## PASO 2 — Instalar dependencias (solo si usas SMTP)
 
-```
-DATABASE_URL = postgresql://user:pass@ep-xxx.neon.tech/ws_pos?sslmode=require
-DIRECT_URL   = postgresql://user:pass@ep-xxx.neon.tech/ws_pos?sslmode=require
-NEXTAUTH_SECRET = (genera con: openssl rand -base64 32)
-NEXTAUTH_URL = https://TU-APP.vercel.app
-```
-
-3. Build command: `prisma generate && next build`
-4. Deploy!
-
-### 4. Inicializar la base de datos
-
-Después del primer deploy, ejecuta desde tu máquina:
-
+Si vas a usar Gmail SMTP en lugar de Resend:
 ```bash
-# Instala dependencias localmente
-npm install
-
-# Crea las tablas en Neon
-npx prisma db push
-
-# Carga datos iniciales (usuarios + productos de ejemplo)
-npm run db:seed
+npm install nodemailer @types/nodemailer
 ```
 
-### 5. Acceder al sistema
-
-- URL: `https://tu-app.vercel.app`
-- **Admin:** usuario `admin` / contraseña `admin123`
-- **Cajero:** usuario `cajero` / contraseña `cajero123`
-
-> ⚠️ **Cambia las contraseñas en el primer uso** (Módulo Usuarios)
+Para Resend no se necesita instalar nada (usa fetch nativo).
 
 ---
 
-## Desarrollo local
+## PASO 3 — Variables de entorno
 
-```bash
-# 1. Clonar
-git clone https://github.com/TU_USUARIO/ws-pos-web.git
-cd ws-pos-web
+Agrega en **Vercel → Settings → Environment Variables**:
 
-# 2. Instalar dependencias
-npm install
-
-# 3. Configurar variables de entorno
-cp .env.example .env.local
-# Edita .env.local con tus credenciales de Neon
-
-# 4. Inicializar BD
-npx prisma db push
-npm run db:seed
-
-# 5. Iniciar servidor de desarrollo
-npm run dev
+### FEL (cuando tengas contrato con INFILE)
+```
+FEL_MODO=sandbox               # sandbox | pruebas | produccion
+FEL_USUARIO=tu@correo.com      # Usuario INFILE
+FEL_CLAVE=tu_clave_infile      # Clave/token INFILE (NUNCA en DB)
+FEL_NIT_EMISOR=115471413       # NIT sin guion
+FEL_NOMBRE_EMISOR=WebSoft Solutions
+FEL_DIRECCION=Barrio el Calvario, Guastatoya, El Progreso
+FEL_CODIGO_POSTAL=22001
+FEL_DEPARTAMENTO=El Progreso
+FEL_MUNICIPIO=Guastatoya
+FEL_CORREO_EMISOR=info@websoftsolutions.com.gt
+FEL_SERIE=A                    # Serie asignada por INFILE
 ```
 
-Abre [http://localhost:3000](http://localhost:3000)
-
----
-
-## Estructura del proyecto
-
+### Email (elige uno)
 ```
-ws-pos-web/
-├── prisma/
-│   ├── schema.prisma     # Esquema de la BD (16 tablas)
-│   └── seed.ts           # Datos iniciales
-├── src/
-│   ├── app/
-│   │   ├── api/          # API Routes (REST)
-│   │   │   ├── auth/     # NextAuth
-│   │   │   ├── ventas/
-│   │   │   ├── productos/
-│   │   │   ├── clientes/
-│   │   │   └── ...
-│   │   ├── (auth)/
-│   │   │   └── login/
-│   │   └── (dashboard)/
-│   │       ├── pos/
-│   │       ├── ventas/
-│   │       ├── inventario/
-│   │       └── ...
-│   ├── components/
-│   │   ├── Sidebar.tsx
-│   │   └── Topbar.tsx
-│   └── lib/
-│       ├── auth.ts       # NextAuth config
-│       ├── prisma.ts     # Cliente Prisma
-│       └── utils.ts      # Helpers
-└── README.md
+# Opción A: Resend (recomendado, gratis hasta 3000/mes)
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=WebSoft Solutions <facturas@websoftsolutions.com.gt>
+
+# Opción B: Gmail SMTP
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu@gmail.com
+SMTP_PASS=tu_app_password       # Generar en myaccount.google.com/apppasswords
+EMAIL_FROM=WebSoft Solutions <tu@gmail.com>
 ```
 
 ---
 
-## Personalización
+## PASO 4 — Configurar en el sistema
 
-### Cambiar el nombre/logo de la empresa
-Ve a **Configuración → Empresa** en el sistema.
+### Activar FEL:
+1. Ve a **Configuración → FEL / SAT**
+2. Activa "Estado de FEL"
+3. Selecciona certificador: INFILE
+4. Elige ambiente: `sandbox` (mientras pruebas) → `pruebas` (con creds INFILE) → `produccion`
+5. Ingresa NIT Emisor y Nombre Emisor
+6. Guarda
 
-### Cambiar IVA
-Ve a **Configuración → Sistema** → IVA (%).
+### Activar correo:
+1. Ve a **Configuración → Ventas y Tickets**
+2. Activa "Factura por correo"
+3. Guarda
 
-### Agregar categorías de productos
-Las categorías se crean automáticamente al agregar productos en Inventario.
+### También agregar a la tabla `config` en la DB:
+```sql
+INSERT INTO config (clave, valor) VALUES
+  ('fel_activo',           'false'),
+  ('email_factura_activo', 'false'),
+  ('ticket_mostrar_fel',   'true')
+ON CONFLICT (clave) DO NOTHING;
+```
 
 ---
 
-## Seguridad
+## PASO 5 — Copiar archivos al proyecto
 
-- Contraseñas hasheadas con bcrypt (12 rounds)
-- Sesiones JWT firmadas
-- Middleware de autenticación en todas las rutas
-- Roles: `admin` (acceso total) / `cajero` (acceso limitado)
-- Log de auditoría en operaciones críticas
+Copia cada archivo a su ruta correspondiente en el proyecto.
+Los archivos existentes que se reemplazan son:
+- `src/app/api/ventas/route.ts` — agrega import de fel y email
+- `src/app/(dashboard)/pos/page.tsx` — agrega import ticket-printer, campo correo
+- `src/app/(dashboard)/fel/page.tsx` — reemplaza completamente
 
 ---
 
-## Soporte
+## Flujo completo después de la integración
 
-Credenciales por defecto:
-| Usuario | Contraseña | Rol |
-|---------|-----------|-----|
-| admin | admin123 | Administrador |
-| cajero | cajero123 | Cajero |
+```
+Cajero hace venta en POS
+        ↓
+/api/ventas POST
+        ↓
+1. Crea venta en DB
+2. Actualiza stock + kardex
+        ↓
+3. Si FEL activo:
+   - Construye JSON DTE
+   - Llama a INFILE API
+   - Guarda UUID + serie en venta
+        ↓
+4. Si email activo y cliente tiene correo:
+   - Genera HTML factura media carta
+   - Envía vía Resend o SMTP
+        ↓
+5. Retorna { ok, venta, fel, email }
+        ↓
+POS muestra UUID en modal de cobro
+Ticket incluye UUID + QR de SAT
+```
 
-**Cambia estas contraseñas inmediatamente después del primer login.**
+---
+
+## Impresora Epson TM-T30II — USB
+
+### Configuración Windows:
+1. Instala el driver Epson (TM-T30II USB)
+2. En Chrome/Edge: cuando imprimas, selecciona la impresora Epson
+3. Configura: Papel = 80mm, sin márgenes, escala = 100%, sin encabezado/pie
+
+### Para impresión silenciosa (sin diálogo):
+Instalar **QZ Tray** (https://qz.io) — plugin gratuito que permite imprimir
+desde web sin diálogo del navegador. Requiere configuración adicional.
+
+### Ticket incluye:
+- Logo WebSoft (configurable)
+- Datos empresa (nombre, NIT, dirección, teléfono)
+- Número de factura
+- Fecha y hora
+- Cliente y NIT
+- Cajero
+- Items con cantidad × precio unitario = total
+- Descuentos
+- Subtotal / IVA / TOTAL
+- Recibido / Cambio
+- Método de pago
+- **Sección FEL** (si tiene UUID):
+  - Número de autorización completo
+  - Serie y número DTE
+  - Fecha de certificación
+  - Nombre del certificador
+  - QR con link de verificación SAT
+- Leyendas ISR / IVA
+- Mensaje personalizable
+
+---
+
+## INFILE — Obtener contrato
+
+1. Visita https://infile.com.gt
+2. Llama al PBX: 2261-9595 (Guatemala)
+3. Solicita plan "Pequeño Contribuyente" o "General"
+4. Proporciona: NIT, nombre comercial, dirección, correo
+5. Tiempo de activación: 1-3 días hábiles
+6. Te darán: usuario, clave, y serie asignada
+
+Cuando tengas las credenciales:
+1. Agrega FEL_USUARIO, FEL_CLAVE, FEL_SERIE en Vercel
+2. Cambia FEL_MODO a "pruebas" para validar
+3. Cuando todo funcione, cambia a "produccion"
