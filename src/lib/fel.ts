@@ -1,25 +1,5 @@
-/**
- * WebSoft Solutions — Integración FEL (Factura Electrónica en Línea)
- * Certificador: INFILE S.A. — NIT 12521337
- *
- * Modos:
- *   FEL_MODO=sandbox   → Mock local, no llama a INFILE (usar mientras no hay contrato)
- *   FEL_MODO=pruebas   → Ambiente de pruebas oficial INFILE
- *   FEL_MODO=produccion → SAT real
- *
- * Variables de entorno requeridas (Vercel → Settings → Environment Variables):
- *   FEL_MODO           → "sandbox" | "pruebas" | "produccion"
- *   FEL_USUARIO        → usuario proporcionado por INFILE
- *   FEL_CLAVE          → clave/token de INFILE (NO guardar en DB)
- *   FEL_NIT_EMISOR     → NIT sin guion de WebSoft Solutions (115471413)
- *   FEL_NOMBRE_EMISOR  → "WebSoft Solutions"
- *   FEL_DIRECCION      → "Barrio el Calvario, Guastatoya, El Progreso"
- *   FEL_CODIGO_POSTAL  → "22001" (código postal El Progreso)
- *   FEL_DEPARTAMENTO   → "El Progreso"
- *   FEL_MUNICIPIO      → "Guastatoya"
- *   FEL_CORREO_EMISOR  → email de WebSoft Solutions
- *   FEL_SERIE          → serie asignada por INFILE (ej: "A" o "WSFT")
- */
+// Integración FEL con INFILE para Guatemala
+// Cambia FEL_MODO en Vercel: sandbox | pruebas | produccion
 
 export interface FELItem {
   cantidad: number
@@ -32,11 +12,8 @@ export interface FELItem {
 }
 
 export interface FELInput {
-  /** Número interno de la venta, ej: FAC-000042 */
   numeroInterno: string
-  /** "FACT" = Factura, "FCAM" = Factura Cambiaria, "FESP" = Factura Especial */
   tipoDTE?: 'FACT' | 'FCAM' | 'FESP'
-  /** NIT del cliente. "CF" = Consumidor Final */
   nitReceptor: string
   nombreReceptor: string
   correoReceptor?: string
@@ -47,36 +24,26 @@ export interface FELInput {
   impuesto: number
   total: number
   metodoPago?: string
-  /** Fecha y hora de la venta en ISO 8601 */
   fechaEmision?: string
 }
 
 export interface FELResponse {
   ok: boolean
-  /** UUID de autorización SAT (36 chars) */
   uuid?: string
-  /** Serie asignada por INFILE */
   serie?: string
-  /** Número correlativo */
   numero?: number
-  /** Fecha y hora de certificación */
   fechaCertificacion?: string
-  /** XML DTE firmado (para almacenar) */
   xmlCertificado?: string
-  /** URL del PDF en INFILE (opcional) */
   pdfUrl?: string
   error?: string
-  /** En modo sandbox, indica que es simulado */
   sandbox?: boolean
 }
 
-// ─── URLs INFILE ───────────────────────────────────────────────────────────────
 const INFILE_URLS = {
   pruebas:    'https://api.feel-gt.com/api/documentos/emision/json/dte/?ambiente=2',
   produccion: 'https://api.feel-gt.com/api/documentos/emision/json/dte/?ambiente=1',
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 function nowGT(): string {
   // Guatemala es UTC-6, sin DST
   const now = new Date()
@@ -90,7 +57,6 @@ function nitFormat(nit: string): string {
   return nit.replace(/[^0-9Kk]/g, '').toUpperCase()
 }
 
-// ─── Construir JSON DTE para INFILE ────────────────────────────────────────────
 function buildDTE(input: FELInput): object {
   const env = process.env
 
@@ -175,7 +141,6 @@ function buildDTE(input: FELInput): object {
   }
 }
 
-// ─── Mock para sandbox ─────────────────────────────────────────────────────────
 function mockResponse(input: FELInput): FELResponse {
   const uuid = 'SANDBOX-' + Math.random().toString(36).substring(2, 10).toUpperCase() +
                '-' + Math.random().toString(36).substring(2, 10).toUpperCase()
@@ -190,7 +155,6 @@ function mockResponse(input: FELInput): FELResponse {
   }
 }
 
-// ─── Función principal ─────────────────────────────────────────────────────────
 export async function emitirFEL(input: FELInput): Promise<FELResponse> {
   const modo = (process.env.FEL_MODO || 'sandbox').toLowerCase()
 
@@ -249,7 +213,6 @@ export async function emitirFEL(input: FELInput): Promise<FELResponse> {
   }
 }
 
-// ─── Anulación DTE ─────────────────────────────────────────────────────────────
 export async function anularFEL(uuid: string, motivo: string): Promise<{ ok: boolean; error?: string }> {
   const modo = (process.env.FEL_MODO || 'sandbox').toLowerCase()
   if (modo === 'sandbox') {

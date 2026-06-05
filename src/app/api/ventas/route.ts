@@ -120,7 +120,6 @@ export async function POST(req: NextRequest) {
     return v
   })
 
-  // ─── FEL — emitir DTE si está activado ────────────────────────────────────
   let felResult = null
   const felActivo = await prisma.config.findUnique({ where: { clave: 'fel_activo' } })
 
@@ -169,7 +168,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ─── EMAIL — enviar factura si el cliente tiene correo ────────────────────
   let emailResult = null
   const emailActivo = await prisma.config.findUnique({ where: { clave: 'email_factura_activo' } })
 

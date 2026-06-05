@@ -85,7 +85,6 @@ export default function POSPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // ─── Cart ops ────────────────────────────────────────────────────────────
   const addInventario = (prod: Producto) => {
     if (prod.stock <= 0) { toast.error('Sin stock'); return }
     setCart(prev => {
@@ -139,7 +138,6 @@ export default function POSPage() {
     return { ...item, precioUnitario: p, subtotal: item.cantidad * p - item.descuento }
   }))
 
-  // ─── Totals ──────────────────────────────────────────────────────────────
   const subtotal = cart.reduce((s, x) => s + x.subtotal, 0)
   const descuento = subtotal * descPct / 100
   const ivaPct = parseFloat(config?.iva_porcentaje || '5')
@@ -147,7 +145,6 @@ export default function POSPage() {
   const total = subtotal - descuento + impuesto
   const cambio = Math.max(0, parseFloat(montoRecibido || '0') - total)
 
-  // ─── NIT lookup ──────────────────────────────────────────────────────────
   const buscarNit = (nit: string) => { setClienteNit(nit); setNitStatus('idle'); if (nit.length < 3 || nit.toUpperCase() === 'CF') setClienteNombre('Consumidor Final') }
   const ejecutarBusquedaNit = async () => {
     if (clienteNit.length < 3 || clienteNit.toUpperCase() === 'CF') return
@@ -182,7 +179,6 @@ export default function POSPage() {
     } else { toast.error(data.error || 'Error al guardar') }
   }
 
-  // ─── Descuento ───────────────────────────────────────────────────────────
   const validarDescuento = async () => {
     if (!codigoDesc.trim()) return
     const res = await fetch('/api/descuentos/validar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: codigoDesc, total: subtotal }) })
@@ -191,7 +187,6 @@ export default function POSPage() {
     else toast.error(data.error || 'Código inválido')
   }
 
-  // ─── Cobrar ──────────────────────────────────────────────────────────────
   const cobrar = async () => {
     if (cart.length === 0) { toast.error('Carrito vacío'); return }
     if (metodoPago === 'efectivo' && parseFloat(montoRecibido || '0') < total) { toast.error('Monto insuficiente'); return }
@@ -218,7 +213,6 @@ export default function POSPage() {
         // Toast correo
         if (data.email?.ok) toast.success(`Factura enviada a ${clienteCorreo}`)
         loadProductos()
-        // Auto-imprimir ticket al cobrar
         setTimeout(() => {
           if (!config || !data.venta) return
           const v = data.venta
@@ -253,7 +247,6 @@ export default function POSPage() {
     searchRef.current?.focus()
   }
 
-  // ─── Ticket Térmico ──────────────────────────────────────────────────────
   const printTicket = () => {
     if (!lastVenta || !config) return
     const html = buildTicketHTML({
@@ -312,7 +305,7 @@ export default function POSPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
 
-      {/* ─── LEFT: Product Selection ─── */}
+      {/* Panel izquierdo: productos */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #e2e8f0', background: '#fff' }}>
         <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 6, background: '#f8fafc', alignItems: 'center' }}>
           <button style={tabStyle('inventario')} onClick={() => setTab('inventario')}>Inventario</button>
@@ -399,7 +392,7 @@ export default function POSPage() {
         )}
       </div>
 
-      {/* ─── RIGHT: Cart ─── */}
+      {/* Panel derecho: carrito */}
       <div style={{ display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Carrito ({cart.length})</span>
@@ -521,7 +514,7 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Modal Registrar / Actualizar Cliente */}
+      {/* Modal cliente */}
       {showRegCliente && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
@@ -549,7 +542,7 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Modal Cobro exitoso */}
+      {/* Modal cobro */}
       {showCobro && lastVenta && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 400, boxShadow: '0 30px 80px rgba(0,0,0,.2)', textAlign: 'center' }}>

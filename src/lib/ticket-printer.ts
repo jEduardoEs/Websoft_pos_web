@@ -1,19 +1,5 @@
-/**
- * WebSoft Solutions — Generador de Ticket Térmico
- * Optimizado para: Epson TM-T30II (80mm de papel, 576 dots, monospace)
- * Conexión: USB → imprime vía window.print() con @media print 80mm
- *
- * La Epson TM-T30II conectada por USB se expone como impresora del sistema.
- * El navegador la detecta normalmente, solo hay que configurar:
- *   - Papel: 80mm (sin margen o 3mm c/lado)
- *   - Sin encabezado ni pie de página del navegador
- *   - Escala: 100%
- *
- * Para imprimir sin diálogo (silent print), se puede usar:
- *   1. El método window.print() actual (con diálogo, portable)
- *   2. Un bridge Electron/NW.js (sin diálogo, si el POS corre en desktop)
- *   3. QZ Tray (plugin para impresión silenciosa desde web)
- */
+// Generador de ticket térmico para Epson TM-T30II (80mm USB)
+// Usa window.print() — seleccionar la impresora Epson en el diálogo
 
 export interface TicketData {
   // Empresa
@@ -55,14 +41,11 @@ export interface TicketData {
   ivaPct?: number
 }
 
-// ─── Línea divisoria ───────────────────────────────────────────────────────────
 const HR  = `<div class="hr"></div>`
 const HR2 = `<div class="hr2"></div>`
 
-// ─── Formato moneda ────────────────────────────────────────────────────────────
 const fmt = (n: number) => `Q${n.toFixed(2)}`
 
-// ─── Truncar texto al ancho del ticket ────────────────────────────────────────
 // 80mm → ~42 chars en Courier 12px, ~38 en 11px
 const trunc = (s: string, max = 22) => s.length > max ? s.slice(0, max - 1) + '…' : s
 
@@ -78,8 +61,6 @@ export function buildTicketHTML(d: TicketData): string {
     const nombre = trunc(it.nombre, 26)
     const cant   = it.cantidad % 1 === 0 ? String(it.cantidad) : it.cantidad.toFixed(2)
     const total  = it.subtotal - (it.descuento || 0)
-    // Línea 1: nombre
-    // Línea 2: cant × PU = total (alineado derecha)
     const descLine = it.descuento > 0
       ? `<div class="item-desc">  Descuento: -${fmt(it.descuento)}</div>`
       : ''

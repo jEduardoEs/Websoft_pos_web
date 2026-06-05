@@ -1,17 +1,5 @@
-/**
- * WebSoft Solutions — Envío de Factura por Correo
- * Genera HTML de factura media carta (carta = 215.9 × 279.4 mm, media = mitad superior)
- * Envía vía Resend (recomendado) o SMTP genérico (Gmail, etc.)
- *
- * Variables de entorno:
- *   EMAIL_PROVIDER     → "resend" | "smtp" (default: "resend")
- *   RESEND_API_KEY     → API key de Resend (https://resend.com)
- *   SMTP_HOST          → ej: "smtp.gmail.com"
- *   SMTP_PORT          → 465 (SSL) o 587 (TLS)
- *   SMTP_USER          → tu@correo.com
- *   SMTP_PASS          → contraseña o app password de Gmail
- *   EMAIL_FROM         → "WebSoft Solutions <facturacion@websoftsolutions.com.gt>"
- */
+// Envío de factura por correo electrónico
+// Provider: Resend (recomendado) o SMTP — configurar en variables de entorno
 
 export interface FacturaEmailData {
   // DTE data
@@ -41,7 +29,6 @@ export interface FacturaEmailData {
   metodoPago: string
 }
 
-// ─── HTML Factura formal estilo DTE Guatemala — WebSoft Solutions ─────────────
 export function buildFacturaHTML(d: FacturaEmailData): string {
   const fmt = (n: number) => `Q ${n.toFixed(2)}`
   const fecha = new Date(d.fecha)
@@ -219,7 +206,6 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 </html>`
 }
 
-// ─── Enviar por Resend ─────────────────────────────────────────────────────────
 async function sendViaResend(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) return { ok: false, error: 'RESEND_API_KEY no configurado' }
@@ -240,7 +226,6 @@ async function sendViaResend(to: string, subject: string, html: string): Promise
   return { ok: true }
 }
 
-// ─── Enviar por SMTP via Resend (fallback) ────────────────────────────────────
 // Para usar Gmail SMTP instala nodemailer: npm install nodemailer @types/nodemailer
 // y cambia esta función. Por ahora usa Resend como único provider para evitar
 // dependencias opcionales que rompen el build de Next.js.
@@ -251,7 +236,6 @@ async function sendViaSMTP(to: string, subject: string, html: string): Promise<{
   return sendViaResend(to, subject, html)
 }
 
-// ─── Función principal ─────────────────────────────────────────────────────────
 export async function enviarFacturaPorCorreo(
   data: FacturaEmailData,
 ): Promise<{ ok: boolean; error?: string }> {
