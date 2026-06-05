@@ -95,7 +95,7 @@ export function buildTicketHTML(d: TicketData): string {
   // FEL section
   const felSection = d.felUuid ? `
     ${HR}
-    <div class="dte-title">DOCUMENTO TRIBUTARIO ELECTRÓNICO</div>
+    <div class="dte-title">Documento tributario electrónico</div>
     ${d.isSandbox ? '<div class="sandbox-badge">*** PRUEBA — NO VÁLIDA ***</div>' : ''}
     <div class="dte-label">No. Autorización:</div>
     <div class="dte-uuid">${d.felUuid}</div>
@@ -182,13 +182,13 @@ export function buildTicketHTML(d: TicketData): string {
   .total-cambio{ display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
 
   /* ── FEL ── */
-  .dte-title  { font-size:9px; font-weight:bold; text-align:center; text-transform:uppercase;
-                margin:3px 0; letter-spacing:0.5px; }
+  .dte-title  { font-size:8px; font-weight:normal; text-align:center; color:#666;
+                margin:3px 0; letter-spacing:0px; }
   .sandbox-badge{ font-size:9px; font-weight:bold; text-align:center; margin:2px 0; }
-  .dte-label  { font-size:9px; text-align:center; margin:2px 0; }
-  .dte-uuid   { font-size:8px; font-weight:bold; word-break:break-all; text-align:center;
-                margin:3px 0; line-height:1.4; }
-  .dte-row    { display:flex; justify-content:space-between; font-size:9px; margin:1px 0; }
+  .dte-label  { font-size:8px; text-align:center; margin:2px 0; color:#666; }
+  .dte-uuid   { font-size:7.5px; font-weight:normal; word-break:break-all; text-align:center;
+                margin:2px 0; line-height:1.4; color:#777; }
+  .dte-row    { display:flex; justify-content:space-between; font-size:8px; margin:1px 0; color:#666; }
 
   /* ── Leyendas ── */
   .legend     { font-size:9px; text-align:center; margin:3px 0; line-height:1.4; }
