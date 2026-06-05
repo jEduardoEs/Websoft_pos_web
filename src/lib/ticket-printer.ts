@@ -214,10 +214,14 @@ export function buildTicketHTML(d: TicketData): string {
   ${HR2}
 
   <div class="factura-num">${d.numero}</div>
-  <div class="info-row"><span class="info-label">Fecha:</span><span>${fechaStr} ${horaStr}</span></div>
-  <div class="info-row"><span class="info-label">Cliente:</span><span>${trunc(d.clienteNombre, 20)}</span></div>
-  <div class="info-row"><span class="info-label">NIT:</span><span>${d.clienteNit}</span></div>
+  \${d.felSerie && d.felNumero ? `<div style="text-align:center;font-size:10px;font-weight:bold;margin:0 0 3px">Serie \${d.felSerie} | No. \${d.felNumero}</div>` : ''}
+  ${HR}
+  <div class="info-row"><span class="info-label">Fecha:</span><span>${fechaStr}</span></div>
+  <div class="info-row"><span class="info-label">Hora:</span><span>${horaStr}</span></div>
   <div class="info-row"><span class="info-label">Cajero:</span><span>${trunc(d.cajero, 18)}</span></div>
+  ${HR}
+  <div class="info-row"><span class="info-label">Cliente:</span><span>${trunc(d.clienteNombre, 18)}</span></div>
+  <div class="info-row"><span class="info-label">NIT:</span><span>${d.clienteNit}</span></div>
   <div class="info-row"><span class="info-label">Pago:</span><span>${d.metodoPago}</span></div>
 
   ${HR}

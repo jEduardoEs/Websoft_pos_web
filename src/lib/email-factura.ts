@@ -41,26 +41,27 @@ export interface FacturaEmailData {
   metodoPago: string
 }
 
-// ─── HTML Factura media carta estilo ejecutivo WebSoft ─────────────────────────
+// ─── HTML Factura formal estilo DTE Guatemala — WebSoft Solutions ─────────────
 export function buildFacturaHTML(d: FacturaEmailData): string {
   const fmt = (n: number) => `Q ${n.toFixed(2)}`
   const fecha = new Date(d.fecha)
-  const fechaStr = fecha.toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })
+  const fechaStr = fecha.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const horaStr  = fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })
-
-  const rows = d.items.map(it => `
-    <tr>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;font-family:monospace;font-size:10px;color:#1581E3;font-weight:700">${it.codigo || ''}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;font-size:11px;color:#1e293b">${it.nombre}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;text-align:center;font-size:11px;color:#374151">${it.cantidad}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;text-align:right;font-size:11px;color:#374151">${fmt(it.precioUnitario)}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;text-align:right;font-size:11px;color:#374151">${it.descuento > 0 ? fmt(it.descuento) : '—'}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #e8f0ff;text-align:right;font-size:11px;font-weight:700;color:#0f172a">${fmt(it.subtotal - it.descuento)}</td>
-    </tr>`).join('')
 
   const isSandbox = d.sandbox
   const uuidDisplay = d.uuid || '—'
-  const serieNum = d.serie && d.numero ? `${d.serie} — ${d.numero}` : d.numeroInterno
+  const serieNum   = d.serie && d.numero ? `${d.serie}` : '—'
+  const correlNum  = d.numero ? String(d.numero) : d.numeroInterno
+
+  const rows = d.items.map((it, i) => `
+    <tr style="background:${i % 2 === 0 ? '#fff' : '#f8faff'}">
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;font-family:Courier New,monospace;font-size:10px;color:#1581E3;font-weight:700;white-space:nowrap">${it.codigo || ''}</td>
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;font-size:10.5px;color:#0f172a">${it.nombre}</td>
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;text-align:center;font-size:10.5px;color:#374151">${it.cantidad}</td>
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;text-align:right;font-size:10.5px;color:#374151;white-space:nowrap">${fmt(it.precioUnitario)}</td>
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;text-align:right;font-size:10.5px;color:#374151;white-space:nowrap">${it.descuento > 0 ? fmt(it.descuento) : '—'}</td>
+      <td style="padding:6px 10px;border:0.5px solid #dce8f8;text-align:right;font-size:10.5px;font-weight:700;color:#0f172a;white-space:nowrap">${fmt(it.subtotal - it.descuento)}</td>
+    </tr>`).join('')
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -69,141 +70,148 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Factura ${d.numeroInterno} — WebSoft Solutions</title>
 </head>
-<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif">
+<body style="margin:0;padding:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif">
 
-<div style="max-width:700px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(21,129,227,0.12)">
+<div style="max-width:680px;margin:16px auto;background:#fff;border:1px solid #c5d8f0">
 
-  <!-- BARRA SUPERIOR AZUL -->
-  <div style="background:linear-gradient(135deg,#1581E3 0%,#0f6abf 100%);padding:20px 28px;display:flex;justify-content:space-between;align-items:center">
-    <div style="display:flex;align-items:center;gap:14px">
-      <img src="https://websoft-solutions.vercel.app/logo.png" width="44" height="44"
-           style="border-radius:8px;background:#fff;padding:4px;object-fit:contain"
-           onerror="this.style.display='none'" alt="Logo WebSoft">
-      <div>
-        <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.5px">WebSoft Solutions</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:2px;text-transform:uppercase;margin-top:2px">Guastatoya · El Progreso · GT</div>
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:11px;color:rgba(255,255,255,0.8);font-weight:600;text-transform:uppercase;letter-spacing:1px">Factura Electrónica</div>
-      <div style="font-size:22px;font-weight:800;color:#fff;line-height:1.1">${serieNum}</div>
-      ${isSandbox ? '<div style="background:#fbbf24;color:#78350f;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">PRUEBA — NO VÁLIDA</div>' : ''}
-    </div>
-  </div>
-
-  <!-- DTE DATA BAR -->
-  <div style="background:#0f172a;padding:10px 28px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-    <div>
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:1px">Número de Autorización</div>
-      <div style="font-size:11px;color:#1581E3;font-weight:700;font-family:monospace;margin-top:2px">${uuidDisplay}</div>
-    </div>
-    <div style="margin-left:auto">
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:1px">Certificado</div>
-      <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px">${d.fechaCertificacion ? new Date(d.fechaCertificacion).toLocaleString('es-GT') : fechaStr}</div>
-    </div>
-    <div>
-      <div style="font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:1px">Certificador</div>
-      <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px">INFILE S.A. — NIT 12521337</div>
-    </div>
-  </div>
-
-  <!-- BODY -->
-  <div style="padding:24px 28px">
-
-    <!-- INFO BOXES -->
-    <div style="display:flex;gap:14px;margin-bottom:20px">
-      <!-- Emisor -->
-      <div style="flex:1;border:1.5px solid #bfdbfe;border-radius:8px;padding:14px">
-        <div style="font-size:9px;font-weight:800;color:#1581E3;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Emisor</div>
-        <div style="font-size:13px;font-weight:700;color:#0f172a">WebSoft Solutions</div>
-        <div style="font-size:10px;color:#64748b;margin-top:3px;line-height:1.7">
+  <!-- ENCABEZADO FORMAL -->
+  <table style="width:100%;border-collapse:collapse;border-bottom:3px solid #1581E3">
+    <tr>
+      <td style="padding:20px 24px;vertical-align:middle;width:220px">
+        <img src="https://websoft-solutions.vercel.app/logo.png"
+             width="64" height="64"
+             style="display:block;border-radius:8px;object-fit:contain"
+             alt="WebSoft Solutions">
+        <div style="margin-top:8px;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:-0.3px">WebSoft Solutions</div>
+        <div style="font-size:9.5px;color:#64748b;line-height:1.7;margin-top:2px">
           NIT: 115471413<br>
           Barrio el Calvario, Guastatoya<br>
           El Progreso, Guatemala<br>
-          Tel: 3836-1044 / 3671-4377
+          Tel: 3836-1044 / 3671-4377<br>
+          websoftsolutions.com.gt
         </div>
-      </div>
-      <!-- Receptor -->
-      <div style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:14px">
-        <div style="font-size:9px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Cliente</div>
-        <div style="font-size:13px;font-weight:700;color:#0f172a">${d.clienteNombre}</div>
-        <div style="font-size:10px;color:#64748b;margin-top:3px;line-height:1.7">
-          NIT: ${d.clienteNit}<br>
-          ${d.clienteCorreo}
+      </td>
+      <td style="padding:20px 24px;vertical-align:top;text-align:right">
+        <div style="display:inline-block;border:2px solid #1581E3;border-radius:6px;padding:6px 16px;margin-bottom:10px">
+          <div style="font-size:9px;font-weight:700;color:#1581E3;text-transform:uppercase;letter-spacing:1.5px">Documento Tributario Electrónico</div>
+          <div style="font-size:13px;font-weight:700;color:#0f172a;margin-top:2px">FACTURA ELECTRÓNICA</div>
         </div>
-      </div>
-      <!-- Fecha/Pago -->
-      <div style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:14px">
-        <div style="font-size:9px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Detalle</div>
-        <div style="font-size:10px;color:#374151;line-height:2">
-          <b>Fecha:</b> ${fechaStr}<br>
-          <b>Hora:</b> ${horaStr}<br>
-          <b>No. Interno:</b> ${d.numeroInterno}<br>
-          <b>Forma de Pago:</b> ${d.metodoPago}
-        </div>
-      </div>
-    </div>
+        <table style="margin-left:auto;border-collapse:collapse;font-size:10.5px">
+          <tr>
+            <td style="padding:3px 10px 3px 0;color:#64748b;font-weight:700;text-align:right">SERIE:</td>
+            <td style="padding:3px 0;font-weight:700;color:#1581E3;text-align:right;font-family:Courier New,monospace">${serieNum}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 10px 3px 0;color:#64748b;font-weight:700;text-align:right">No.:</td>
+            <td style="padding:3px 0;font-size:18px;font-weight:700;color:#0f172a;text-align:right;font-family:Courier New,monospace">${correlNum}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 10px 3px 0;color:#64748b;font-weight:700;text-align:right">Fecha:</td>
+            <td style="padding:3px 0;color:#0f172a;text-align:right">${fechaStr}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 10px 3px 0;color:#64748b;font-weight:700;text-align:right">Hora:</td>
+            <td style="padding:3px 0;color:#0f172a;text-align:right">${horaStr}</td>
+          </tr>
+        </table>
+        ${isSandbox ? '<div style="margin-top:8px;background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#92400e">PRUEBA — NO VÁLIDA ANTE SAT</div>' : ''}
+      </td>
+    </tr>
+  </table>
 
-    <!-- TABLA ITEMS -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+  <!-- DATOS DEL CLIENTE -->
+  <table style="width:100%;border-collapse:collapse;border-bottom:1px solid #dce8f8">
+    <tr>
+      <td style="padding:14px 24px;vertical-align:top;width:50%;border-right:1px solid #dce8f8">
+        <div style="font-size:9px;font-weight:700;color:#1581E3;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Datos del cliente</div>
+        <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">${d.clienteNombre}</div>
+        <div style="font-size:10.5px;color:#475569;line-height:1.7">
+          NIT: ${d.clienteNit}<br>
+          ${d.clienteCorreo ? `${d.clienteCorreo}` : ''}
+        </div>
+      </td>
+      <td style="padding:14px 24px;vertical-align:top">
+        <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Detalle de la factura</div>
+        <table style="font-size:10.5px;border-collapse:collapse">
+          <tr><td style="padding:2px 12px 2px 0;color:#64748b;font-weight:700">Factura interna:</td><td style="color:#1581E3;font-weight:700;font-family:Courier New,monospace">${d.numeroInterno}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#64748b;font-weight:700">Forma de pago:</td><td style="color:#0f172a">${d.metodoPago}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#64748b;font-weight:700">Moneda:</td><td style="color:#0f172a">Quetzal (GTQ)</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- TABLA ITEMS -->
+  <div style="padding:0 0">
+    <table style="width:100%;border-collapse:collapse">
       <thead>
         <tr style="background:#1581E3">
-          <th style="padding:9px 10px;text-align:left;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;border-radius:6px 0 0 0">Código</th>
-          <th style="padding:9px 10px;text-align:left;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px">Descripción</th>
-          <th style="padding:9px 10px;text-align:center;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px">Cant.</th>
-          <th style="padding:9px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px">P/U</th>
-          <th style="padding:9px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px">Descuento</th>
-          <th style="padding:9px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.5px;border-radius:0 6px 0 0">Total</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Código</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Descripción</th>
+          <th style="padding:8px 10px;text-align:center;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Cant.</th>
+          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Precio unit.</th>
+          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Descuento</th>
+          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#fff;border:0.5px solid #1266c0">Total</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
-
-    <!-- TOTALS + NOTA IVA -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-      <div style="background:#0f172a;border-radius:10px;padding:16px 20px;min-width:240px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;padding:3px 0">
-          <span>Subtotal</span><span>Q ${d.subtotal.toFixed(2)}</span>
-        </div>
-        ${d.descuento > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#fbbf24;padding:3px 0"><span>Descuento</span><span>-Q ${d.descuento.toFixed(2)}</span></div>` : ''}
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;padding:3px 0">
-          <span>IVA (12%)</span><span>Q ${d.impuesto.toFixed(2)}</span>
-        </div>
-        <div style="border-top:1px solid #334155;margin:8px 0"></div>
-        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#1581E3;padding:3px 0">
-          <span>TOTAL</span><span>Q ${d.total.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- LEYENDAS FEL -->
-    <div style="background:#f8fafc;border-left:3px solid #1581E3;border-radius:0 8px 8px 0;padding:12px 16px;font-size:10px;color:#475569;line-height:1.8;margin-bottom:16px">
-      <strong style="color:#0f172a">SUJETO A PAGOS TRIMESTRALES ISR · AGENTE DE RETENCIÓN DEL IVA</strong><br>
-      Documento Tributario Electrónico emitido según Resolución SAT-DSI-2027-2018.
-      Verifique la autenticidad en <a href="https://fel.sat.gob.gt" style="color:#1581E3;text-decoration:none">fel.sat.gob.gt</a> con el número de autorización.
-    </div>
-
-    <!-- QR PLACEHOLDER -->
-    ${d.uuid && !d.sandbox ? `
-    <div style="text-align:center;margin-bottom:16px">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=https://fel.sat.gob.gt/verificar/${d.uuid}"
-           alt="QR SAT" width="90" height="90" style="border:2px solid #e2e8f0;border-radius:6px;padding:4px">
-      <div style="font-size:9px;color:#94a3b8;margin-top:4px">Escanea para verificar en SAT</div>
-    </div>` : ''}
-
   </div>
 
-  <!-- FOOTER -->
-  <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 28px;display:flex;justify-content:space-between;align-items:center">
-    <div style="font-size:10px;color:#94a3b8">
-      WebSoft Solutions · websoftsolutions.com.gt<br>
-      Tel: 3836-1044 · WhatsApp: 3671-4377
-    </div>
-    <div style="font-size:10px;color:#94a3b8;text-align:right">
-      Generado automáticamente<br>
-      ${new Date().toLocaleString('es-GT')}
+  <!-- TOTALES -->
+  <table style="width:100%;border-collapse:collapse;border-top:2px solid #1581E3">
+    <tr>
+      <td style="padding:14px 24px;vertical-align:top">
+        <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Número de autorización SAT</div>
+        <div style="font-size:10px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;word-break:break-all;line-height:1.5">${uuidDisplay}</div>
+        <div style="font-size:9px;color:#64748b;margin-top:4px">Certificador: INFILE S.A. — NIT 12521337</div>
+        ${d.fechaCertificacion ? `<div style="font-size:9px;color:#64748b">Certificado: ${new Date(d.fechaCertificacion).toLocaleString('es-GT')}</div>` : ''}
+        ${d.uuid && !d.sandbox ? `<div style="margin-top:8px"><img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https://fel.sat.gob.gt/verificar/${d.uuid}" width="72" height="72" style="display:block;border:1px solid #dce8f8" alt="QR SAT"><div style="font-size:8px;color:#94a3b8;margin-top:2px">Verificar en fel.sat.gob.gt</div></div>` : ''}
+      </td>
+      <td style="padding:14px 24px;vertical-align:top;text-align:right;min-width:200px">
+        <table style="margin-left:auto;border-collapse:collapse;font-size:11px">
+          <tr><td style="padding:3px 16px 3px 0;color:#64748b;text-align:right">Subtotal:</td><td style="padding:3px 0;text-align:right;color:#0f172a;font-family:Courier New,monospace">${fmt(d.subtotal)}</td></tr>
+          ${d.descuento > 0 ? `<tr><td style="padding:3px 16px 3px 0;color:#dc2626;text-align:right">Descuento:</td><td style="padding:3px 0;text-align:right;color:#dc2626;font-family:Courier New,monospace">-${fmt(d.descuento)}</td></tr>` : ''}
+          <tr><td style="padding:3px 16px 3px 0;color:#64748b;text-align:right">IVA (12%):</td><td style="padding:3px 0;text-align:right;color:#0f172a;font-family:Courier New,monospace">${fmt(d.impuesto)}</td></tr>
+          <tr>
+            <td colspan="2" style="padding:0"><div style="border-top:2px solid #1581E3;margin:6px 0"></div></td>
+          </tr>
+          <tr>
+            <td style="padding:3px 16px 3px 0;font-size:14px;font-weight:700;color:#0f172a;text-align:right">TOTAL GTQ:</td>
+            <td style="padding:3px 0;font-size:16px;font-weight:700;color:#1581E3;text-align:right;font-family:Courier New,monospace">${fmt(d.total)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- LEYENDAS LEGALES -->
+  <div style="padding:10px 24px;background:#f0f6ff;border-top:1px solid #dce8f8;border-bottom:1px solid #dce8f8">
+    <div style="font-size:9px;color:#374151;font-weight:700;margin-bottom:2px">SUJETO A PAGOS TRIMESTRALES ISR · AGENTE DE RETENCIÓN DEL IVA</div>
+    <div style="font-size:9px;color:#64748b;line-height:1.6">
+      Documento Tributario Electrónico emitido conforme Resolución SAT-DSI-2027-2018.
+      Verifique autenticidad en <span style="color:#1581E3">fel.sat.gob.gt</span> con el número de autorización indicado.
     </div>
   </div>
+
+  <!-- FIRMAS -->
+  <table style="width:100%;border-collapse:collapse;padding:0">
+    <tr>
+      <td style="padding:20px 24px;vertical-align:bottom;width:40%;border-right:1px solid #dce8f8;text-align:center">
+        <div style="border-top:1px solid #0f172a;padding-top:4px;font-size:9px;font-weight:700;color:#374151">FIRMA Y SELLO DEL RECEPTOR</div>
+        <div style="font-size:9px;color:#64748b;margin-top:2px">Nombre:</div>
+        <div style="font-size:9px;color:#64748b">DPI:</div>
+      </td>
+      <td style="padding:20px 24px;vertical-align:bottom;text-align:right">
+        <div style="font-size:9px;color:#64748b;line-height:1.7">
+          WebSoft Solutions<br>
+          NIT: 115471413<br>
+          websoftsolutions.com.gt<br>
+          Tel: 3836-1044
+        </div>
+      </td>
+    </tr>
+  </table>
 
 </div>
 

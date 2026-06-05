@@ -37,6 +37,8 @@ export default function POSPage() {
   const [clienteNombre, setClienteNombre] = useState('Consumidor Final')
   const [clienteNit, setClienteNit] = useState('CF')
   const [clienteCorreo, setClienteCorreo] = useState('')
+  const [clienteId, setClienteId] = useState<number|null>(null)
+  const [clienteTieneCorreo, setClienteTieneCorreo] = useState(false)
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [descPct, setDescPct] = useState(0)
@@ -48,7 +50,7 @@ export default function POSPage() {
   const [tab, setTab] = useState<'inventario'|'cotizacion'|'libre'>('inventario')
   const [nitStatus, setNitStatus] = useState<'idle'|'found'|'notfound'>('idle')
   const [showRegCliente, setShowRegCliente] = useState(false)
-  const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '' })
+  const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '', correo: '' })
   const [libreForm, setLibreForm] = useState({ codigo: '', nombre: '', precio: '', cantidad: '1' })
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -154,15 +156,30 @@ export default function POSPage() {
     if (data.encontrado) {
       setClienteNombre(data.cliente.nombre)
       setNitStatus('found')
-      if (data.cliente.correo) setClienteCorreo(data.cliente.correo)
+      setClienteId(data.cliente.id)
+      const emailGuardado = data.cliente.email || data.cliente.correo || ''
+      setClienteCorreo(emailGuardado)
+      setClienteTieneCorreo(!!emailGuardado)
+      setRegForm({ nombre: data.cliente.nombre, telefono: data.cliente.telefono || '', direccion: data.cliente.direccion || '', correo: emailGuardado })
       toast.success(`Cliente: ${data.cliente.nombre}`)
     }
-    else { setNitStatus('notfound'); setClienteNombre('') }
+    else { setNitStatus('notfound'); setClienteId(null); setClienteTieneCorreo(false); setClienteNombre('') }
   }
   const registrarCliente = async () => {
     if (!regForm.nombre.trim()) { toast.error('Nombre requerido'); return }
-    await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: regForm.nombre, nit: clienteNit, telefono: regForm.telefono, direccion: regForm.direccion }) })
-    setClienteNombre(regForm.nombre); setNitStatus('found'); setShowRegCliente(false); toast.success('Cliente registrado')
+    const body = clienteId
+      ? { id: clienteId, nombre: regForm.nombre, nit: clienteNit, telefono: regForm.telefono, direccion: regForm.direccion, email: regForm.correo }
+      : { nombre: regForm.nombre, nit: clienteNit, telefono: regForm.telefono, direccion: regForm.direccion, email: regForm.correo }
+    const res = await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.ok) {
+      setClienteNombre(regForm.nombre)
+      if (regForm.correo) setClienteCorreo(regForm.correo)
+      setClienteTieneCorreo(!!regForm.correo)
+      setNitStatus('found')
+      setShowRegCliente(false)
+      toast.success(clienteId ? 'Cliente actualizado' : 'Cliente registrado')
+    } else { toast.error(data.error || 'Error al guardar') }
   }
 
   // ─── Descuento ───────────────────────────────────────────────────────────
@@ -201,6 +218,28 @@ export default function POSPage() {
         // Toast correo
         if (data.email?.ok) toast.success(`Factura enviada a ${clienteCorreo}`)
         loadProductos()
+        // Auto-imprimir ticket al cobrar
+        setTimeout(() => {
+          if (!config || !data.venta) return
+          const v = data.venta
+          const f = data.fel
+          const html = buildTicketHTML({
+            empresaNombre: config.empresa_nombre, empresaNit: config.empresa_nit,
+            empresaDireccion: config.empresa_direccion, empresaTelefono: config.empresa_telefono,
+            empresaLogoUrl: 'https://websoft-solutions.vercel.app/logo.png',
+            mostrarLogo: config.ticket_mostrar_logo !== 'false',
+            ticketMensaje: config.ticket_mensaje,
+            numero: v.numero, fecha: v.fecha,
+            clienteNombre: v.clienteNombre, clienteNit: v.clienteNit,
+            cajero: v.usuarioNombre || 'Cajero',
+            felUuid: f?.uuid, felSerie: f?.serie, felNumero: f?.numero,
+            felCertificacion: f?.fechaCertificacion, isSandbox: f?.sandbox,
+            items: (v.items || []).map((it: any) => ({ nombre: it.nombre, cantidad: it.cantidad, precioUnitario: it.precioUnitario, descuento: it.descuento || 0, subtotal: it.subtotal })),
+            subtotal: v.subtotal, descuento: v.descuento, impuesto: v.impuesto,
+            total: v.total, metodoPago: v.metodoPago, montoRecibido: v.montoRecibido, cambio: v.cambio, ivaPct,
+          })
+          printTicketWindow(html)
+        }, 400)
       }
       else toast.error(data.error || 'Error')
     } catch { toast.error('Error de conexión') }
@@ -411,7 +450,14 @@ export default function POSPage() {
               <input className="input" value={clienteNit} onChange={e => buscarNit(e.target.value)} onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} placeholder="CF" style={{ padding: '6px 8px', fontSize: 12, flex: 1, borderColor: nitStatus === 'found' ? '#16a34a' : nitStatus === 'notfound' ? '#dc2626' : undefined }} />
               <button onClick={ejecutarBusquedaNit} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Buscar</button>
             </div>
-            {nitStatus === 'found' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, marginTop: 3 }}>{clienteNombre}</div>}
+            {nitStatus === 'found' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
+                <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>{clienteNombre}</div>
+                <button onClick={() => setShowRegCliente(true)} style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {clienteTieneCorreo ? 'Actualizar' : '+ Agregar correo'}
+                </button>
+              </div>
+            )}
             {nitStatus === 'notfound' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
                 <span style={{ fontSize: 10, color: '#dc2626', fontWeight: 600 }}>NIT no registrado</span>
@@ -475,28 +521,29 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Modal Registrar Cliente */}
+      {/* Modal Registrar / Actualizar Cliente */}
       {showRegCliente && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Registrar Cliente</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{clienteId ? 'Actualizar Cliente' : 'Registrar Cliente'}</div>
               <button onClick={() => setShowRegCliente(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' }}>×</button>
             </div>
-            <div style={{ marginBottom: 10, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
-              NIT: <strong style={{ color: '#2563eb' }}>{clienteNit}</strong>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+              <span>NIT: <strong style={{ color: '#2563eb' }}>{clienteNit}</strong></span>
+              {clienteId && <span style={{ fontSize: 10, background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 8, fontWeight: 700 }}>Cliente existente</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
-              {[{ label: 'Nombre *', key: 'nombre', placeholder: 'Nombre completo' }, { label: 'Teléfono', key: 'telefono', placeholder: '5555-5555' }, { label: 'Dirección', key: 'direccion', placeholder: 'Dirección' }].map(f => (
+              {([{ label: 'Nombre *', key: 'nombre', placeholder: 'Nombre completo', type: 'text' }, { label: 'Teléfono', key: 'telefono', placeholder: '5555-5555', type: 'text' }, { label: 'Correo electrónico', key: 'correo', placeholder: 'cliente@correo.com', type: 'email' }, { label: 'Dirección', key: 'direccion', placeholder: 'Dirección', type: 'text' }] as any[]).map((f: any) => (
                 <div key={f.key}>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>{f.label}</label>
-                  <input className="input" value={(regForm as any)[f.key]} onChange={e => setRegForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} />
+                  <input className="input" type={f.type} value={(regForm as any)[f.key]} onChange={e => setRegForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} />
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="btn-ghost btn-sm" onClick={() => setShowRegCliente(false)}>Cancelar</button>
-              <button className="btn-primary btn-sm" onClick={registrarCliente}>Guardar Cliente</button>
+              <button className="btn-primary btn-sm" onClick={registrarCliente}>{clienteId ? 'Actualizar' : 'Guardar Cliente'}</button>
             </div>
           </div>
         </div>
