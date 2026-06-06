@@ -176,52 +176,52 @@ export default function ReportesPage() {
   </div>
   <div class="co-info">
     <strong>WEBSOFT SOLUTIONS</strong>
-    NIT: \${d.empresa.nit}<br>
-    \${d.empresa.direccion}<br>
-    TEL: \${d.empresa.telefono} · \${d.empresa.web}
+    NIT: ${d.empresa.nit}<br>
+    ${d.empresa.direccion}<br>
+    TEL: ${d.empresa.telefono} · ${d.empresa.web}
   </div>
 </div>
 <div class="banner">E S T A D O &nbsp; D E &nbsp; P A T R I M O N I O</div>
 <div class="hr-blue"></div>
 <div class="meta">
-  <span><strong>Fecha de corte:</strong> \${hoy}</span>
+  <span><strong>Fecha de corte:</strong> ${hoy}</span>
   <span class="confidencial">CONFIDENCIAL</span>
-  <span><strong>Generado:</strong> \${new Date().toLocaleString('es-GT')}</span>
+  <span><strong>Generado:</strong> ${new Date().toLocaleString('es-GT')}</span>
 </div>
 <div class="hr-blue"></div>
 <div class="kpis">
-  <div class="kpi"><div class="kpi-label">Activos fijos — valor neto</div><div class="kpi-value">\${fmtQ(d.resumenActivos.valorNeto)}</div><div class="kpi-sub">Bruto: \${fmtQ(d.resumenActivos.valorBruto)}</div></div>
-  <div class="kpi g"><div class="kpi-label">Inventario — valor de costo</div><div class="kpi-value">\${fmtQ(d.resumenInventario.valorCosto)}</div><div class="kpi-sub">\${d.resumenInventario.totalProductos} productos · \${d.resumenInventario.totalUnidades.toLocaleString('es-GT')} uds.</div></div>
-  <div class="kpi a"><div class="kpi-label">Inventario — valor de venta</div><div class="kpi-value">\${fmtQ(d.resumenInventario.valorVenta)}</div><div class="kpi-sub">Precio de mercado al \${hoy}</div></div>
-  <div class="kpi p"><div class="kpi-label">Activos fijos registrados</div><div class="kpi-value">\${d.resumenActivos.cantidad}</div><div class="kpi-sub">En operación activa</div></div>
+  <div class="kpi"><div class="kpi-label">Activos fijos — valor neto</div><div class="kpi-value">${fmtQ(d.resumenActivos.valorNeto)}</div><div class="kpi-sub">Bruto: ${fmtQ(d.resumenActivos.valorBruto)}</div></div>
+  <div class="kpi g"><div class="kpi-label">Inventario — valor de costo</div><div class="kpi-value">${fmtQ(d.resumenInventario.valorCosto)}</div><div class="kpi-sub">${d.resumenInventario.totalProductos} productos · ${d.resumenInventario.totalUnidades.toLocaleString('es-GT')} uds.</div></div>
+  <div class="kpi a"><div class="kpi-label">Inventario — valor de venta</div><div class="kpi-value">${fmtQ(d.resumenInventario.valorVenta)}</div><div class="kpi-sub">Precio de mercado al ${hoy}</div></div>
+  <div class="kpi p"><div class="kpi-label">Activos fijos registrados</div><div class="kpi-value">${d.resumenActivos.cantidad}</div><div class="kpi-sub">En operación activa</div></div>
 </div>
 <div class="total-res">
   <div><div class="total-res-label">Patrimonio total estimado</div><div class="total-res-sub">Activos fijos (valor neto) + Inventario (valor de costo)</div></div>
-  <div class="total-res-value">\${fmtQ(d.totalPatrimonio)}</div>
+  <div class="total-res-value">${fmtQ(d.totalPatrimonio)}</div>
 </div>
 <div class="hr-light"></div>
-<div class="sec-title">1. Activos Fijos <span>Valor neto: \${fmtQ(d.resumenActivos.valorNeto)}</span></div>
+<div class="sec-title">1. Activos Fijos <span>Valor neto: ${fmtQ(d.resumenActivos.valorNeto)}</span></div>
 <table>
   <thead><tr><th style="width:65px">Código</th><th>Descripción</th><th>Observaciones</th><th style="width:80px;text-align:center">Fecha adq.</th><th style="width:88px;text-align:right">Costo original</th><th style="width:80px;text-align:right">Dep. acum.</th><th style="width:82px;text-align:right">Valor neto</th></tr></thead>
-  <tbody>\${rowsActivos}<tr class="tr-total"><td colspan="4">TOTAL ACTIVOS FIJOS</td><td class="right">\${fmtQ(d.resumenActivos.valorBruto)}</td><td class="right dep">\${fmtQ(d.resumenActivos.depreciacionAcum)}</td><td class="right blue">\${fmtQ(d.resumenActivos.valorNeto)}</td></tr></tbody>
+  <tbody>${rowsActivos}<tr class="tr-total"><td colspan="4">TOTAL ACTIVOS FIJOS</td><td class="right">${fmtQ(d.resumenActivos.valorBruto)}</td><td class="right dep">${fmtQ(d.resumenActivos.depreciacionAcum)}</td><td class="right blue">${fmtQ(d.resumenActivos.valorNeto)}</td></tr></tbody>
 </table>
-<div class="sec-title">2. Inventario — Resumen por Categoría <span>Valor costo: \${fmtQ(d.resumenInventario.valorCosto)}</span></div>
+<div class="sec-title">2. Inventario — Resumen por Categoría <span>Valor costo: ${fmtQ(d.resumenInventario.valorCosto)}</span></div>
 <table>
   <thead><tr><th>Categoría</th><th style="width:70px;text-align:center">Productos</th><th style="width:70px;text-align:center">Unidades</th><th style="width:95px;text-align:right">Valor de venta</th><th style="width:95px;text-align:right">Valor de costo</th></tr></thead>
-  <tbody>\${rowsCategorias}<tr class="tr-total"><td>TOTAL INVENTARIO</td><td class="center">\${d.resumenInventario.totalProductos}</td><td class="center">\${d.resumenInventario.totalUnidades.toLocaleString('es-GT')}</td><td class="right dep">\${fmtQ(d.resumenInventario.valorVenta)}</td><td class="right blue">\${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
+  <tbody>${rowsCategorias}<tr class="tr-total"><td>TOTAL INVENTARIO</td><td class="center">${d.resumenInventario.totalProductos}</td><td class="center">${d.resumenInventario.totalUnidades.toLocaleString('es-GT')}</td><td class="right dep">${fmtQ(d.resumenInventario.valorVenta)}</td><td class="right blue">${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
 </table>
-<div class="sec-title">3. Inventario — Detalle por Producto <span>\${d.resumenInventario.totalProductos} productos</span></div>
+<div class="sec-title">3. Inventario — Detalle por Producto <span>${d.resumenInventario.totalProductos} productos</span></div>
 <table>
   <thead><tr><th style="width:80px">Código</th><th>Producto</th><th style="width:100px;text-align:center">Categoría</th><th style="width:55px;text-align:center">Stock</th><th style="width:88px;text-align:right">Costo unit.</th><th style="width:88px;text-align:right">Valor total</th></tr></thead>
-  <tbody>\${rowsProductos}<tr class="tr-total"><td colspan="5">TOTAL INVENTARIO (valor de costo)</td><td class="right blue">\${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
+  <tbody>${rowsProductos}<tr class="tr-total"><td colspan="5">TOTAL INVENTARIO (valor de costo)</td><td class="right blue">${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
 </table>
-<div class="nota"><strong>Nota metodológica:</strong> Los activos fijos se presentan a valor neto (costo de adquisición menos depreciación acumulada por línea recta). El inventario se valora al costo promedio de adquisición. Reporte generado automáticamente al \${hoy}. Para efectos bancarios debe ser certificado por contador público y auditor autorizado.</div>
+<div class="nota"><strong>Nota metodológica:</strong> Los activos fijos se presentan a valor neto (costo de adquisición menos depreciación acumulada por línea recta). El inventario se valora al costo promedio de adquisición. Reporte generado automáticamente al ${hoy}. Para efectos bancarios debe ser certificado por contador público y auditor autorizado.</div>
 <div class="signs">
   <div><div style="height:32px"></div><div class="sign-line">REPRESENTANTE LEGAL</div><div class="sign-sub">Nombre y firma</div></div>
   <div><div style="height:32px"></div><div class="sign-line">CONTADOR / AUDITOR</div><div class="sign-sub">Colegiado No. ___________</div></div>
   <div><div style="height:32px"></div><div class="sign-line">SELLO DE LA EMPRESA</div><div class="sign-sub">&nbsp;</div></div>
 </div>
-<div class="footer"><span>WebSoft Solutions · \${d.empresa.web} · NIT: \${d.empresa.nit}</span><span>Sistema POS WebSoft v0.07 · \${hoy}</span></div>
+<div class="footer"><span>WebSoft Solutions · ${d.empresa.web} · NIT: ${d.empresa.nit}</span><span>Sistema POS WebSoft v0.07 · ${hoy}</span></div>
 </body></html>`
 
       const w = window.open('', '_blank', 'width=1000,height=700')
