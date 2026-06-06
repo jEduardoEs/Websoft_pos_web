@@ -117,7 +117,7 @@ export default function ReportesPage() {
           <td class="right bold blue">${fmtQ(p.stock * p.costo)}</td>
         </tr>`).join('')
 
-      const html = \`<!DOCTYPE html>
+      const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -222,7 +222,7 @@ export default function ReportesPage() {
   <div><div style="height:32px"></div><div class="sign-line">SELLO DE LA EMPRESA</div><div class="sign-sub">&nbsp;</div></div>
 </div>
 <div class="footer"><span>WebSoft Solutions · \${d.empresa.web} · NIT: \${d.empresa.nit}</span><span>Sistema POS WebSoft v0.07 · \${hoy}</span></div>
-</body></html>\`
+</body></html>`
 
       const w = window.open('', '_blank', 'width=1000,height=700')
       if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 800) }
