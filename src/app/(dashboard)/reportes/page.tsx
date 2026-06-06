@@ -564,7 +564,6 @@ export default function ReportesPage() {
         </>
       )}
 
-    </div>
 
       {/* Tab patrimonio */}
       {tabReporte === 'patrimonio' && (
