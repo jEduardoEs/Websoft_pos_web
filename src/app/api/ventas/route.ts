@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   const {
     clienteNombre, clienteNit, clienteCorreo,
     items, subtotal, descuento, impuesto, total,
-    metodoPago, montoRecibido, cambio, notas,
+    metodoPago, montoRecibido, cambio, notas, cotizacionId,
   } = body
 
   if (!items || items.length === 0) return NextResponse.json({ error: 'Sin items' }, { status: 400 })
@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
   const num = parseInt(cfg?.valor || '1')
   const numero = `FAC-${String(num).padStart(6, '0')}`
 
-  // Verify stock
+  // Verify stock — solo para items de inventario (productoId no nulo)
   for (const item of items) {
+    if (!item.productoId) continue
     const prod = await prisma.producto.findUnique({ where: { id: item.productoId } })
     if (!prod || prod.stock < item.cantidad) {
       return NextResponse.json({ error: `Stock insuficiente: ${item.nombre}` }, { status: 400 })
@@ -88,8 +89,9 @@ export async function POST(req: NextRequest) {
       include: { items: true },
     })
 
-    // Update stock & kardex
+    // Update stock & kardex — solo items de inventario
     for (const item of items) {
+      if (!item.productoId) continue
       const prod = await tx.producto.findUnique({ where: { id: item.productoId } })
       if (prod) {
         const newStock = prod.stock - item.cantidad
@@ -103,6 +105,13 @@ export async function POST(req: NextRequest) {
           },
         })
       }
+    }
+
+    // Marcar cotización como facturada si viene de una
+    if (cotizacionId) {
+      try {
+        await tx.cotizacion.update({ where: { id: parseInt(cotizacionId) }, data: { estado: 'facturada' } })
+      } catch { /* cotizacion puede no existir, no es crítico */ }
     }
 
     // Update numero siguiente

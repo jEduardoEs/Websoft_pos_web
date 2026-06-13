@@ -61,7 +61,7 @@ export default function UsuariosPage() {
       supervisor: ['dashboard', 'pos', 'ventas', 'pedidos', 'clientes', 'inventario', 'cotizaciones', 'devoluciones', 'caja', 'garantias', 'servicio', 'descuentos', 'cierres', 'reportes'],
       bodega: ['dashboard', 'inventario', 'compras', 'proveedores'],
     }
-    const perms = defaults[form.rol] || defaults.cajero
+    const perms = defaults[form.rol] ?? [] // rol personalizado: empieza sin permisos, el admin los asigna manualmente
     setForm(p => ({ ...p, permisos: perms }))
   }
   const clearAll = () => setForm(p => ({ ...p, permisos: [] }))

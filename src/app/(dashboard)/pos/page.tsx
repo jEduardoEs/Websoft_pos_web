@@ -52,6 +52,7 @@ export default function POSPage() {
   const [showRegCliente, setShowRegCliente] = useState(false)
   const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '', correo: '' })
   const [libreForm, setLibreForm] = useState({ codigo: '', nombre: '', precio: '', cantidad: '1' })
+  const [cotizacionId, setCotizacionId] = useState<number | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const loadProductos = useCallback(async () => {
@@ -126,6 +127,41 @@ export default function POSPage() {
     toast.success(`Cotización ${cot.numero} cargada`)
   }
 
+  // Auto-cargar cotización desde botón "Facturar" en /cotizaciones
+  useEffect(() => {
+    const cotId = localStorage.getItem('cot_facturar')
+    if (!cotId) return
+    localStorage.removeItem('cot_facturar')
+    fetch('/api/cotizaciones')
+      .then(r => r.json())
+      .then((lista: any[]) => {
+        const cot = Array.isArray(lista) ? lista.find((c: any) => c.id === parseInt(cotId)) : null
+        if (cot) {
+          const nuevos: CartItem[] = (cot.items || []).map((it: any) => ({
+            tipo: 'libre' as const,
+            productoId: null,
+            codigo: it.codigo || '',
+            nombre: it.descripcion,
+            cantidad: Number(it.cantidad) || 1,
+            precioUnitario: Number(it.precioUnitario) || 0,
+            stock: 99999,
+            descuento: Number(it.descuento) || 0,
+            subtotal: Number(it.totalItem) || 0,
+          }))
+          setCart(nuevos)
+          setClienteNombre(cot.clienteNombre || 'Consumidor Final')
+          setClienteNit(cot.clienteNit || 'CF')
+          setCotizacionId(cot.id)
+          setTab('inventario')
+          toast.success(`Cotización ${cot.numero} lista — revisa y cobra`)
+        } else {
+          toast.error('No se encontró la cotización')
+        }
+      })
+      .catch(() => toast.error('Error al cargar cotización'))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const removeItem = (i: number) => setCart(prev => prev.filter((_, idx) => idx !== i))
   const changeQty = (i: number, d: number) => setCart(prev => prev.map((item, idx) => {
     if (idx !== i) return item
@@ -195,7 +231,10 @@ export default function POSPage() {
       const res = await fetch('/api/ventas', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clienteNombre, clienteNit, clienteCorreo,
+          clienteNombre: clienteNombre || 'Consumidor Final',
+          clienteNit: clienteNit || 'CF',
+          clienteCorreo,
+          cotizacionId,
           items: cart, subtotal, descuento, impuesto, total,
           metodoPago, montoRecibido: parseFloat(montoRecibido || '0'), cambio,
         }),
@@ -243,7 +282,7 @@ export default function POSPage() {
   const resetPos = () => {
     setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF'); setClienteCorreo('')
     setMetodoPago('efectivo'); setMontoRecibido(''); setDescPct(0); setCodigoDesc('')
-    setShowCobro(false); setLastVenta(null); setLastFel(null); setNitStatus('idle')
+    setShowCobro(false); setLastVenta(null); setLastFel(null); setNitStatus('idle'); setCotizacionId(null)
     searchRef.current?.focus()
   }
 

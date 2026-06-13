@@ -28,7 +28,7 @@ export default function CajaPage() {
   const [data, setData] = useState<CajaData | null>(null)
   const [sessions, setSessions] = useState<ActiveSession[]>([])
   const [loading, setLoading] = useState(false)
-  const [tab, setTab] = useState<'resumen'|'movimientos'|'cerrar'|'sesiones'>('resumen')
+  const [tab, setTab] = useState<'resumen'|'movimientos'|'cerrar'>('resumen')
 
   const [fondoInicial, setFondoInicial] = useState('')
   const [notasApertura, setNotasApertura] = useState('')
@@ -181,7 +181,6 @@ export default function CajaPage() {
               ['resumen', ' Resumen'],
               ['movimientos', '↕ Movimientos'],
               ['cerrar', ' Cerrar Caja'],
-              ['sesiones', ' Sesiones'],
             ] as const).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
                 padding: '8px 16px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
