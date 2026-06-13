@@ -180,7 +180,7 @@ export default function RolesPage() {
       </div>
 
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#1e40af' }}>
-        ℹ Al asignar un rol a un usuario en la sección "Usuarios", podrás personalizar sus permisos individualmente además de los definidos aquí.
+        Al asignar un rol a un usuario en la sección "Usuarios", podrás personalizar sus permisos individualmente además de los definidos aquí.
       </div>
 
       {/* MODAL */}

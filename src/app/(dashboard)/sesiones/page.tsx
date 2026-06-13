@@ -39,7 +39,7 @@ export default function SesionesPage() {
 
       <div className="card">
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>🔐 Sesiones Activas</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>Sesiones Activas</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: '#94a3b8' }}>Se actualiza cada 30s</span>
             <button className="btn-ghost btn-sm" onClick={loadSessions}>↺ Actualizar</button>
@@ -93,7 +93,7 @@ export default function SesionesPage() {
           </div>
         )}
         <div style={{ padding: '12px 18px', background: '#fffbeb', borderTop: '1px solid #fef3c7', fontSize: 12, color: '#92400e' }}>
-          ℹ Los cajeros no pueden iniciar sesión si ya tienen una sesión activa en otro equipo. La sesión expira tras 8 horas. Admin tiene timeout de 30 min por inactividad.
+          Los cajeros no pueden iniciar sesión si ya tienen una sesión activa en otro equipo. La sesión expira tras 8 horas. Admin tiene timeout de 30 min por inactividad.
         </div>
       </div>
     </div>

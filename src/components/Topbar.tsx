@@ -21,6 +21,15 @@ export default function Topbar({ user }: TopbarProps) {
       fetch('/api/sesion', { method: 'POST' }).catch(() => {})
     }, 3 * 60 * 1000)
 
+    // Cerrar sesion automaticamente al cerrar la pestaña/navegador
+    const handleUnload = () => {
+      try {
+        navigator.sendBeacon('/api/sesion/cerrar', new Blob([], { type: 'application/json' }))
+      } catch {}
+    }
+    window.addEventListener('pagehide', handleUnload)
+    window.addEventListener('beforeunload', handleUnload)
+
     // Admin inactivity timeout
     if (user.role === 'admin') {
       const resetTimer = () => {
@@ -37,10 +46,16 @@ export default function Topbar({ user }: TopbarProps) {
         clearInterval(ping)
         if (inactivityRef.current) clearTimeout(inactivityRef.current)
         events.forEach(e => window.removeEventListener(e, resetTimer))
+        window.removeEventListener('pagehide', handleUnload)
+        window.removeEventListener('beforeunload', handleUnload)
       }
     }
 
-    return () => clearInterval(ping)
+    return () => {
+      clearInterval(ping)
+      window.removeEventListener('pagehide', handleUnload)
+      window.removeEventListener('beforeunload', handleUnload)
+    }
   }, [user.role])
 
   return (
