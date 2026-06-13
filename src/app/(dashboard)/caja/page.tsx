@@ -28,7 +28,12 @@ export default function CajaPage() {
   const [data, setData] = useState<CajaData | null>(null)
   const [sessions, setSessions] = useState<ActiveSession[]>([])
   const [loading, setLoading] = useState(false)
-  const [tab, setTab] = useState<'resumen'|'movimientos'|'cerrar'>('resumen')
+  const [tab, setTab] = useState<
+  'cerrar' |
+  'resumen' |
+  'movimientos' |
+  'sesiones'
+>('resumen')
 
   const [fondoInicial, setFondoInicial] = useState('')
   const [notasApertura, setNotasApertura] = useState('')
