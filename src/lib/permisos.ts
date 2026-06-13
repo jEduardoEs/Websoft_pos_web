@@ -19,6 +19,11 @@ export const MODULOS = [
   { id: 'reportes',     label: 'Reportes',              group: 'Admin' },
   { id: 'presupuesto',  label: 'Presupuesto vs Real',   group: 'Admin' },
   { id: 'fel',          label: 'FEL / SAT',             group: 'Admin' },
+  { id: 'usuarios',     label: 'Usuarios',              group: 'Sistema' },
+  { id: 'roles',        label: 'Roles',                 group: 'Sistema' },
+  { id: 'sesiones',     label: 'Sesiones Activas',      group: 'Sistema' },
+  { id: 'config',       label: 'Configuracion',         group: 'Sistema' },
+  { id: 'auditoria',    label: 'Auditoria',             group: 'Sistema' },
   { id: 'dashboard',    label: 'Dashboard',             group: 'General' },
 ]
 
