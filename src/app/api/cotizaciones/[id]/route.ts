@@ -56,7 +56,46 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const body = await req.json()
+  const { clienteNombre, clienteDireccion, clienteTelefono, clienteNit, atencion, formaPago, descripcion, notas, items, subtotal, descuento, total, validezDias, tiempoInstalacion } = body
+
+  try {
+    // Delete old items and recreate
+    await prisma.cotizacionItem.deleteMany({ where: { cotizacionId: Number(params.id) } })
+    await prisma.cotizacion.update({
+      where: { id: Number(params.id) },
+      data: {
+        clienteNombre, clienteDireccion, clienteTelefono, clienteNit, atencion, formaPago,
+        descripcion, notas, tiempoInstalacion, subtotal, descuento, total,
+        validezDias: validezDias || 15,
+        items: {
+          create: (items || []).map((it: any) => ({
+            codigo: it.codigo || '',
+            descripcion: it.descripcion,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+            subtotal: it.subtotal,
+            descuento: it.descuento || 0,
+            totalItem: it.totalItem,
+          })),
+        },
+      },
+    })
+    try {
+      await prisma.auditLog.create({ data: { usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name, accion: 'UPDATE', tabla: 'cotizaciones', registroId: params.id, detalle: 'Cotización editada' } })
+    } catch {}
+    const updated = await prisma.cotizacion.findUnique({ where: { id: Number(params.id) }, include: { items: true } })
+    return NextResponse.json({ ok: true, cotizacion: updated })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Error al actualizar' }, { status: 500 })
+  }
+}
+
+
   const session = await auth()
   if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   await prisma.cotizacion.delete({ where: { id: Number(params.id) } })

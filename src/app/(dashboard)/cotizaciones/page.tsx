@@ -117,6 +117,7 @@ export default function CotizacionesPage() {
   const [pin, setPin] = useState('')
   const [pinLoading, setPinLoading] = useState(false)
   const [pinError, setPinError] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const load = async () => {
     const c = await fetch('/api/cotizaciones').then(r => r.json())
@@ -191,51 +192,35 @@ export default function CotizacionesPage() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/cotizaciones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clienteNombre: form.clienteNombre,
-          clienteDireccion: form.clienteDireccion,
-          clienteTelefono: form.clienteTelefono,
-          clienteNit: form.clienteNit,
-          atencion: form.atencion,
-          formaPago: form.formaPago,
-          descripcion: form.descripcion,
-          notas: form.notas,
-          tiempoInstalacion: form.tiempoInstalacion,
-          validezDias: parseInt(form.validezDias) || 15,
-          items: validItems.map(it => ({
-            codigo: it.codigo,
-            descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.km}km · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
-            cantidad: it.cantidad,
-            precioUnitario: it.precioVenta,
-            subtotal: it.subtotal,
-            descuento: it.descuento,
-            totalItem: it.total,
-          })),
-          subtotal: baseTotal,
-          descuento: descuentoTotal,
-          total: totalFinal,
-        }),
-      })
+      const payload = {
+        clienteNombre: form.clienteNombre, clienteDireccion: form.clienteDireccion,
+        clienteTelefono: form.clienteTelefono, clienteNit: form.clienteNit,
+        atencion: form.atencion, formaPago: form.formaPago,
+        descripcion: form.descripcion, notas: form.notas,
+        tiempoInstalacion: form.tiempoInstalacion,
+        validezDias: parseInt(form.validezDias) || 15,
+        items: validItems.map(it => ({
+          codigo: it.codigo,
+          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.km}km · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
+          cantidad: it.cantidad, precioUnitario: it.precioVenta,
+          subtotal: it.subtotal, descuento: it.descuento, totalItem: it.total,
+        })),
+        subtotal: baseTotal, descuento: descuentoTotal, total: totalFinal,
+      }
+      const url = editingId ? `/api/cotizaciones/${editingId}` : '/api/cotizaciones'
+      const method = editingId ? 'PUT' : 'POST'
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (data.ok) {
-        toast.success(`${data.cotizacion.numero} creada`)
-        setShowModal(false)
-        setForm(emptyForm)
-        setItems([newItem('producto')])
+        toast.success(editingId ? 'Cotizacion actualizada' : `${data.cotizacion.numero} creada`)
+        setShowModal(false); setForm(emptyForm); setItems([newItem('producto')]); setEditingId(null)
         await load()
-        setSelected(data.cotizacion)
-        setShowPreview(true)
+        if (!editingId) { setSelected(data.cotizacion); setShowPreview(true) }
       } else {
         toast.error(data.error || 'Error al guardar')
       }
-    } catch (err) {
-      toast.error('Error de conexion')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast.error('Error de conexion') }
+    finally { setLoading(false) }
   }
 
   const solicitarCambioEstado = (id: number, estado: string, numero: string) => {
@@ -286,7 +271,25 @@ export default function CotizacionesPage() {
     setShowPreview(false); setSelected(null); load()
   }
 
-  const imprimir = (cot: Cotizacion) => {
+  const openEditCot = (c: Cotizacion) => {
+    setEditingId(c.id)
+    setForm({
+      clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
+      clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      atencion: c.atencion || '', formaPago: c.formaPago || '',
+      descripcion: c.descripcion || '', notas: c.notas || '',
+      validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
+    })
+    setItems((c.items || []).map((it: any) => ({
+      tipo: 'producto' as const, productoId: null, codigo: it.codigo || '',
+      descripcion: it.descripcion, costoCompra: 0,
+      precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
+      descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
+      total: Number(it.totalItem), km: 20, precioGasolina: 28, rendimiento: 30,
+      tecnicos: 1, horas: 4, manoObra: 200,
+    })))
+    setShowModal(true)
+  }
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
     const ivaAmt = cot.total - cot.subtotal + cot.descuento
@@ -501,7 +504,8 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨 Imprimir</button>
+                      <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
+                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Imprimir</button>
                     </div>
                   </td>
                 </tr>
@@ -521,11 +525,11 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Nueva Cotizacion</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{editingId ? 'Editar Cotizacion' : 'Nueva Cotizacion'}</div>
                   <div style={{ fontSize: 11, color: '#2563eb', letterSpacing: .5 }}>WebSoft Solutions</div>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
             </div>
 
             {/* Cliente */}
@@ -748,9 +752,9 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+              <button className="btn-ghost" onClick={() => { setShowModal(false); setEditingId(null) }}>Cancelar</button>
               <button className="btn-primary" onClick={save} disabled={loading} style={{ minWidth: 140 }}>
-                {loading ? 'Guardando...' : 'Guardar Cotizacion'}
+                {loading ? 'Guardando...' : editingId ? 'Actualizar Cotizacion' : 'Guardar Cotizacion'}
               </button>
             </div>
           </div>
