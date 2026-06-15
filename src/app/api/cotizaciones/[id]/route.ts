@@ -18,11 +18,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { estado, pin } = await req.json()
 
-  // Cambios de estado requieren ser admin O tener el PIN correcto
   const estadosProtegidos = ['aceptada', 'rechazada']
   if (estadosProtegidos.includes(estado)) {
     if (session.user.role !== 'admin') {
-      // Verify PIN
       if (!pin) return NextResponse.json({ error: 'PIN_REQUIRED', message: 'Requiere autorizacion del administrador' }, { status: 403 })
       const admin = await prisma.usuario.findFirst({ where: { rol: 'admin', activo: true } })
       if (!admin) return NextResponse.json({ error: 'No hay admin configurado' }, { status: 403 })
@@ -42,7 +40,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     },
   })
 
-  // Audit log
   try {
     await prisma.auditLog.create({
       data: {
@@ -64,7 +61,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const { clienteNombre, clienteDireccion, clienteTelefono, clienteNit, atencion, formaPago, descripcion, notas, items, subtotal, descuento, total, validezDias, tiempoInstalacion } = body
 
   try {
-    // Delete old items and recreate
     await prisma.cotizacionItem.deleteMany({ where: { cotizacionId: Number(params.id) } })
     await prisma.cotizacion.update({
       where: { id: Number(params.id) },
@@ -86,7 +82,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       },
     })
     try {
-      await prisma.auditLog.create({ data: { usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name, accion: 'UPDATE', tabla: 'cotizaciones', registroId: params.id, detalle: 'Cotización editada' } })
+      await prisma.auditLog.create({ data: { usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name, accion: 'UPDATE', tabla: 'cotizaciones', registroId: params.id, detalle: 'Cotizacion editada' } })
     } catch {}
     const updated = await prisma.cotizacion.findUnique({ where: { id: Number(params.id) }, include: { items: true } })
     return NextResponse.json({ ok: true, cotizacion: updated })
@@ -95,7 +91,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth()
   if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   await prisma.cotizacion.delete({ where: { id: Number(params.id) } })
