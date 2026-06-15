@@ -290,6 +290,8 @@ export default function CotizacionesPage() {
     })))
     setShowModal(true)
   }
+
+  const imprimir = (cot: Cotizacion) => {
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
     const ivaAmt = cot.total - cot.subtotal + cot.descuento
