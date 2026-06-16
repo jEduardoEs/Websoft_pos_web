@@ -52,7 +52,11 @@ export async function GET() {
     let usuariosStats: any[] = []
     if (session.user.role === 'admin') {
       const usuarios = await prisma.usuario.findMany({
-        where: { activo: true },
+        where: {
+          activo: true,
+          metaMensual: { gt: 0 },
+          rol: { notIn: ['admin', 'contador', 'bodega'] },
+        },
         select: { id: true, nombre: true, rol: true, metaMensual: true },
       })
       usuariosStats = await Promise.all(usuarios.map(async (u) => {
