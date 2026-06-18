@@ -132,33 +132,67 @@ export default function POSPage() {
     const cotId = localStorage.getItem('cot_facturar')
     if (!cotId) return
     localStorage.removeItem('cot_facturar')
-    fetch('/api/cotizaciones')
-      .then(r => r.json())
-      .then((lista: any[]) => {
-        const cot = Array.isArray(lista) ? lista.find((c: any) => c.id === parseInt(cotId)) : null
-        if (cot) {
-          const nuevos: CartItem[] = (cot.items || []).map((it: any) => ({
-            tipo: 'libre' as const,
-            productoId: null,
-            codigo: it.codigo || '',
-            nombre: it.descripcion,
-            cantidad: Number(it.cantidad) || 1,
-            precioUnitario: Number(it.precioUnitario) || 0,
-            stock: 99999,
+
+    Promise.all([
+      fetch('/api/cotizaciones').then(r => r.json()),
+      fetch('/api/productos?buscar=').then(r => r.json()),
+    ]).then(([lista, todosProductos]: [any[], any[]]) => {
+      const cot = Array.isArray(lista) ? lista.find((c: any) => c.id === parseInt(cotId)) : null
+      if (!cot) { toast.error('No se encontró la cotización'); return }
+
+      let vinculados = 0
+      const nuevos: CartItem[] = (cot.items || []).map((it: any) => {
+        // Buscar en inventario por código exacto primero, luego por nombre similar
+        const codigoNorm = (it.codigo || '').trim().toLowerCase()
+        const nombreNorm = (it.descripcion || '').trim().toLowerCase()
+
+        const match = todosProductos.find((p: any) => {
+          if (codigoNorm && p.codigo && p.codigo.trim().toLowerCase() === codigoNorm) return true
+          const pNombre = (p.nombre || '').trim().toLowerCase()
+          return pNombre === nombreNorm || pNombre.includes(nombreNorm) || nombreNorm.includes(pNombre)
+        })
+
+        if (match && match.stock > 0) {
+          vinculados++
+          return {
+            tipo: 'inventario' as const,
+            productoId: match.id,
+            codigo: match.codigo || it.codigo || '',
+            nombre: match.nombre,
+            cantidad: Math.min(Number(it.cantidad) || 1, match.stock),
+            precioUnitario: Number(it.precioUnitario) || match.precio,
+            stock: match.stock,
             descuento: Number(it.descuento) || 0,
             subtotal: Number(it.totalItem) || 0,
-          }))
-          setCart(nuevos)
-          setClienteNombre(cot.clienteNombre || 'Consumidor Final')
-          setClienteNit(cot.clienteNit || 'CF')
-          setCotizacionId(cot.id)
-          setTab('inventario')
-          toast.success(`Cotización ${cot.numero} lista — revisa y cobra`)
-        } else {
-          toast.error('No se encontró la cotización')
+          }
+        }
+
+        // No encontrado en inventario — queda como libre
+        return {
+          tipo: 'libre' as const,
+          productoId: null,
+          codigo: it.codigo || '',
+          nombre: it.descripcion,
+          cantidad: Number(it.cantidad) || 1,
+          precioUnitario: Number(it.precioUnitario) || 0,
+          stock: 99999,
+          descuento: Number(it.descuento) || 0,
+          subtotal: Number(it.totalItem) || 0,
         }
       })
-      .catch(() => toast.error('Error al cargar cotización'))
+
+      setCart(nuevos)
+      setClienteNombre(cot.clienteNombre || 'Consumidor Final')
+      setClienteNit(cot.clienteNit || 'CF')
+      setCotizacionId(cot.id)
+      setTab('inventario')
+
+      if (vinculados > 0) {
+        toast.success(`Cotización ${cot.numero} lista — ${vinculados} item(s) vinculado(s) al inventario`)
+      } else {
+        toast.success(`Cotización ${cot.numero} lista — revisa y cobra`)
+      }
+    }).catch(() => toast.error('Error al cargar cotización'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

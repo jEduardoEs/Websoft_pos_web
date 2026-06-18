@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     // IVA débito from ventas
     const ventas = await prisma.venta.findMany({
-      where: { fecha: { gte: fechaIni, lte: fechaFin }, estado: { not: 'cancelada' } },
+      where: { fecha: { gte: fechaIni, lte: fechaFin }, estado: 'completada' },
       select: { total: true, subtotal: true, descuento: true }
     })
 
