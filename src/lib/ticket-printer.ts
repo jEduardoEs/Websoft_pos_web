@@ -249,18 +249,24 @@ export function buildTicketHTML(d: TicketData): string {
  *   printTicketWindow(html)
  */
 export function printTicketWindow(html: string): void {
-  const w = window.open('', '_blank', 'width=340,height=700')
+  // Ancho 302px ≈ 80mm a 96dpi, alto suficiente para scroll
+  const w = window.open('', '_blank', 'width=302,height=700,left=100,top=50')
   if (!w) {
     alert('El navegador bloqueó la ventana emergente. Permite pop-ups para este sitio.')
     return
   }
-  w.document.write(html)
+  // Inyectar aviso de impresión antes del body
+  const htmlConAviso = html.replace(
+    '</body>',
+    `<div id="print-tip" style="position:fixed;bottom:0;left:0;right:0;background:#1581E3;color:#fff;font-family:sans-serif;font-size:11px;padding:8px;text-align:center;z-index:9999">
+      Al guardar PDF: en "Más opciones" elige <b>Tamaño: 80x200mm</b> (o el largo del ticket) y <b>Márgenes: Ninguno</b>
+      <button onclick="document.getElementById('print-tip').style.display='none'" style="margin-left:10px;background:rgba(255,255,255,.3);border:none;color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px">OK</button>
+    </div></body>`
+  )
+  w.document.write(htmlConAviso)
   w.document.close()
-  // Pequeño delay para cargar fuentes/imágenes antes de imprimir
   setTimeout(() => {
     w.focus()
     w.print()
-    // Cerrar automáticamente después de imprimir (opcional)
-    // w.addEventListener('afterprint', () => w.close())
-  }, 600)
+  }, 700)
 }

@@ -17,7 +17,11 @@ export async function GET(req: NextRequest) {
   const buscar = searchParams.get('buscar') || ''
 
   const where: any = {}
-  if (estado) where.estado = estado
+  if (estado) {
+    where.estado = estado  // filtro explícito (ej: 'anulada' para ver anuladas)
+  } else {
+    where.estado = { not: 'anulada' }  // por defecto excluir anuladas en listados
+  }
   if (buscar) where.OR = [
     { clienteNombre: { contains: buscar, mode: 'insensitive' } },
     { clienteNit: { contains: buscar, mode: 'insensitive' } },
