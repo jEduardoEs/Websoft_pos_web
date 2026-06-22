@@ -4,26 +4,26 @@ import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-async function crearAsiento(descripcion: string, partidas: { codigo: string; debe: number; haber: number; concepto: string }[], usuarioNombre: string) {
-  const cuentas = await prisma.cuentaContable.findMany({ where: { codigo: { in: partidas.map(p => p.codigo) } } })
-  const codigoMap = Object.fromEntries(cuentas.map(c => [c.codigo, c.id]))
-  const count = await prisma.asientoContable.count()
-  await prisma.asientoContable.create({
-    data: {
-      numero: `ASI-${String(count + 1).padStart(6, '0')}`,
-      fecha: new Date(), descripcion, usuarioNombre,
-      totalDebe: partidas.reduce((s, p) => s + p.debe, 0),
-      totalHaber: partidas.reduce((s, p) => s + p.haber, 0),
-      partidas: {
-        create: partidas.map(p => ({
-          cuentaId: codigoMap[p.codigo] || 0,
-          codigoCuenta: p.codigo,
-          nombreCuenta: cuentas.find(c => c.codigo === p.codigo)?.nombre || p.codigo,
-          debe: p.debe, haber: p.haber, concepto: p.concepto,
-        })),
+async function crearAsiento(concepto: string, tipo: string, referenciaNum: string, partidas: { codigo: string; debe: number; haber: number; desc: string }[], usuarioNombre: string) {
+  try {
+    const cuentas = await prisma.cuentaContable.findMany({ where: { codigo: { in: partidas.map(p => p.codigo) } } })
+    const codigoMap = Object.fromEntries(cuentas.map(c => [c.codigo, c.id]))
+    const count = await prisma.asientoContable.count()
+    await prisma.asientoContable.create({
+      data: {
+        numero: `ASI-${String(count + 1).padStart(6, '0')}`,
+        concepto, tipo, referenciaNum, usuarioNombre,
+        partidas: {
+          create: partidas.map(p => ({
+            cuentaId: codigoMap[p.codigo] || 0,
+            debe: p.debe,
+            haber: p.haber,
+            descripcion: p.desc,
+          })),
+        },
       },
-    },
-  })
+    })
+  } catch { /* si no hay catálogo contable configurado, no falla */ }
 }
 
 export async function GET(req: NextRequest) {
@@ -58,17 +58,15 @@ export async function POST(req: NextRequest) {
     const cuenta = await prisma.cuentaCobrar.create({
       data: { numero, clienteNombre, clienteNit, clienteTelefono, ventaNumero, concepto, monto: +monto, fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: session.user.name },
     })
-    // Partida contable: Debe: 1110 Cuentas por Cobrar | Haber: 4100 Ventas
-    try {
-      await crearAsiento(
-        `Cuenta por cobrar ${numero} — ${clienteNombre}`,
-        [
-          { codigo: '1110', debe: +monto, haber: 0,     concepto: `${concepto || 'Venta a crédito'} — ${clienteNombre}` },
-          { codigo: '4100', debe: 0,      haber: +monto, concepto: `Ingreso por ${concepto || 'venta'} — ${numero}` },
-        ],
-        session.user.name
-      )
-    } catch { /* si no hay cuentas contables configuradas, no falla */ }
+    // Asiento: Debe 1110 C×C / Haber 4100 Ventas
+    await crearAsiento(
+      `Cuenta por cobrar ${numero} — ${clienteNombre}`, 'cobro', numero,
+      [
+        { codigo: '1110', debe: +monto, haber: 0,     desc: `${concepto || 'Venta a crédito'} — ${clienteNombre}` },
+        { codigo: '4100', debe: 0,      haber: +monto, desc: `Ingreso ${concepto || 'venta'} — ${numero}` },
+      ],
+      session.user.name
+    )
     return NextResponse.json({ ok: true, cuenta })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
@@ -88,17 +86,15 @@ export async function PATCH(req: NextRequest) {
       where: { id: Number(id) },
       data: { montoPagado: nuevoPagado, estado, notas: notas || cuenta.notas },
     })
-    // Partida contable al cobrar: Debe: 1101 Caja | Haber: 1110 Cuentas por Cobrar
-    try {
-      await crearAsiento(
-        `Cobro parcial/total ${cuenta.numero} — ${cuenta.clienteNombre}`,
-        [
-          { codigo: '1101', debe: Number(montoPago), haber: 0,                concepto: `Cobro recibido — ${cuenta.clienteNombre}` },
-          { codigo: '1110', debe: 0,                 haber: Number(montoPago), concepto: `Rebaje C×C ${cuenta.numero} — ${cuenta.clienteNombre}` },
-        ],
-        session.user.name
-      )
-    } catch { /* si no hay cuentas contables configuradas, no falla */ }
+    // Asiento: Debe 1101 Caja / Haber 1110 C×C
+    await crearAsiento(
+      `Cobro ${cuenta.numero} — ${cuenta.clienteNombre}`, 'cobro', cuenta.numero,
+      [
+        { codigo: '1101', debe: Number(montoPago), haber: 0,                desc: `Cobro recibido — ${cuenta.clienteNombre}` },
+        { codigo: '1110', debe: 0,                 haber: Number(montoPago), desc: `Rebaje C×C ${cuenta.numero}` },
+      ],
+      session.user.name
+    )
     return NextResponse.json({ ok: true, cuenta: updated })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
