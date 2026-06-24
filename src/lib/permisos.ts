@@ -2,7 +2,8 @@
 export const MODULOS = [
   { id: 'pos',          label: 'Nueva Venta (POS)',    group: 'Ventas' },
   { id: 'ventas',       label: 'Historial de Ventas',  group: 'Ventas' },
-  { id: 'cotizaciones', label: 'Cotizaciones',          group: 'Ventas' },
+  { id: 'cotizaciones',    label: 'Cotizaciones',          group: 'Ventas' },
+  { id: 'proyectos',      label: 'Proyectos',             group: 'Ventas' },
   { id: 'devoluciones', label: 'Devoluciones',          group: 'Ventas' },
   { id: 'inventario',   label: 'Inventario',            group: 'Inventario' },
   { id: 'clientes',     label: 'Clientes',              group: 'Clientes' },

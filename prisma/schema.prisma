@@ -687,3 +687,49 @@ model Mantenimiento {
 
   @@map("mantenimientos")
 }
+
+// ── MÓDULO PROYECTOS ─────────────────────────────────────────────────────────
+
+model Proyecto {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique
+  nombre           String
+  clienteNombre    String   @map("cliente_nombre")
+  clienteTelefono  String?  @map("cliente_telefono")
+  clienteDireccion String?  @map("cliente_direccion")
+  clienteNit       String?  @map("cliente_nit")
+  contactoNombre   String?  @map("contacto_nombre")
+  descripcion      String
+  alcance          String?
+  cotizacionId     Int?     @unique @map("cotizacion_id")
+  cotizacionNumero String?  @map("cotizacion_numero")
+  fechaInicio      DateTime? @map("fecha_inicio")
+  fechaFin         DateTime? @map("fecha_fin")
+  estado           String   @default("planificado") // planificado | en_ejecucion | completado | cancelado
+  notas            String?
+  usuarioNombre    String?  @map("usuario_nombre")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  mantenimientos   MantenimientoProyecto[]
+
+  @@map("proyectos")
+}
+
+model MantenimientoProyecto {
+  id               Int      @id @default(autoincrement())
+  proyectoId       Int      @map("proyecto_id")
+  numero           Int      // 1, 2 o 3
+  fechaProgramada  DateTime @map("fecha_programada")
+  fechaRealizada   DateTime? @map("fecha_realizada")
+  realizado        Boolean  @default(false)
+  notas            String?
+  cobrado          Boolean  @default(false)
+  montoCobrado     Float    @default(0) @map("monto_cobrado")
+  tecnicoNombre    String?  @map("tecnico_nombre")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  proyecto         Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  @@map("mantenimientos_proyecto")
+}

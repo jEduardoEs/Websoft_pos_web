@@ -50,6 +50,43 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
   } catch {}
 
+  // Auto-crear proyecto cuando la cotización es aceptada
+  if (estado === 'aceptada') {
+    try {
+      const cot = await prisma.cotizacion.findUnique({ where: { id: Number(params.id) }, include: { items: true } })
+      if (cot) {
+        const yaExiste = await prisma.proyecto.findUnique({ where: { cotizacionId: cot.id } })
+        if (!yaExiste) {
+          const count = await prisma.proyecto.count()
+          const numero = `PRY-${String(count + 1).padStart(6, '0')}`
+          const descItems = cot.items.map((i: any) => i.descripcion).join(', ')
+          const addMonths = (date: Date, months: number) => { const d = new Date(date); d.setMonth(d.getMonth() + months); return d }
+          await prisma.proyecto.create({
+            data: {
+              numero,
+              nombre: cot.descripcion || `Proyecto ${cot.clienteNombre}`,
+              clienteNombre: cot.clienteNombre,
+              clienteNit: cot.clienteNit || null,
+              clienteTelefono: cot.clienteTelefono || null,
+              clienteDireccion: cot.clienteDireccion || null,
+              descripcion: descItems || cot.descripcion || 'Instalación',
+              cotizacionId: cot.id,
+              cotizacionNumero: cot.numero,
+              fechaInicio: new Date(),
+              usuarioNombre: session.user.name,
+              mantenimientos: {
+                create: [1, 2, 3].map(n => ({
+                  numero: n,
+                  fechaProgramada: addMonths(new Date(), n * 4),
+                })),
+              },
+            },
+          })
+        }
+      }
+    } catch { /* no bloquea si falla la creación del proyecto */ }
+  }
+
   return NextResponse.json({ ok: true })
 }
 

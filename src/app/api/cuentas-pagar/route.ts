@@ -7,13 +7,13 @@ export const dynamic = 'force-dynamic'
 async function crearAsiento(concepto: string, tipo: string, referenciaNum: string, partidas: { codigo: string; debe: number; haber: number; desc: string }[], usuarioNombre: string) {
   try {
     const cuentas = await prisma.cuentaContable.findMany({ where: { codigo: { in: partidas.map(p => p.codigo) } } })
-    const codigoMap = Object.fromEntries(cuentas.map(c => [c.codigo, c.id]))
+    const codigoMap = Object.fromEntries(cuentas.map((c: any) => [c.codigo, c.id]))
     const count = await prisma.asientoContable.count()
     await prisma.asientoContable.create({
       data: {
         numero: `ASI-${String(count + 1).padStart(6, '0')}`,
         concepto, tipo, referenciaNum, usuarioNombre,
-        partidas: { create: partidas.map(p => ({ cuentaId: codigoMap[p.codigo] || 0, debe: p.debe, haber: p.haber, descripcion: p.desc })) },
+        partidas: { create: partidas.map((p: any) => ({ cuentaId: codigoMap[p.codigo] || 0, debe: p.debe, haber: p.haber, descripcion: p.desc })) },
       },
     })
   } catch { /* sin catálogo contable, no falla */ }

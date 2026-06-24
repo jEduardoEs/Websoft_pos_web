@@ -31,6 +31,7 @@ const GROUPS: NavGroup[] = [
       { href: '/pedidos',      label: 'Pedidos Web',   modulo: 'pedidos',      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
       { href: '/ventas',       label: 'Historial',     modulo: 'ventas',       icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2' },
       { href: '/cotizaciones', label: 'Cotizaciones',  modulo: 'cotizaciones', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { href: '/proyectos',    label: 'Proyectos',     modulo: 'proyectos',    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
       { href: '/devoluciones', label: 'Devoluciones',  modulo: 'devoluciones', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
       { href: '/descuentos',   label: 'Descuentos',    modulo: 'descuentos',   icon: 'M7 7h.01M17 17h.01M7 7l10 10M3.5 3.5l17 17', roles: ['admin'] },
     ],
