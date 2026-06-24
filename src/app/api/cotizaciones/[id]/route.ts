@@ -50,11 +50,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
   } catch {}
 
-  // Auto-crear proyecto cuando la cotización es aceptada
+  // Auto-crear proyecto cuando la cotización es aceptada Y tiene un item de instalación
   if (estado === 'aceptada') {
     try {
       const cot = await prisma.cotizacion.findUnique({ where: { id: Number(params.id) }, include: { items: true } })
       if (cot) {
+        // Solo crear proyecto si hay al menos un item que sea de instalación
+        const tieneInstalacion = cot.items.some((i: any) =>
+          i.descripcion?.toLowerCase().includes('instalacion') ||
+          i.descripcion?.toLowerCase().includes('instalación')
+        )
+        if (!tieneInstalacion) return NextResponse.json({ ok: true })
+
         const yaExiste = await prisma.proyecto.findUnique({ where: { cotizacionId: cot.id } })
         if (!yaExiste) {
           const count = await prisma.proyecto.count()
