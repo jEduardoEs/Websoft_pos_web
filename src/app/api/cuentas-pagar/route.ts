@@ -13,64 +13,39 @@ async function crearAsiento(concepto: string, tipo: string, referenciaNum: strin
       data: {
         numero: `ASI-${String(count + 1).padStart(6, '0')}`,
         concepto, tipo, referenciaNum, usuarioNombre,
-        partidas: {
-          create: partidas.map(p => ({
-            cuentaId: codigoMap[p.codigo] || 0,
-            debe: p.debe,
-            haber: p.haber,
-            descripcion: p.desc,
-          })),
-        },
+        partidas: { create: partidas.map(p => ({ cuentaId: codigoMap[p.codigo] || 0, debe: p.debe, haber: p.haber, descripcion: p.desc })) },
       },
     })
-  } catch { /* si no hay catálogo contable configurado, no falla */ }
+  } catch { /* sin catálogo contable, no falla */ }
 }
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    const { searchParams } = new URL(req.url)
-    const estado = searchParams.get('estado') || ''
-    const where: any = {}
-    if (estado) where.estado = estado
-    await prisma.cuentaPagar.updateMany({
-      where: { estado: 'pendiente', fechaVencimiento: { lt: new Date() } },
-      data: { estado: 'vencido' },
-    })
-    const cuentas = await prisma.cuentaPagar.findMany({ where, orderBy: { fechaVencimiento: 'asc' } })
+    const estado = new URL(req.url).searchParams.get('estado') || ''
+    await prisma.cuentaPagar.updateMany({ where: { estado: 'pendiente', fechaVencimiento: { lt: new Date() } }, data: { estado: 'vencido' } })
+    const cuentas = await prisma.cuentaPagar.findMany({ where: estado ? { estado } : {}, orderBy: { fechaVencimiento: 'asc' } })
     const resumen = await prisma.cuentaPagar.aggregate({ _sum: { monto: true, montoPagado: true } })
     return NextResponse.json({ cuentas, resumen })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
-  }
+  } catch (e: any) { return NextResponse.json({ error: e?.message }, { status: 500 }) }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    const body = await req.json()
-    const { proveedorNombre, proveedorNit, proveedorTelefono, facturaNumero, concepto, monto, fechaVencimiento, notas } = body
+    const { proveedorNombre, compraNumero, concepto, monto, fechaVencimiento, notas } = await req.json()
     if (!proveedorNombre || !monto || !fechaVencimiento) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
-    const count = await prisma.cuentaPagar.count()
-    const numero = `CP-${String(count + 1).padStart(6, '0')}`
+    const numero = `CP-${String((await prisma.cuentaPagar.count()) + 1).padStart(6, '0')}`
     const cuenta = await prisma.cuentaPagar.create({
-      data: { numero, proveedorNombre, proveedorNit, proveedorTelefono, facturaNumero, concepto, monto: +monto, fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: session.user.name },
+      data: { numero, proveedorNombre, compraNumero, concepto, monto: +monto, fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: session.user.name },
     })
-    // Asiento: Debe 1120 Inventario / Haber 2101 C×P
-    await crearAsiento(
-      `Cuenta por pagar ${numero} — ${proveedorNombre}`, 'pago', numero,
-      [
-        { codigo: '1120', debe: +monto, haber: 0,     desc: `Compra a crédito — ${concepto || proveedorNombre}` },
-        { codigo: '2101', debe: 0,      haber: +monto, desc: `Deuda con ${proveedorNombre} — ${numero}` },
-      ],
-      session.user.name
-    )
+    await crearAsiento(`C×P ${numero} — ${proveedorNombre}`, 'pago', numero,
+      [{ codigo: '1120', debe: +monto, haber: 0, desc: `Compra — ${concepto}` },
+       { codigo: '2101', debe: 0, haber: +monto, desc: `Deuda ${proveedorNombre}` }], session.user.name)
     return NextResponse.json({ ok: true, cuenta })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
-  }
+  } catch (e: any) { return NextResponse.json({ error: e?.message }, { status: 500 }) }
 }
 
 export async function PATCH(req: NextRequest) {
@@ -81,22 +56,13 @@ export async function PATCH(req: NextRequest) {
     const cuenta = await prisma.cuentaPagar.findUnique({ where: { id: Number(id) } })
     if (!cuenta) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
     const nuevoPagado = cuenta.montoPagado + Number(montoPago)
-    const estado = nuevoPagado >= cuenta.monto ? 'pagado' : 'parcial'
     const updated = await prisma.cuentaPagar.update({
       where: { id: Number(id) },
-      data: { montoPagado: nuevoPagado, estado, notas: notas || cuenta.notas },
+      data: { montoPagado: nuevoPagado, estado: nuevoPagado >= cuenta.monto ? 'pagado' : 'parcial', notas: notas || cuenta.notas },
     })
-    // Asiento: Debe 2101 C×P / Haber 1101 Caja
-    await crearAsiento(
-      `Pago a proveedor ${cuenta.numero} — ${cuenta.proveedorNombre}`, 'pago', cuenta.numero,
-      [
-        { codigo: '2101', debe: Number(montoPago), haber: 0,                desc: `Rebaje C×P ${cuenta.numero} — ${cuenta.proveedorNombre}` },
-        { codigo: '1101', debe: 0,                 haber: Number(montoPago), desc: `Pago a ${cuenta.proveedorNombre}` },
-      ],
-      session.user.name
-    )
+    await crearAsiento(`Pago ${cuenta.numero} — ${cuenta.proveedorNombre}`, 'pago', cuenta.numero,
+      [{ codigo: '2101', debe: Number(montoPago), haber: 0, desc: `Rebaje C×P ${cuenta.numero}` },
+       { codigo: '1101', debe: 0, haber: Number(montoPago), desc: `Pago a ${cuenta.proveedorNombre}` }], session.user.name)
     return NextResponse.json({ ok: true, cuenta: updated })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
-  }
+  } catch (e: any) { return NextResponse.json({ error: e?.message }, { status: 500 }) }
 }

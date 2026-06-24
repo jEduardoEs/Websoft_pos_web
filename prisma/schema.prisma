@@ -662,3 +662,28 @@ model ActivoFijo {
 
   @@map("activos_fijos")
 }
+
+model Mantenimiento {
+  id              Int      @id @default(autoincrement())
+  numero          String   @unique
+  clienteNombre   String   @map("cliente_nombre")
+  clienteTelefono String?  @map("cliente_telefono")
+  clienteDireccion String? @map("cliente_direccion")
+  descripcion     String   // Qué se instaló / tipo de equipo
+  fechaInstalacion DateTime @map("fecha_instalacion")
+  mant1Fecha      DateTime? @map("mant1_fecha")
+  mant1Realizado  Boolean  @default(false) @map("mant1_realizado")
+  mant1Notas      String?  @map("mant1_notas")
+  mant2Fecha      DateTime? @map("mant2_fecha")
+  mant2Realizado  Boolean  @default(false) @map("mant2_realizado")
+  mant2Notas      String?  @map("mant2_notas")
+  mant3Fecha      DateTime? @map("mant3_fecha")
+  mant3Realizado  Boolean  @default(false) @map("mant3_realizado")
+  mant3Notas      String?  @map("mant3_notas")
+  estado          String   @default("activo") // activo | completado | cancelado
+  notas           String?
+  ventaNumero     String?  @map("venta_numero")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("mantenimientos")
+}
