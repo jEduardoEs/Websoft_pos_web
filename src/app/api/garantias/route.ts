@@ -44,7 +44,7 @@ export async function POST(req: NextRequest)  {
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await req.json()
-    const { clienteNombre, clienteTelefono, clienteNit, productoNombre, productoSerie, ventaNumero, ventaId, diasGarantia, fechaVenta, condiciones, notas } = body
+    const { clienteNombre, clienteTelefono, clienteNit, productoNombre, productoSerie, ventaNumero, ventaId, diasGarantia, fechaVenta, condiciones, notas, proyectoId } = body
 
     if (!clienteNombre || !productoNombre) {
       return NextResponse.json({ error: 'Cliente y producto son requeridos' }, { status: 400 })
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest)  {
         numero, clienteNombre, clienteTelefono, clienteNit,
         productoNombre, productoSerie, ventaNumero,
         ventaId: ventaId ? Number(ventaId) : null,
+        proyectoId: proyectoId ? Number(proyectoId) : null,
         diasGarantia: dias, fechaVenta: fVenta,
         fechaVencimiento: fVencimiento, condiciones, notas,
         usuarioNombre: session.user.name,

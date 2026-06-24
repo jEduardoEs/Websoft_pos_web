@@ -10,6 +10,12 @@ interface Mant {
   tecnicoNombre: string | null
 }
 
+interface Garantia {
+  id: number; numero: string; fechaVencimiento: string
+  estado: string; productoNombre: string; diasGarantia: number
+  condiciones: string | null; ventaNumero: string | null
+}
+
 interface Proyecto {
   id: number; numero: string; nombre: string
   clienteNombre: string; clienteTelefono: string | null
@@ -18,7 +24,7 @@ interface Proyecto {
   alcance: string | null; cotizacionNumero: string | null
   estado: string; fechaInicio: string | null; fechaFin: string | null
   notas: string | null; usuarioNombre: string | null
-  mantenimientos: Mant[]; createdAt: string
+  mantenimientos: Mant[]; garantias: Garantia[]; createdAt: string
 }
 
 const ESTADO_COLOR: Record<string, string> = { planificado: '#1581E3', en_ejecucion: '#d97706', completado: '#16a34a', cancelado: '#94a3b8' }
@@ -213,6 +219,56 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
         <div style={{ marginTop: 14, fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 8, padding: '8px 12px' }}>
           Los 3 mantenimientos son gratuitos durante el primer año de garantía (cada 4 meses). Posterior al año o si hay daños fuera de garantía, se cobra al cliente.
         </div>
+      </div>
+
+      {/* Garantía */}
+      <div className="card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Garantía del proyecto</div>
+          {proyecto.garantias.length === 0
+            ? <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#fef3c7', color: '#92400e', fontWeight: 700 }}>Sin facturar — garantía no generada aún</span>
+            : <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}>✓ Facturado y con garantía activa</span>
+          }
+        </div>
+
+        {proyecto.garantias.length === 0 ? (
+          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '18px 20px', fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>Sin garantía vinculada</div>
+            <div>La garantía se generará automáticamente cuando la cotización <strong>{proyecto.cotizacionNumero || 'vinculada'}</strong> sea facturada y cobrada.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {proyecto.garantias.map(g => {
+              const vencida = new Date(g.fechaVencimiento) < new Date()
+              const diasRestantes = Math.ceil((new Date(g.fechaVencimiento).getTime() - Date.now()) / 86400000)
+              const color = g.estado === 'vigente' && !vencida ? '#16a34a' : g.estado === 'reclamada' ? '#d97706' : '#dc2626'
+              return (
+                <div key={g.id} style={{ border: `1.5px solid ${color}30`, borderRadius: 10, padding: '14px 16px', background: `${color}08` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{g.numero}</div>
+                      <div style={{ fontSize: 12, color: '#475569', marginTop: 3 }}>{g.productoNombre}</div>
+                      {g.ventaNumero && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Venta: {g.ventaNumero}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${color}18`, color, textTransform: 'capitalize' }}>
+                        {g.estado}
+                      </span>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+                        Vence: {fmt(g.fechaVencimiento)}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: vencida ? '#dc2626' : diasRestantes <= 30 ? '#d97706' : '#16a34a', marginTop: 2 }}>
+                        {vencida ? `Vencida hace ${Math.abs(diasRestantes)} días` : `${diasRestantes} días restantes`}
+                      </div>
+                    </div>
+                  </div>
+                  {g.condiciones && <div style={{ fontSize: 12, color: '#64748b', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${color}20` }}>{g.condiciones}</div>}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Modal marcar realizado */}

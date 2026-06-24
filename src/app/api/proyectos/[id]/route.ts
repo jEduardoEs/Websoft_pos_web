@@ -10,7 +10,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const proyecto = await prisma.proyecto.findUnique({
     where: { id: Number(params.id) },
-    include: { mantenimientos: { orderBy: { numero: 'asc' } } },
+    include: {
+      mantenimientos: { orderBy: { numero: 'asc' } },
+      garantias: { orderBy: { createdAt: 'desc' } },
+    },
   })
   if (!proyecto) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
   return NextResponse.json(proyecto)

@@ -30,7 +30,10 @@ export async function GET(req: NextRequest) {
 
   const proyectos = await prisma.proyecto.findMany({
     where,
-    include: { mantenimientos: { orderBy: { numero: 'asc' } } },
+    include: {
+      mantenimientos: { orderBy: { numero: 'asc' } },
+      garantias: { select: { id: true, numero: true, fechaVencimiento: true, estado: true } },
+    },
     orderBy: { createdAt: 'desc' },
   })
 

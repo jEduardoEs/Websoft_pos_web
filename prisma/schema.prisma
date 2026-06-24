@@ -442,11 +442,14 @@ model Garantia {
   productoSerie   String?  @map("producto_serie")
   ventaNumero     String?  @map("venta_numero")
   ventaId         Int?     @map("venta_id")
+  proyectoId      Int?     @map("proyecto_id")
   estado          String   @default("vigente") // vigente | vencida | reclamada | anulada
   condiciones     String?
   notas           String?
   usuarioNombre   String?  @map("usuario_nombre")
   createdAt       DateTime @default(now()) @map("created_at")
+
+  proyecto        Proyecto? @relation(fields: [proyectoId], references: [id])
 
   @@map("garantias")
 }
@@ -712,6 +715,7 @@ model Proyecto {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   mantenimientos   MantenimientoProyecto[]
+  garantias        Garantia[]
 
   @@map("proyectos")
 }
