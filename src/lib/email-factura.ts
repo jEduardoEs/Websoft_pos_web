@@ -58,44 +58,44 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 
   <!-- HEADER -->
   <tr>
-    <td style="background:#1581E3;padding:20px 24px">
+    <td style="background:#ffffff;padding:24px 28px;border-bottom:3px solid #1581E3">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="vertical-align:middle;width:50%">
-            <img src="https://websoftsolutions.com.gt/logo.png" width="48" height="48" style="display:block;border-radius:8px;background:#fff;padding:4px" alt="Logo">
-            <div style="margin-top:8px;font-size:17px;font-weight:700;color:#ffffff">WebSoft Solutions</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.8);line-height:1.7;margin-top:4px">
+            <img src="https://websoftsolutions.com.gt/logo.png" width="56" height="56" style="display:block;border-radius:10px" alt="Logo">
+            <div style="margin-top:10px;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">WebSoft Solutions</div>
+            <div style="font-size:10px;color:#64748b;line-height:1.8;margin-top:3px">
               NIT: 115471413<br>
               Barrio el Calvario, Guastatoya<br>
               El Progreso, Guatemala<br>
               Tel: 3836-1044 | Cel: 3671-4377<br>
-              websoftsolutions.com.gt
+              <span style="color:#1581E3">websoftsolutions.com.gt</span>
             </div>
           </td>
           <td style="vertical-align:top;text-align:right;width:50%">
-            <div style="display:inline-block;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.6);border-radius:6px;padding:8px 14px;margin-bottom:10px">
-              <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:1.5px">Documento Tributario Electrónico</div>
-              <div style="font-size:13px;font-weight:700;color:#ffffff;margin-top:3px">FACTURA ELECTRÓNICA</div>
+            <div style="display:inline-block;border:2px solid #1581E3;border-radius:6px;padding:8px 16px;margin-bottom:12px">
+              <div style="font-size:8px;font-weight:700;color:#1581E3;text-transform:uppercase;letter-spacing:1.5px">Documento Tributario Electrónico</div>
+              <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:3px">FACTURA ELECTRÓNICA</div>
             </div>
             <table cellpadding="0" cellspacing="0" style="margin-left:auto">
               <tr>
-                <td style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;padding:2px 10px 2px 0;text-align:right">SERIE:</td>
-                <td style="font-size:10px;font-weight:700;color:#ffffff;font-family:Courier New,monospace;text-align:right">${serieNum}</td>
+                <td style="font-size:10px;color:#64748b;font-weight:700;padding:2px 10px 2px 0;text-align:right">SERIE:</td>
+                <td style="font-size:10px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;text-align:right">${serieNum}</td>
               </tr>
               <tr>
-                <td style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;padding:2px 10px 2px 0;text-align:right">No.:</td>
-                <td style="font-size:20px;font-weight:700;color:#ffffff;font-family:Courier New,monospace;text-align:right">${correlNum}</td>
+                <td style="font-size:10px;color:#64748b;font-weight:700;padding:2px 10px 2px 0;text-align:right">No.:</td>
+                <td style="font-size:22px;font-weight:800;color:#0f172a;font-family:Courier New,monospace;text-align:right">${correlNum}</td>
               </tr>
               <tr>
-                <td style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;padding:2px 10px 2px 0;text-align:right">Fecha:</td>
-                <td style="font-size:10px;color:#ffffff;text-align:right">${fechaStr}</td>
+                <td style="font-size:10px;color:#64748b;font-weight:700;padding:2px 10px 2px 0;text-align:right">Fecha:</td>
+                <td style="font-size:10px;color:#0f172a;text-align:right">${fechaStr}</td>
               </tr>
               <tr>
-                <td style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;padding:2px 10px 2px 0;text-align:right">Hora:</td>
-                <td style="font-size:10px;color:#ffffff;text-align:right">${horaStr}</td>
+                <td style="font-size:10px;color:#64748b;font-weight:700;padding:2px 10px 2px 0;text-align:right">Hora:</td>
+                <td style="font-size:10px;color:#0f172a;text-align:right">${horaStr}</td>
               </tr>
             </table>
-            ${isSandbox ? '<div style="margin-top:8px;background:#fef3c7;border-radius:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#92400e;display:inline-block">PRUEBA — NO VÁLIDA ANTE SAT</div>' : ''}
+            ${isSandbox ? '<div style="margin-top:10px;background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;padding:5px 12px;font-size:9px;font-weight:700;color:#92400e;display:inline-block">PRUEBA — NO VÁLIDA ANTE SAT</div>' : ''}
           </td>
         </tr>
       </table>
@@ -209,8 +209,8 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 
   <!-- FOOTER -->
   <tr>
-    <td style="background:#1581E3;padding:12px 24px;text-align:center">
-      <div style="font-size:11px;color:rgba(255,255,255,0.9)">¡Gracias por su compra! · WebSoft Solutions · Guastatoya, El Progreso</div>
+    <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 24px;text-align:center">
+      <div style="font-size:11px;color:#64748b">¡Gracias por su compra! · <strong style="color:#0f172a">WebSoft Solutions</strong> · Guastatoya, El Progreso</div>
     </td>
   </tr>
 
