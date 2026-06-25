@@ -35,7 +35,7 @@ function LoginForm() {
       <div style={{ position: 'absolute', top: '10%', right: '15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle,rgba(37,99,235,.08) 0%,transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '40px 38px', width: 390, boxShadow: '0 4px 24px rgba(37,99,235,.1)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
-          <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo"
+          <img src="https://websoftsolutions.com.gt/logo.png" alt="Logo"
             style={{ width: 60, height: 60, borderRadius: 12, objectFit: 'contain', marginBottom: 12 }}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           <div style={{ display: 'flex', alignItems: 'center' }}>

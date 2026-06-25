@@ -380,7 +380,7 @@ export default function ConfigPage() {
               { key: 'STRIPE_SECRET_KEY', desc: 'Clave secreta de Stripe (stripe.com → Developers → API Keys)', req: true },
               { key: 'STRIPE_WEBHOOK_SECRET', desc: 'Secret del webhook de Stripe (para confirmar pagos automáticamente)', req: true },
               { key: 'NEXT_PUBLIC_POS_URL', desc: 'URL de tu POS (ej: https://websoft-pos-web.vercel.app)', req: true },
-              { key: 'NEXT_PUBLIC_LANDING_URL', desc: 'URL de tu landing (ej: https://websoft-solutions.vercel.app)', req: true },
+              { key: 'NEXT_PUBLIC_LANDING_URL', desc: 'URL de tu landing (ej: https://websoftsolutions.com.gt)', req: true },
             ].map(v => (
               <div key={v.key} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

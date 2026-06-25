@@ -88,7 +88,7 @@ export function buildTicketHTML(d: TicketData): string {
       <span>Certificado:</span>
       <span>${d.felCertificacion ? new Date(d.felCertificacion).toLocaleString('es-GT') : fechaStr}</span>
     </div>
-    <div class="dte-row"><span>Certificador:</span><span>INFILE S.A.</span></div>
+    <div class="dte-row"><span>Certificador:</span><span>Por definir</span></div>
     <div class="dte-label">Verificar en: fel.sat.gob.gt</div>
     ${d.felUuid && !d.isSandbox ? `
     <div style="text-align:center;margin:6px 0">

@@ -293,7 +293,7 @@ export default function POSPage() {
           const html = buildTicketHTML({
             empresaNombre: config.empresa_nombre, empresaNit: config.empresa_nit,
             empresaDireccion: config.empresa_direccion, empresaTelefono: config.empresa_telefono,
-            empresaLogoUrl: 'https://websoft-solutions.vercel.app/logo.png',
+            empresaLogoUrl: 'https://websoftsolutions.com.gt/logo.png',
             mostrarLogo: config.ticket_mostrar_logo !== 'false',
             ticketMensaje: config.ticket_mensaje,
             numero: v.numero, fecha: v.fecha,
@@ -327,7 +327,7 @@ export default function POSPage() {
       empresaNit:      config.empresa_nit,
       empresaDireccion: config.empresa_direccion,
       empresaTelefono: config.empresa_telefono,
-      empresaLogoUrl:  'https://websoft-solutions.vercel.app/logo.png',
+      empresaLogoUrl:  'https://websoftsolutions.com.gt/logo.png',
       mostrarLogo:     config.ticket_mostrar_logo !== 'false',
       ticketMensaje:   config.ticket_mensaje,
       numero:          lastVenta.numero,

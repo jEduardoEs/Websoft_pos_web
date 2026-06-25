@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: 'WebSoft Solutions — Sistema POS',
   description: 'Sistema de facturacion y gestion WebSoft Solutions',
   icons: {
-    icon: 'https://websoft-solutions.vercel.app/logo.png',
-    apple: 'https://websoft-solutions.vercel.app/logo.png',
+    icon: 'https://websoftsolutions.com.gt/logo.png',
+    apple: 'https://websoftsolutions.com.gt/logo.png',
   },
 }
 
@@ -15,8 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <head>
-        <link rel="icon" href="https://websoft-solutions.vercel.app/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="https://websoft-solutions.vercel.app/logo.png" />
+        <link rel="icon" href="https://websoftsolutions.com.gt/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="https://websoftsolutions.com.gt/logo.png" />
       </head>
       <body className="antialiased">
         {children}

@@ -12,7 +12,7 @@ const DEFAULTS: Record<string, string> = {
   empresa_direccion:    'Barrio el Calvario, Guastatoya, El Progreso',
   empresa_telefono:     '3836-1044 / 3671-4377',
   empresa_email:        '',
-  empresa_web:          'websoft-solutions.vercel.app',
+  empresa_web:          'websoftsolutions.com.gt',
   // Facturación
   moneda_simbolo:       'Q',
   iva_porcentaje:       '5',
@@ -33,7 +33,7 @@ const DEFAULTS: Record<string, string> = {
   stock_alerta_minimo:  '5',
   // FEL
   fel_activo:           'false',
-  fel_certificador:     'infile',
+  fel_certificador:     'pendiente',
   fel_usuario:          '',
   fel_clave:            '',
   fel_nit_emisor:       '',

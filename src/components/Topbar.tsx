@@ -65,7 +65,7 @@ export default function Topbar({ user }: TopbarProps) {
       borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,.06)', zIndex: 50,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="https://websoft-solutions.vercel.app/logo.png" alt="WebSoft"
+        <img src="https://websoftsolutions.com.gt/logo.png" alt="WebSoft"
           style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }}
           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
         <div style={{ display: 'flex', alignItems: 'center' }}>

@@ -62,7 +62,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="vertical-align:middle;width:50%">
-            <img src="https://websoft-solutions.vercel.app/logo.png" width="48" height="48" style="display:block;border-radius:8px;background:#fff;padding:4px" alt="Logo">
+            <img src="https://websoftsolutions.com.gt/logo.png" width="48" height="48" style="display:block;border-radius:8px;background:#fff;padding:4px" alt="Logo">
             <div style="margin-top:8px;font-size:17px;font-weight:700;color:#ffffff">WebSoft Solutions</div>
             <div style="font-size:10px;color:rgba(255,255,255,0.8);line-height:1.7;margin-top:4px">
               NIT: 115471413<br>
@@ -155,7 +155,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
             <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Número de autorización SAT</div>
             <div style="font-size:10px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;word-break:break-all;line-height:1.6">${uuidDisplay}</div>
             <div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6">
-              Certificador: INFILE S.A. — NIT 12521337<br>
+              Certificador: Por definir<br>
               ${d.fechaCertificacion ? `Certificado: ${new Date(d.fechaCertificacion).toLocaleString('es-GT')}` : ''}
             </div>
             ${d.uuid && !d.sandbox ? `<div style="margin-top:10px"><img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https://fel.sat.gob.gt/verificar/${d.uuid}" width="72" height="72" style="border:1px solid #dce8f8;display:block" alt="QR SAT"><div style="font-size:8px;color:#94a3b8;margin-top:3px">Verificar en fel.sat.gob.gt</div></div>` : ''}

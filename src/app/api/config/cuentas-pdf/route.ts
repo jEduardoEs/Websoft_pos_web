@@ -20,13 +20,13 @@ export async function GET(req: NextRequest) {
 
     const rows = await prisma.config.findMany({ where: { clave: { in: keys } } })
     const cfg: Record<string, string> = {}
-    rows.forEach(r => { cfg[r.clave] = r.valor })
+    rows.forEach((r: any) => { cfg[r.clave] = r.valor })
 
     const d = {
       empresa_nombre:   cfg.empresa_nombre   || 'WebSoft Solutions',
       empresa_nit:      cfg.empresa_nit      || '',
       empresa_telefono: cfg.empresa_telefono || '3836-1044 / 3671-4377',
-      empresa_web:      cfg.empresa_web      || 'websoft-solutions.vercel.app',
+      empresa_web:      cfg.empresa_web      || 'websoftsolutions.com.gt',
       empresa_direccion:cfg.empresa_direccion|| 'Guastatoya, El Progreso',
       cuentas_nota:     cfg.cuentas_nota     || 'Estas son las únicas cuentas bancarias autorizadas para recibir depósitos y transferencias. No procesamos órdenes si el depósito se realiza a otra cuenta.',
     }
@@ -37,15 +37,35 @@ export async function GET(req: NextRequest) {
       titular: cfg[`banco${i}_titular`] || '',
     })).filter(b => b.nombre && b.cuenta)
 
-    const bancosHTML = bancos.map(b => `
+    const bancosHTML = bancos.map(b => {
+      const nombreUpper = b.nombre.toUpperCase()
+      // Colores y abreviaciones por banco guatemalteco
+      const bancoConfig: Record<string, { color: string; bg: string; abbr: string }> = {
+        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', abbr: 'BR' },
+        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', abbr: 'BI' },
+        'G&T':         { color: '#cc0000', bg: '#fde8e8', abbr: 'G&T' },
+        'GYT':         { color: '#cc0000', bg: '#fde8e8', abbr: 'G&T' },
+        'AGROMERCANTIL':{ color: '#ff6600', bg: '#fff0e6', abbr: 'BAM' },
+        'BAM':         { color: '#ff6600', bg: '#fff0e6', abbr: 'BAM' },
+        'OCCIDENTE':   { color: '#003366', bg: '#e6edf4', abbr: 'BO' },
+        'CITIBANK':    { color: '#003b8e', bg: '#e6ecf5', abbr: 'CITI' },
+        'PROMERICA':   { color: '#e3000f', bg: '#fde8e9', abbr: 'PRO' },
+        'AZTECA':      { color: '#ff6600', bg: '#fff0e6', abbr: 'AZ' },
+        'CHN':         { color: '#006633', bg: '#e6f4ee', abbr: 'CHN' },
+        'REFORMADOR':  { color: '#003087', bg: '#e6eaf4', abbr: 'REF' },
+        'VIVIBANCO':   { color: '#7b2fa8', bg: '#f3e8fc', abbr: 'VB' },
+        'BANTRAB':     { color: '#003087', bg: '#e6eaf4', abbr: 'BT' },
+      }
+      const match = Object.entries(bancoConfig).find(([k]) => nombreUpper.includes(k))
+      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', abbr: b.nombre.slice(0, 2).toUpperCase() }
+
+      return `
       <div class="banco">
-        <div class="banco-header">
-          <div class="banco-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B7FD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
+        <div class="banco-header" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${cfg2.bg};border-bottom:1.5px solid ${cfg2.color}30">
+          <div class="banco-icon" style="background:${cfg2.color};border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="color:#fff;font-size:10px;font-weight:900;letter-spacing:-0.5px">${cfg2.abbr}</span>
           </div>
-          <div class="banco-nombre">${b.nombre}</div>
+          <div class="banco-nombre" style="color:${cfg2.color}">${b.nombre}</div>
         </div>
         <div class="banco-datos">
           <div class="dato-row">
@@ -57,7 +77,8 @@ export async function GET(req: NextRequest) {
             <span class="dato-val">${b.titular}</span>
           </div>
         </div>
-      </div>`).join('')
+      </div>`
+    }).join('')
 
     const html = `<!DOCTYPE html>
 <html lang="es">

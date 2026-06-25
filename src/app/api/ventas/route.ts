@@ -118,6 +118,22 @@ export async function POST(req: NextRequest) {
       } catch { /* cotizacion puede no existir, no es crítico */ }
     }
 
+    // Auto-upgrade cliente: prospecto → cliente al facturar
+    if (clienteNit && clienteNit !== 'CF') {
+      try {
+        await tx.cliente.updateMany({
+          where: {
+            OR: [
+              { nit: clienteNit },
+              { nombre: { contains: clienteNombre || '', mode: 'insensitive' } },
+            ],
+            tipo: 'prospecto',
+          },
+          data: { tipo: 'cliente' },
+        })
+      } catch { /* si no existe cliente registrado, no es crítico */ }
+    }
+
     // Update numero siguiente
     await tx.config.update({ where: { clave: 'numero_siguiente' }, data: { valor: String(num + 1) } })
 

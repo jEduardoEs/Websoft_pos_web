@@ -354,7 +354,7 @@ export default function CotizacionesPage() {
 </head><body>
 <div class="header">
   <div class="logo-wrap">
-    <img class="logo-img" src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" onerror="this.style.display='none'"/>
+    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
     <div>
       <div class="brand-name">Web<span>Soft</span> Solutions</div>
       <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
@@ -364,7 +364,7 @@ export default function CotizacionesPage() {
     <strong>WEBSOFT SOLUTIONS</strong>
     Barrio el Calvario, Guastatoya, El Progreso<br>
     TEL: (502) 3836-1044 / 3671-4377<br>
-    www.websoft-solutions.vercel.app
+    www.websoftsolutions.com.gt
   </div>
 </div>
 
@@ -525,7 +525,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             {/* Header modal */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src="https://websoftsolutions.com.gt/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{editingId ? 'Editar Cotizacion' : 'Nueva Cotizacion'}</div>
                   <div style={{ fontSize: 11, color: '#2563eb', letterSpacing: .5 }}>WebSoft Solutions</div>
@@ -769,7 +769,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.15)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src="https://websoftsolutions.com.gt/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{selected.numero}</div>
                   <div style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(selected.fecha)} · {selected.clienteNombre}</div>
