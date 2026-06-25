@@ -11,8 +11,11 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    const { estado } = await req.json()
-    await prisma.garantia.update({ where: { id: Number(params.id) }, data: { estado } })
+    const { estado, proyectoId } = await req.json()
+    const data: any = {}
+    if (estado !== undefined) data.estado = estado
+    if (proyectoId !== undefined) data.proyectoId = proyectoId ? Number(proyectoId) : null
+    await prisma.garantia.update({ where: { id: Number(params.id) }, data })
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })

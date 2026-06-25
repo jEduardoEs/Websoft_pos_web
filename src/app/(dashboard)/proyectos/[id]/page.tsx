@@ -270,9 +270,24 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
         </div>
 
         {proyecto.garantias.length === 0 ? (
-          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '18px 20px', fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '18px 20px', fontSize: 13, color: '#64748b' }}>
             <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>Sin garantía vinculada</div>
-            <div>La garantía se generará automáticamente cuando la cotización <strong>{proyecto.cotizacionNumero || 'vinculada'}</strong> sea facturada y cobrada.</div>
+            <div style={{ marginBottom: 14 }}>La garantía se vincula automáticamente al crearla desde el módulo de Garantías usando el número de cotización <strong>{proyecto.cotizacionNumero || ''}</strong> o el nombre del cliente. Si ya existe una garantía creada, ingresa el número aquí para vincularla:</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input" placeholder="Ej: GAR-000001" style={{ flex: 1, maxWidth: 200 }}
+                onKeyDown={async e => {
+                  if (e.key !== 'Enter') return
+                  const val = (e.target as HTMLInputElement).value.trim()
+                  if (!val) return
+                  const gar = await fetch(`/api/garantias?buscar=${encodeURIComponent(val)}`).then(r => r.json())
+                  const found = Array.isArray(gar) ? gar.find((g: any) => g.numero === val) : null
+                  if (!found) { toast.error('Garantía no encontrada'); return }
+                  const res = await fetch(`/api/garantias/${found.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proyectoId: proyecto.id }) })
+                  if ((await res.json()).ok) { toast.success('Garantía vinculada'); load() }
+                  else toast.error('Error al vincular')
+                }} />
+              <span style={{ fontSize: 12, color: '#94a3b8', alignSelf: 'center' }}>Presiona Enter para vincular</span>
+            </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
