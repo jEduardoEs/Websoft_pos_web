@@ -73,11 +73,11 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
     setLoading(true)
     const res = await fetch(`/api/proyectos/${params.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accion: 'marcar_mantenimiento', mantId: showMarcar.id, ...mantForm, montoCobrado: mantForm.montoCobrado ? Number(mantForm.montoCobrado) : 0 }),
+      body: JSON.stringify({ accion: 'marcar_mantenimiento', mantId: showMarcar.id, ...mantForm, montoCobrado: mantForm.montoCobrado ? Number(mantForm.montoCobrado) : 0, imagenes: mantImagenes }),
     })
     const d = await res.json()
     setLoading(false)
-    if (d.ok) { toast.success(`Mantenimiento ${showMarcar.numero} marcado como realizado`); setShowMarcar(null); load() }
+    if (d.ok) { toast.success(`Mantenimiento ${showMarcar.numero} marcado como realizado`); setShowMarcar(null); setMantImagenes([]); load() }
     else toast.error(d.error)
   }
 
@@ -325,9 +325,12 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
 
       {/* Modal marcar realizado */}
       {showMarcar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Marcar Mantenimiento {showMarcar.numero} — Realizado</h3>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,.2)', margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Mantenimiento {showMarcar.numero} — Realizado</h3>
+              <button onClick={() => { setShowMarcar(null); setMantImagenes([]) }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            </div>
             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>{proyecto.nombre} · {proyecto.clienteNombre}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -342,6 +345,46 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
                 <label style={lbl}>Notas del mantenimiento</label>
                 <textarea className="input" rows={3} value={mantForm.notas} onChange={e => setMantForm(p => ({ ...p, notas: e.target.value }))} placeholder="Ej: Limpieza de cámaras, ajuste de ángulos, revisión de DVR..." style={{ resize: 'vertical' }} />
               </div>
+
+              {/* Fotos de evidencia */}
+              <div>
+                <label style={lbl}>Fotos de evidencia</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {mantImagenes.map((url, i) => (
+                    <div key={i} style={{ position: 'relative' }}>
+                      <img src={url} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                      <button onClick={() => setMantImagenes(p => p.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#dc2626', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                    </div>
+                  ))}
+                  {mantImagenes.length < 6 && (
+                    <label style={{ width: 72, height: 72, border: '2px dashed #e2e8f0', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: uploading ? 'wait' : 'pointer', color: '#94a3b8', background: '#f8fafc', gap: 4 }}>
+                      {uploading ? (
+                        <div style={{ width: 20, height: 20, border: '2px solid #e2e8f0', borderTopColor: '#1581E3', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                      ) : (
+                        <>
+                          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          <span style={{ fontSize: 10, fontWeight: 600 }}>Subir</span>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                        onChange={async e => {
+                          const f = e.target.files?.[0]; if (!f) return
+                          setUploading(true)
+                          const fd = new FormData(); fd.append('file', f)
+                          const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                          const d = await res.json()
+                          setUploading(false)
+                          if (d.url) setMantImagenes(p => [...p, d.url])
+                          else toast.error('Error al subir imagen')
+                          e.target.value = ''
+                        }} />
+                    </label>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>Máximo 6 fotos de evidencia del trabajo realizado</div>
+              </div>
+
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
                   <input type="checkbox" checked={mantForm.cobrado} onChange={e => setMantForm(p => ({ ...p, cobrado: e.target.checked }))} />
@@ -353,12 +396,13 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button className="btn-ghost" onClick={() => setShowMarcar(null)}>Cancelar</button>
-              <button className="btn-primary" onClick={marcarRealizado} disabled={loading}>{loading ? 'Guardando...' : 'Confirmar realizado'}</button>
+              <button className="btn-ghost" onClick={() => { setShowMarcar(null); setMantImagenes([]) }}>Cancelar</button>
+              <button className="btn-primary" onClick={marcarRealizado} disabled={loading || uploading}>{loading ? 'Guardando...' : 'Confirmar realizado'}</button>
             </div>
           </div>
         </div>
       )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
