@@ -7,7 +7,7 @@ interface Mant {
   id: number; numero: number; fechaProgramada: string
   fechaRealizada: string | null; realizado: boolean
   notas: string | null; cobrado: boolean; montoCobrado: number
-  tecnicoNombre: string | null
+  tecnicoNombre: string | null; imagenes: string | null
 }
 
 interface Garantia {
@@ -40,6 +40,8 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
   const [showMarcar, setShowMarcar] = useState<Mant | null>(null)
   const [mantForm, setMantForm] = useState({ fechaRealizada: new Date().toISOString().split('T')[0], notas: '', cobrado: false, montoCobrado: '', tecnicoNombre: '' })
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [mantImagenes, setMantImagenes] = useState<string[]>([])
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/proyectos/${params.id}`)
@@ -178,40 +180,76 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
             const dias = diasPara(m.fechaProgramada)
             const vencido = !m.realizado && dias < 0
             const proximo = !m.realizado && dias >= 0 && dias <= 15
-            const futuro = !m.realizado && dias > 15
             const borderColor = m.realizado ? '#16a34a' : vencido ? '#dc2626' : proximo ? '#d97706' : '#e2e8f0'
             const bgColor = m.realizado ? '#f0fdf4' : vencido ? '#fef2f2' : proximo ? '#fffbeb' : '#f8fafc'
+            const imgs: string[] = (() => { try { return JSON.parse(m.imagenes || '[]') } catch { return [] } })()
             return (
-              <div key={m.id} style={{ border: `2px solid ${borderColor}`, borderRadius: 12, padding: 16, background: bgColor }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 800, color: m.realizado ? '#16a34a' : vencido ? '#dc2626' : proximo ? '#d97706' : '#e2e8f0', lineHeight: 1 }}>0{m.numero}</div>
-                  {m.realizado ? <span style={{ fontSize: 18 }}>✓</span> : vencido ? <span style={{ fontSize: 16 }}>⚠</span> : proximo ? <span style={{ fontSize: 16 }}>⏰</span> : null}
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>Mantenimiento {m.numero}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-                  Programado: {fmt(m.fechaProgramada)}
-                </div>
-                {m.realizado ? (
-                  <div>
-                    <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>Realizado: {fmt(m.fechaRealizada)}</div>
-                    {m.tecnicoNombre && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Técnico: {m.tecnicoNombre}</div>}
-                    {m.cobrado && <div style={{ fontSize: 11, color: '#d97706', marginTop: 2, fontWeight: 600 }}>Cobrado: Q {m.montoCobrado.toFixed(2)}</div>}
-                    {m.notas && <div style={{ fontSize: 11, color: '#64748b', marginTop: 6, borderTop: '1px solid #dcfce7', paddingTop: 6 }}>{m.notas}</div>}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: vencido ? '#dc2626' : proximo ? '#d97706' : '#94a3b8', marginBottom: 10 }}>
-                      {vencido ? `Vencido hace ${Math.abs(dias)} días` : proximo ? `En ${dias} días` : `En ${dias} días`}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>
-                      {m.numero <= 3 ? 'Gratuito — incluido en garantía' : 'Costo adicional'}
-                    </div>
-                    <button onClick={() => { setShowMarcar(m); setMantForm({ fechaRealizada: new Date().toISOString().split('T')[0], notas: '', cobrado: false, montoCobrado: '', tecnicoNombre: '' }) }}
-                      style={{ width: '100%', padding: '8px', background: '#1581E3', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      Marcar como realizado
-                    </button>
+              <div key={m.id} style={{ border: `2px solid ${borderColor}`, borderRadius: 12, overflow: 'hidden', background: bgColor }}>
+                {/* Imagen de evidencia arriba si existe */}
+                {imgs.length > 0 && (
+                  <div style={{ position: 'relative', height: 140, background: '#e2e8f0', overflow: 'hidden' }}>
+                    <img src={imgs[0]} alt="Evidencia" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {imgs.length > 1 && (
+                      <div style={{ position: 'absolute', bottom: 6, right: 6, display: 'flex', gap: 3 }}>
+                        {imgs.slice(1).map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            <img src={url} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4, border: '2px solid #fff' }} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    <a href={imgs[0]} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', inset: 0 }} />
                   </div>
                 )}
+
+                <div style={{ padding: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 26, fontWeight: 800, color: borderColor, lineHeight: 1 }}>0{m.numero}</div>
+                    {m.realizado && <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 20 }}>Realizado</div>}
+                    {vencido && <div style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: 20 }}>Vencido</div>}
+                    {proximo && <div style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: 20 }}>Proximo</div>}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>Mantenimiento {m.numero}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>Programado: {fmt(m.fechaProgramada)}</div>
+
+                  {m.realizado ? (
+                    <div>
+                      <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>Realizado: {fmt(m.fechaRealizada)}</div>
+                      {m.tecnicoNombre && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Técnico: {m.tecnicoNombre}</div>}
+                      {m.cobrado && <div style={{ fontSize: 11, color: '#d97706', marginTop: 2, fontWeight: 600 }}>Cobrado: Q {m.montoCobrado.toFixed(2)}</div>}
+                      {m.notas && <div style={{ fontSize: 11, color: '#64748b', marginTop: 6, paddingTop: 6, borderTop: `1px solid ${borderColor}30` }}>{m.notas}</div>}
+                      {/* Subir más fotos aunque ya esté realizado */}
+                      <label style={{ display: 'block', marginTop: 8, fontSize: 11, color: '#1581E3', fontWeight: 600, cursor: uploading ? 'wait' : 'pointer' }}>
+                        {uploading ? 'Subiendo...' : '+ Agregar foto'}
+                        <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                          onChange={async e => {
+                            const f = e.target.files?.[0]; if (!f) return
+                            setUploading(true)
+                            const fd = new FormData(); fd.append('file', f)
+                            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                            const d = await res.json()
+                            setUploading(false)
+                            if (d.url) {
+                              await fetch(`/api/proyectos/${params.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'agregar_imagen', mantId: m.id, imagenes: [d.url] }) })
+                              load()
+                            } else toast.error('Error al subir imagen')
+                            e.target.value = ''
+                          }} />
+                      </label>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: vencido ? '#dc2626' : proximo ? '#d97706' : '#94a3b8', marginBottom: 8 }}>
+                        {vencido ? `Vencido hace ${Math.abs(dias)} días` : `En ${dias} días`}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>Gratuito — incluido en garantía</div>
+                      <button onClick={() => { setShowMarcar(m); setMantImagenes([]); setMantForm({ fechaRealizada: new Date().toISOString().split('T')[0], notas: '', cobrado: false, montoCobrado: '', tecnicoNombre: '' }) }}
+                        style={{ width: '100%', padding: '8px', background: '#1581E3', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Marcar como realizado
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })}
@@ -227,13 +265,12 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
           <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Garantía del proyecto</div>
           {proyecto.garantias.length === 0
             ? <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#fef3c7', color: '#92400e', fontWeight: 700 }}>Sin facturar — garantía no generada aún</span>
-            : <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}>✓ Facturado y con garantía activa</span>
+            : <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}>Facturado y con garantía activa</span>
           }
         </div>
 
         {proyecto.garantias.length === 0 ? (
           <div style={{ background: '#f8fafc', borderRadius: 10, padding: '18px 20px', fontSize: 13, color: '#64748b', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
             <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>Sin garantía vinculada</div>
             <div>La garantía se generará automáticamente cuando la cotización <strong>{proyecto.cotizacionNumero || 'vinculada'}</strong> sea facturada y cobrada.</div>
           </div>
