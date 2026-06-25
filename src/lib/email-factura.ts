@@ -59,7 +59,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 </head>
 <body style="margin:0;padding:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif">
 
-<div style="max-width:680px;margin:16px auto;background:#fff;border:1px solid #c5d8f0">
+<div style="max-width:680px;margin:16px auto;background:#fff;border:2px solid #1581E3;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px rgba(21,129,227,0.15)">
 
   <!-- ENCABEZADO FORMAL -->
   <table style="width:100%;border-collapse:collapse;border-bottom:3px solid #1581E3">
@@ -74,7 +74,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
           NIT: 115471413<br>
           Barrio el Calvario, Guastatoya<br>
           El Progreso, Guatemala<br>
-          Tel: 3836-1044 / 3671-4377<br>
+          Tel: 3836-1044 &nbsp;|&nbsp; Cel: 3671-4377<br>
           websoftsolutions.com.gt
         </div>
       </td>
@@ -194,7 +194,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
           WebSoft Solutions<br>
           NIT: 115471413<br>
           websoftsolutions.com.gt<br>
-          Tel: 3836-1044
+          Tel: 3836-1044 &nbsp;|&nbsp; Cel: 3671-4377
         </div>
       </td>
     </tr>
@@ -223,13 +223,28 @@ async function sendViaResend(to: string, subject: string, html: string): Promise
 
   if (!apiKey) return { ok: false, error: 'RESEND_API_KEY no configurado. Ve a Configuración → Ventas y Tickets para agregarlo.' }
 
+  // Adjuntar la factura como archivo HTML (el cliente puede abrir y guardar como PDF)
+  const htmlBase64 = Buffer.from(html).toString('base64')
+  const attachmentName = `Factura_WebSoft_Solutions.html`
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from, to, subject, html }),
+    body: JSON.stringify({
+      from,
+      to,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: attachmentName,
+          content: htmlBase64,
+        },
+      ],
+    }),
   })
 
   const data = await res.json()
@@ -255,7 +270,7 @@ export async function enviarFacturaPorCorreo(
   }
 
   const html = buildFacturaHTML(data)
-  const subject = `Factura ${data.numeroInterno} — WebSoft Solutions`
+  const subject = `Factura Electrónica ${data.numeroInterno} — WebSoft Solutions`
   const provider = (process.env.EMAIL_PROVIDER || 'resend').toLowerCase()
 
   console.log(`[EMAIL] Enviando factura ${data.numeroInterno} a ${data.clienteCorreo} via ${provider}`)
