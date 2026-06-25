@@ -207,10 +207,21 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
 }
 
 async function sendViaResend(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY no configurado' }
+  // Leer desde DB primero, fallback a variables de entorno
+  let apiKey = process.env.RESEND_API_KEY
+  let from = process.env.EMAIL_FROM || 'WebSoft Solutions <facturacion@websoftsolutions.com.gt>'
 
-  const from = process.env.EMAIL_FROM || 'WebSoft Solutions <facturacion@websoftsolutions.com.gt>'
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const [keyRow, fromRow] = await Promise.all([
+      prisma.config.findUnique({ where: { clave: 'resend_api_key' } }),
+      prisma.config.findUnique({ where: { clave: 'email_from' } }),
+    ])
+    if (keyRow?.valor) apiKey = keyRow.valor
+    if (fromRow?.valor) from = fromRow.valor
+  } catch { /* si falla, usa env vars */ }
+
+  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY no configurado. Ve a Configuración → Ventas y Tickets para agregarlo.' }
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
