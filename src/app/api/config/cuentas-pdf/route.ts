@@ -39,35 +39,37 @@ export async function GET(req: NextRequest) {
 
     const bancosHTML = bancos.map(b => {
       const nombreUpper = b.nombre.toUpperCase()
-      // Colores y abreviaciones por banco guatemalteco
-      const bancoConfig: Record<string, { color: string; bg: string; abbr: string }> = {
-        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', abbr: 'BR' },
-        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', abbr: 'BI' },
-        'G&T':         { color: '#cc0000', bg: '#fde8e8', abbr: 'G&T' },
-        'GYT':         { color: '#cc0000', bg: '#fde8e8', abbr: 'G&T' },
-        'AGROMERCANTIL':{ color: '#ff6600', bg: '#fff0e6', abbr: 'BAM' },
-        'BAM':         { color: '#ff6600', bg: '#fff0e6', abbr: 'BAM' },
-        'OCCIDENTE':   { color: '#003366', bg: '#e6edf4', abbr: 'BO' },
-        'CITIBANK':    { color: '#003b8e', bg: '#e6ecf5', abbr: 'CITI' },
-        'PROMERICA':   { color: '#e3000f', bg: '#fde8e9', abbr: 'PRO' },
-        'AZTECA':      { color: '#ff6600', bg: '#fff0e6', abbr: 'AZ' },
-        'CHN':         { color: '#006633', bg: '#e6f4ee', abbr: 'CHN' },
-        'REFORMADOR':  { color: '#003087', bg: '#e6eaf4', abbr: 'REF' },
-        'VIVIBANCO':   { color: '#7b2fa8', bg: '#f3e8fc', abbr: 'VB' },
-        'BANTRAB':     { color: '#003087', bg: '#e6eaf4', abbr: 'BT' },
+      const bancoConfig: Record<string, { color: string; bg: string; logo: string | null; abbr: string }> = {
+        'BAC':         { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoftsolutions.com.gt/bancos/bac.png',        abbr: 'BAC' },
+        'CREDOMATIC':  { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoftsolutions.com.gt/bancos/bac.png',        abbr: 'BAC' },
+        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', logo: 'https://websoftsolutions.com.gt/bancos/industrial.png', abbr: 'BI'  },
+        'G&T':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
+        'GYT':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
+        'CONTINENTAL': { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
+        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', logo: 'https://websoftsolutions.com.gt/bancos/banrural.png',   abbr: 'BR'  },
+        'AGROMERCANTIL':{ color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
+        'BAM':         { color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
+        'OCCIDENTE':   { color: '#003366', bg: '#e6edf4', logo: null, abbr: 'BO'  },
+        'PROMERICA':   { color: '#e3000f', bg: '#fde8e9', logo: null, abbr: 'PRO' },
+        'BANTRAB':     { color: '#003087', bg: '#e6eaf4', logo: null, abbr: 'BT'  },
+        'CHN':         { color: '#006633', bg: '#e6f4ee', logo: null, abbr: 'CHN' },
       }
       const match = Object.entries(bancoConfig).find(([k]) => nombreUpper.includes(k))
-      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', abbr: b.nombre.slice(0, 2).toUpperCase() }
+      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', logo: null, abbr: b.nombre.slice(0, 2).toUpperCase() }
+
+      const logoHTML = cfg2.logo
+        ? `<img src="${cfg2.logo}" style="height:28px;max-width:80px;object-fit:contain;display:block" alt="${b.nombre}" onerror="this.style.display='none'">`
+        : `<div style="background:${cfg2.color};color:#fff;font-size:11px;font-weight:900;padding:4px 8px;border-radius:6px;letter-spacing:-0.5px">${cfg2.abbr}</div>`
 
       return `
       <div class="banco">
         <div class="banco-header" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${cfg2.bg};border-bottom:1.5px solid ${cfg2.color}30">
-          <div class="banco-icon" style="background:${cfg2.color};border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span style="color:#fff;font-size:10px;font-weight:900;letter-spacing:-0.5px">${cfg2.abbr}</span>
+          <div style="height:36px;display:flex;align-items:center">
+            ${logoHTML}
           </div>
-          <div class="banco-nombre" style="color:${cfg2.color}">${b.nombre}</div>
         </div>
         <div class="banco-datos">
+          <div style="font-size:12px;font-weight:800;color:${cfg2.color};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${b.nombre}</div>
           <div class="dato-row">
             <span class="dato-lbl">Número de cuenta</span>
             <span class="dato-val">${b.cuenta}</span>
