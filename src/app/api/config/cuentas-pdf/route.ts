@@ -40,13 +40,13 @@ export async function GET(req: NextRequest) {
     const bancosHTML = bancos.map(b => {
       const nombreUpper = b.nombre.toUpperCase()
       const bancoConfig: Record<string, { color: string; bg: string; logo: string | null; abbr: string }> = {
-        'BAC':         { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoftsolutions.com.gt/bancos/bac.png',        abbr: 'BAC' },
-        'CREDOMATIC':  { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoftsolutions.com.gt/bancos/bac.png',        abbr: 'BAC' },
-        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', logo: 'https://websoftsolutions.com.gt/bancos/industrial.png', abbr: 'BI'  },
-        'G&T':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
-        'GYT':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
-        'CONTINENTAL': { color: '#003087', bg: '#eef0f8', logo: 'https://websoftsolutions.com.gt/bancos/gyt.png',        abbr: 'G&T' },
-        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', logo: 'https://websoftsolutions.com.gt/bancos/banrural.png',   abbr: 'BR'  },
+        'BAC':         { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
+        'CREDOMATIC':  { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
+        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', logo: 'https://websoft-pos-web.vercel.app/bancos/industrial.png', abbr: 'BI'  },
+        'G&T':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'GYT':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'CONTINENTAL': { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', logo: 'https://websoft-pos-web.vercel.app/bancos/banrural.png',   abbr: 'BR'  },
         'AGROMERCANTIL':{ color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
         'BAM':         { color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
         'OCCIDENTE':   { color: '#003366', bg: '#e6edf4', logo: null, abbr: 'BO'  },
