@@ -73,7 +73,7 @@ export default function FelPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Facturación Electrónica FEL</h1>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Integración INFILE · SAT Guatemala · Certificador NIT 12521337</p>
+          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Integración FEL · SAT Guatemala · Certificador pendiente de configurar</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ background: felActivo ? '#f0fdf4' : '#fffbeb', border: `1px solid ${felActivo ? '#bbf7d0' : '#fde68a'}`, borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, color: felActivo ? '#166534' : '#92400e' }}>

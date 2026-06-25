@@ -118,6 +118,16 @@ export async function POST(req: NextRequest) {
       } catch { /* cotizacion puede no existir, no es crítico */ }
     }
 
+    // Auto-upgrade: prospecto → cliente al facturar
+    if (clienteNit && clienteNit !== 'CF') {
+      try {
+        await (tx as any).cliente.updateMany({
+          where: { OR: [{ nit: clienteNit }, { nombre: { contains: clienteNombre || '', mode: 'insensitive' } }], tipo: 'prospecto' },
+          data: { tipo: 'cliente' },
+        })
+      } catch { /* si no existe el campo tipo aún en DB, no falla */ }
+    }
+
     // Auto-upgrade cliente: prospecto → cliente al facturar
     if (clienteNit && clienteNit !== 'CF') {
       try {
