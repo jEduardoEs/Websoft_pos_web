@@ -738,3 +738,17 @@ model MantenimientoProyecto {
 
   @@map("mantenimientos_proyecto")
 }
+
+model ZonaInstalacion {
+  id           Int      @id @default(autoincrement())
+  nombre       String   // Ej: "Guastatoya", "Zona 10 Guatemala"
+  departamento String   // Ej: "El Progreso", "Guatemala"
+  tarifa       Float    @default(0)
+  notas        String?
+  activa       Boolean  @default(true)
+  orden        Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("zonas_instalacion")
+}

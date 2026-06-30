@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import ZonasInstalacionTab from '@/components/ZonasInstalacionTab'
 
 interface Cfg { [key: string]: string }
 
@@ -105,6 +106,7 @@ export default function ConfigPage() {
     { id: 'alertas',      label: 'Alertas' },
     { id: 'tienda',       label: 'Tienda Online' },
     { id: 'cuentas',      label: 'Cuentas Bancarias' },
+    { id: 'zonas',        label: 'Zonas de Instalación' },
   ]
 
   return (
@@ -461,12 +463,17 @@ export default function ConfigPage() {
         </div>
       )}
 
+      {/* ZONAS DE INSTALACIÓN */}
+      {activeTab === 'zonas' && <ZonasInstalacionTab />}
+
       {/* Save button bottom */}
+      {activeTab !== 'zonas' && (
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <button className="btn-primary" onClick={() => save()} disabled={loading} style={{ minWidth: 160, padding: '12px 24px' }}>
           {loading ? 'Guardando...' : saved ? ' Guardado' : ' Guardar Configuración'}
         </button>
       </div>
+      )}
     </div>
   )
 }

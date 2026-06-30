@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -90,9 +90,19 @@ const GROUPS: NavGroup[] = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const rol = (session?.user?.role || 'cajero') as string
   const permisos = parsePermisos((session?.user as any)?.permisos || '')
+
+  // Al montar, refrescar permisos desde la DB una sola vez por sesión de navegador
+  // (cubre el caso donde un admin cambió los permisos del rol después del login)
+  useEffect(() => {
+    const yaRefrescado = sessionStorage.getItem('permisos_refrescados')
+    if (!yaRefrescado && session) {
+      sessionStorage.setItem('permisos_refrescados', '1')
+      update()
+    }
+  }, [session, update])
 
   const getDefaultOpen = () => {
     const open: Record<string, boolean> = {}

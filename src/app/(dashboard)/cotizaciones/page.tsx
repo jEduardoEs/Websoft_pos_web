@@ -26,10 +26,10 @@ interface LineItem {
   descuento: number
   subtotal: number
   total: number
-  // instalacion
-  km: number
-  precioGasolina: number
-  rendimiento: number
+  // instalacion — tarifa fija por zona
+  zonaId: number | null
+  zonaNombre: string
+  zonaTarifa: number
   tecnicos: number
   horas: number
   manoObra: number
@@ -57,14 +57,11 @@ interface Cotizacion {
   items: any[]
 }
 
-function calcGas(item: LineItem) {
-  return (item.km * 2) / (item.rendimiento || 30) * (item.precioGasolina || 28)
-}
 function calcComida(item: LineItem) {
   return item.tecnicos * item.horas * 35
 }
 function calcInstalacion(item: LineItem) {
-  return calcGas(item) + calcComida(item) + (item.manoObra || 0)
+  return (item.zonaTarifa || 0) + calcComida(item) + (item.manoObra || 0)
 }
 
 function recalc(item: LineItem): LineItem {
@@ -87,7 +84,7 @@ function recalc(item: LineItem): LineItem {
 }
 
 function newItem(tipo: LineItem['tipo']): LineItem {
-  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, km: 20, precioGasolina: 28, rendimiento: 30, tecnicos: 1, horas: 4, manoObra: 200 }
+  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, tecnicos: 1, horas: 4, manoObra: 200 }
   if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' }
   return base
 }
@@ -108,6 +105,7 @@ export default function CotizacionesPage() {
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
   const [productos, setProductos] = useState<Producto[]>([])
+  const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
   const [buscarProd, setBuscarProd] = useState('')
 
   const { data: session } = useSession()
@@ -129,8 +127,15 @@ export default function CotizacionesPage() {
     setProductos(await res.json())
   }, [buscarProd])
 
+  const loadZonas = async () => {
+    const res = await fetch('/api/zonas-instalacion?activas=true')
+    const d = await res.json()
+    setZonas(d.zonas || [])
+  }
+
   useEffect(() => { load() }, [])
   useEffect(() => { loadProductos() }, [loadProductos])
+  useEffect(() => { loadZonas() }, [])
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -201,7 +206,7 @@ export default function CotizacionesPage() {
         validezDias: parseInt(form.validezDias) || 15,
         items: validItems.map(it => ({
           codigo: it.codigo,
-          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.km}km · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
+          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.zonaNombre || 'Zona'} · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
           cantidad: it.cantidad, precioUnitario: it.precioVenta,
           subtotal: it.subtotal, descuento: it.descuento, totalItem: it.total,
         })),
@@ -285,7 +290,7 @@ export default function CotizacionesPage() {
       descripcion: it.descripcion, costoCompra: 0,
       precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
       descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
-      total: Number(it.totalItem), km: 20, precioGasolina: 28, rendimiento: 30,
+      total: Number(it.totalItem), zonaId: null, zonaNombre: '', zonaTarifa: 0,
       tecnicos: 1, horas: 4, manoObra: 200,
     })))
     setShowModal(true)
@@ -666,35 +671,45 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                     <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, paddingTop: 4 }}>×</button>
                   </div>
 
-                  {/* Instalacion calculator */}
+                  {/* Instalacion: selector de zona con tarifa fija */}
                   {item.tipo === 'instalacion' && (
                     <div style={{ background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: 8, padding: 12, marginTop: 6 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#d97706', marginBottom: 10, textTransform: 'uppercase' }}>
-                        Calculadora de instalacion
+                        Costo de instalación por zona
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
-                        {[
-                          { label: 'Km al destino', key: 'km', note: 'Ida y vuelta x2' },
-                          { label: 'Precio gas Q/L', key: 'precioGasolina' },
-                          { label: 'Rendimiento km/L', key: 'rendimiento' },
-                          { label: 'Num. tecnicos', key: 'tecnicos', note: 'Q35/tec/hora comida' },
-                          { label: 'Horas de trabajo', key: 'horas' },
-                        ].map(f => (
-                          <div key={f.key}>
-                            <label style={{ ...lbl, color: '#d97706' }}>{f.label}</label>
-                            <input className="input" type="number" min="0" value={(item as any)[f.key]} onChange={e => updItem(i, f.key as keyof LineItem, Number(e.target.value))} style={{ fontSize: 12 }} />
-                            {f.note && <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{f.note}</div>}
-                          </div>
-                        ))}
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Zona de instalación</label>
+                          <select className="input" value={item.zonaId || ''} style={{ fontSize: 12 }}
+                            onChange={e => {
+                              const zonaId = Number(e.target.value) || null
+                              const z = zonas.find(zz => zz.id === zonaId)
+                              setItems(prev => prev.map((it, idx) => idx === i ? recalc({ ...it, zonaId, zonaNombre: z?.nombre || '', zonaTarifa: z?.tarifa || 0 }) : it))
+                            }}>
+                            <option value="">Selecciona una zona...</option>
+                            {zonas.map(z => (
+                              <option key={z.id} value={z.id}>{z.nombre} — {z.departamento} (Q{z.tarifa.toFixed(2)})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Num. técnicos</label>
+                          <input className="input" type="number" min="0" value={item.tecnicos} onChange={e => updItem(i, 'tecnicos', Number(e.target.value))} style={{ fontSize: 12 }} />
+                          <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>Q35/tec/hora comida</div>
+                        </div>
+                        <div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Horas de trabajo</label>
+                          <input className="input" type="number" min="0" value={item.horas} onChange={e => updItem(i, 'horas', Number(e.target.value))} style={{ fontSize: 12 }} />
+                        </div>
                         <div style={{ gridColumn: '1/-1' }}>
                           <label style={{ ...lbl, color: '#d97706' }}>Mano de obra (Q)</label>
                           <input className="input" type="number" min="0" value={item.manoObra} onChange={e => updItem(i, 'manoObra', Number(e.target.value))} style={{ fontSize: 12, maxWidth: 160 }} />
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: 20, marginTop: 10, fontSize: 11, color: '#64748b' }}>
-                        <span>⛽ Gas: <strong style={{ color: '#d97706' }}>Q {calcGas(item).toFixed(2)}</strong></span>
-                        <span> Comida: <strong style={{ color: '#d97706' }}>Q {calcComida(item).toFixed(2)}</strong></span>
-                        <span> M.Obra: <strong style={{ color: '#d97706' }}>Q {(item.manoObra || 0).toFixed(2)}</strong></span>
+                        <span>Zona: <strong style={{ color: '#d97706' }}>Q {(item.zonaTarifa || 0).toFixed(2)}</strong></span>
+                        <span>Comida: <strong style={{ color: '#d97706' }}>Q {calcComida(item).toFixed(2)}</strong></span>
+                        <span>M.Obra: <strong style={{ color: '#d97706' }}>Q {(item.manoObra || 0).toFixed(2)}</strong></span>
                         <span style={{ fontWeight: 700 }}>= <strong style={{ color: '#d97706', fontSize: 13 }}>Q {item.precioVenta.toFixed(2)}</strong></span>
                       </div>
                     </div>
