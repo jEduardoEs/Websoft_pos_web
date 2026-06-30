@@ -26,13 +26,12 @@ interface LineItem {
   descuento: number
   subtotal: number
   total: number
-  // instalacion — tarifa fija por zona
+  // instalacion — tarifa fija por zona + cargo adicional opcional
   zonaId: number | null
   zonaNombre: string
   zonaTarifa: number
-  tecnicos: number
-  horas: number
-  manoObra: number
+  cargoAdicional: number
+  notaAdicional: string
 }
 
 interface Cotizacion {
@@ -57,11 +56,8 @@ interface Cotizacion {
   items: any[]
 }
 
-function calcComida(item: LineItem) {
-  return item.tecnicos * item.horas * 35
-}
 function calcInstalacion(item: LineItem) {
-  return (item.zonaTarifa || 0) + calcComida(item) + (item.manoObra || 0)
+  return (item.zonaTarifa || 0) + (item.cargoAdicional || 0)
 }
 
 function recalc(item: LineItem): LineItem {
@@ -84,7 +80,7 @@ function recalc(item: LineItem): LineItem {
 }
 
 function newItem(tipo: LineItem['tipo']): LineItem {
-  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, tecnicos: 1, horas: 4, manoObra: 200 }
+  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, cargoAdicional: 0, notaAdicional: '' }
   if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' }
   return base
 }
@@ -206,7 +202,7 @@ export default function CotizacionesPage() {
         validezDias: parseInt(form.validezDias) || 15,
         items: validItems.map(it => ({
           codigo: it.codigo,
-          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.zonaNombre || 'Zona'} · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
+          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.zonaNombre || 'Zona'})` : ''),
           cantidad: it.cantidad, precioUnitario: it.precioVenta,
           subtotal: it.subtotal, descuento: it.descuento, totalItem: it.total,
         })),
@@ -291,7 +287,7 @@ export default function CotizacionesPage() {
       precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
       descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
       total: Number(it.totalItem), zonaId: null, zonaNombre: '', zonaTarifa: 0,
-      tecnicos: 1, horas: 4, manoObra: 200,
+      cargoAdicional: 0, notaAdicional: '',
     })))
     setShowModal(true)
   }
@@ -677,10 +673,10 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#d97706', marginBottom: 10, textTransform: 'uppercase' }}>
                         Costo de instalación por zona
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, alignItems: 'end' }}>
                         <div>
                           <label style={{ ...lbl, color: '#d97706' }}>Zona de instalación</label>
-                          <select className="input" value={item.zonaId || ''} style={{ fontSize: 12 }}
+                          <select className="input" value={item.zonaId || ''} style={{ fontSize: 13 }}
                             onChange={e => {
                               const zonaId = Number(e.target.value) || null
                               const z = zonas.find(zz => zz.id === zonaId)
@@ -693,24 +689,20 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           </select>
                         </div>
                         <div>
-                          <label style={{ ...lbl, color: '#d97706' }}>Num. técnicos</label>
-                          <input className="input" type="number" min="0" value={item.tecnicos} onChange={e => updItem(i, 'tecnicos', Number(e.target.value))} style={{ fontSize: 12 }} />
-                          <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>Q35/tec/hora comida</div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Cargo adicional (Q)</label>
+                          <input className="input" type="number" min="0" value={item.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', Number(e.target.value))} placeholder="0.00" style={{ fontSize: 13 }} />
                         </div>
-                        <div>
-                          <label style={{ ...lbl, color: '#d97706' }}>Horas de trabajo</label>
-                          <input className="input" type="number" min="0" value={item.horas} onChange={e => updItem(i, 'horas', Number(e.target.value))} style={{ fontSize: 12 }} />
-                        </div>
-                        <div style={{ gridColumn: '1/-1' }}>
-                          <label style={{ ...lbl, color: '#d97706' }}>Mano de obra (Q)</label>
-                          <input className="input" type="number" min="0" value={item.manoObra} onChange={e => updItem(i, 'manoObra', Number(e.target.value))} style={{ fontSize: 12, maxWidth: 160 }} />
-                        </div>
+                        {item.cargoAdicional > 0 && (
+                          <div style={{ gridColumn: '1/-1' }}>
+                            <label style={{ ...lbl, color: '#d97706' }}>Motivo del cargo adicional</label>
+                            <input className="input" value={item.notaAdicional} onChange={e => updItem(i, 'notaAdicional', e.target.value)} placeholder="Ej: técnico extra, equipo especial, trabajo nocturno..." style={{ fontSize: 12 }} />
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 20, marginTop: 10, fontSize: 11, color: '#64748b' }}>
                         <span>Zona: <strong style={{ color: '#d97706' }}>Q {(item.zonaTarifa || 0).toFixed(2)}</strong></span>
-                        <span>Comida: <strong style={{ color: '#d97706' }}>Q {calcComida(item).toFixed(2)}</strong></span>
-                        <span>M.Obra: <strong style={{ color: '#d97706' }}>Q {(item.manoObra || 0).toFixed(2)}</strong></span>
-                        <span style={{ fontWeight: 700 }}>= <strong style={{ color: '#d97706', fontSize: 13 }}>Q {item.precioVenta.toFixed(2)}</strong></span>
+                        {item.cargoAdicional > 0 && <span>Adicional: <strong style={{ color: '#d97706' }}>Q {item.cargoAdicional.toFixed(2)}</strong></span>}
+                        <span style={{ fontWeight: 700 }}>Total: <strong style={{ color: '#d97706', fontSize: 13 }}>Q {item.precioVenta.toFixed(2)}</strong></span>
                       </div>
                     </div>
                   )}
