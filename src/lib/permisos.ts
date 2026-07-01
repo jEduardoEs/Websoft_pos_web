@@ -55,13 +55,13 @@ export function parsePermisos(permisos: string | null | undefined): string[] {
 
 export function tienePermiso(permisos: string[], modulo: string, rol: string): boolean {
   if (rol === 'admin') return true
-  // Si el usuario tiene permisos explícitos definidos, usar solo esos (roles 100% libres)
+  // Si el usuario tiene permisos explícitos definidos, usar SOLO esos — sin fallback
   if (permisos && permisos.length > 0) return permisos.includes(modulo)
-  // Fallback solo para roles predefinidos sin permisos asignados aún
-  if (rol === 'contador') return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
+  // Fallback solo para roles predefinidos del sistema (sin permisos guardados aún)
+  if (rol === 'contador')   return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
   if (rol === 'supervisor') return PERMISOS_SUPERVISOR_DEFAULT.includes(modulo)
-  if (rol === 'bodega') return PERMISOS_BODEGA_DEFAULT.includes(modulo)
-  if (rol === 'cajero') return PERMISOS_CAJERO_DEFAULT.includes(modulo)
-  // Rol personalizado sin permisos definidos: sin acceso hasta que se asignen
+  if (rol === 'bodega')     return PERMISOS_BODEGA_DEFAULT.includes(modulo)
+  if (rol === 'cajero')     return PERMISOS_CAJERO_DEFAULT.includes(modulo)
+  // Cualquier otro rol (personalizado) sin permisos definidos: sin acceso
   return false
 }

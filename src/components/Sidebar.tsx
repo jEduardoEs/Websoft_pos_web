@@ -96,14 +96,17 @@ export default function Sidebar() {
   const permisos = parsePermisos((session?.user as any)?.permisos || '')
 
   // Al montar, refrescar permisos desde la DB una sola vez por sesión de navegador
-  // (cubre el caso donde un admin cambió los permisos del rol después del login)
   useEffect(() => {
     const yaRefrescado = sessionStorage.getItem('permisos_refrescados')
-    if (!yaRefrescado && session) {
+    if (!session) return
+    // Si el rol no es predefinido y los permisos están vacíos, forzar refresh siempre
+    const rolesPredefinidos = ['admin', 'cajero', 'supervisor', 'bodega', 'contador']
+    const esRolPersonalizado = !rolesPredefinidos.includes(rol)
+    if (!yaRefrescado || (esRolPersonalizado && permisos.length === 0)) {
       sessionStorage.setItem('permisos_refrescados', '1')
       update()
     }
-  }, [session, update])
+  }, [session, update, rol, permisos])
 
   const getDefaultOpen = () => {
     const open: Record<string, boolean> = {}
