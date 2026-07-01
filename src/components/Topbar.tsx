@@ -61,41 +61,49 @@ export default function Topbar({ user }: TopbarProps) {
   return (
     <div style={{
       background: '#ffffff', height: 56, display: 'flex', alignItems: 'center',
-      padding: '0 20px', gap: 14, flexShrink: 0,
-      borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,.06)', zIndex: 50,
+      padding: '0 16px', gap: 10, flexShrink: 0,
+      borderBottom: '1.5px solid #e3e1d8', zIndex: 50,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <img src="https://websoftsolutions.com.gt/logo.png" alt="WebSoft"
-          style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }}
+          style={{ width: 30, height: 30, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }}
           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Web</span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#2563eb' }}>Soft</span>
-          <span style={{ fontSize: 16, fontWeight: 400, color: '#0f172a', marginLeft: 4 }}>Solutions</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#18181b' }}>Web</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1581E3' }}>Soft</span>
+          <span className="topbar-subtitle" style={{ fontSize: 15, fontWeight: 400, color: '#18181b', marginLeft: 4 }}>Solutions</span>
         </div>
       </div>
-      <div style={{ width: 1, height: 22, background: '#e2e8f0', margin: '0 4px' }} />
-      <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Sistema POS</span>
+      <span className="topbar-sistema" style={{ fontSize: 10, color: '#8a887e', fontWeight: 500, flexShrink: 0 }}>Sistema POS</span>
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
         {user.role === 'admin' && (
-          <div style={{ fontSize: 10, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px' }}>
-            Sesion expira por inactividad 30min
+          <div className="topbar-inactivity" style={{ fontSize: 10, color: '#8a887e', background: '#f4f3ef', border: '1px solid #e3e1d8', borderRadius: 4, padding: '3px 8px' }}>
+            Sesion expira 30min
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 22, padding: '4px 12px 4px 5px' }}>
-          <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#f4f3ef', border: '1.5px solid #e3e1d8', borderRadius: 20, padding: '3px 10px 3px 4px' }}>
+          <div style={{ width: 26, height: 26, background: '#18181b', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
             {(user.name || 'U')[0].toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#0f172a', fontWeight: 600, lineHeight: 1.2 }}>{user.name}</div>
-            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'capitalize' }}>{user.role}</div>
+          <div className="topbar-userinfo">
+            <div style={{ fontSize: 12, color: '#18181b', fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+            <div style={{ fontSize: 10, color: '#8a887e', textTransform: 'capitalize' }}>{user.role}</div>
           </div>
         </div>
-        <button onClick={handleSignOut} style={{ background: '#fff', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={handleSignOut} style={{ background: '#fff', color: '#b13a2e', border: '1.5px solid #e3c3bd', padding: '5px 12px', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
           Salir
         </button>
       </div>
+
+      <style>{`
+        @media (max-width: 480px) {
+          .topbar-subtitle { display: none; }
+          .topbar-sistema { display: none; }
+          .topbar-inactivity { display: none; }
+          .topbar-userinfo { display: none; }
+        }
+      `}</style>
     </div>
   )
 }

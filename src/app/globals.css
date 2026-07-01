@@ -218,3 +218,9 @@ html, body {
   .stats-grid { grid-template-columns: 1fr !important; }
   .dash-kpis { grid-template-columns: 1fr !important; }
 }
+
+/* Espacio extra abajo en móvil para el botón flotante hamburguesa */
+@media (max-width: 768px) {
+  .page-wrap { padding-bottom: 80px !important; }
+  main > .page-wrap { padding-top: 16px !important; }
+}
