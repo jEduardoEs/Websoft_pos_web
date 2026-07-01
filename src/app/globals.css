@@ -176,3 +176,45 @@ html, body {
   .form-grid-2 { grid-template-columns: 1fr !important; }
   .card { padding: 14px !important; }
 }
+
+/* ── RESPONSIVO MÓVIL — Técnico en campo ──────────────────── */
+@media (max-width: 768px) {
+  /* Tablas — scroll horizontal */
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-responsive table { min-width: 600px; }
+
+  /* Grids de formulario colapsan a 1 columna */
+  .grid-2col, .grid-3col, .grid-4col { grid-template-columns: 1fr !important; }
+  .col-span-2 { grid-column: 1 !important; }
+
+  /* Headers de página: stack vertical */
+  .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+  .page-header-actions { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+  .page-header-actions .btn-primary,
+  .page-header-actions .btn-ghost { flex: 1; min-width: 120px; justify-content: center; }
+
+  /* Filtros y búsqueda: stack vertical */
+  .filter-bar { flex-direction: column !important; gap: 8px !important; }
+  .filter-bar .input, .filter-bar select { width: 100% !important; }
+
+  /* Modales: fullscreen en móvil */
+  .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+  .modal-box { border-radius: 12px 12px 0 0 !important; max-height: 92vh !important; width: 100% !important; max-width: 100% !important; overflow-y: auto; }
+
+  /* Cards de stats/KPIs */
+  .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* Ocultar columnas menos importantes en tablas */
+  .col-hide-mobile { display: none !important; }
+
+  /* Botones de acción en tablas: más grandes para touch */
+  .btn-sm { padding: 8px 12px !important; font-size: 12px !important; }
+
+  /* Padding de página reducido en móvil */
+  .page-wrap { padding: 12px !important; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr !important; }
+  .dash-kpis { grid-template-columns: 1fr !important; }
+}

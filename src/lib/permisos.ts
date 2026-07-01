@@ -7,6 +7,7 @@ export const MODULOS = [
   { id: 'devoluciones', label: 'Devoluciones',          group: 'Ventas' },
   { id: 'inventario',   label: 'Inventario',            group: 'Inventario' },
   { id: 'clientes',     label: 'Clientes',              group: 'Clientes' },
+  { id: 'campanas',     label: 'Campañas WhatsApp',     group: 'Clientes' },
   { id: 'garantias',        label: 'Garantías',             group: 'Clientes' },
   { id: 'servicio',        label: 'Servicio Técnico',      group: 'Servicios' },
   { id: 'caja',         label: 'Control de Caja',       group: 'Caja' },

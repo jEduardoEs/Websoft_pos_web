@@ -42,6 +42,7 @@ interface Cotizacion {
   clienteDireccion: string | null
   clienteTelefono: string | null
   clienteNit: string | null
+  clienteCorreo: string | null
   atencion: string | null
   formaPago: string | null
   descripcion: string | null
@@ -112,6 +113,9 @@ export default function CotizacionesPage() {
   const [pinLoading, setPinLoading] = useState(false)
   const [pinError, setPinError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [sendModal, setSendModal] = useState<Cotizacion | null>(null)
+  const [sendEmail, setSendEmail] = useState('')
+  const [sendLoading, setSendLoading] = useState(false)
 
   const load = async () => {
     const c = await fetch('/api/cotizaciones').then(r => r.json())
@@ -290,6 +294,25 @@ export default function CotizacionesPage() {
       cargoAdicional: 0, notaAdicional: '',
     })))
     setShowModal(true)
+  }
+
+  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
+
+  const enviarWA = (cot: Cotizacion) => {
+    const tel = (cot.clienteTelefono || '').replace(/\D/g, '')
+    const num = tel.startsWith('502') ? tel : '502' + tel
+    const msg = `Hola ${cot.clienteNombre}, le enviamos su cotización *${cot.numero}* de WebSoft Solutions por un total de *Q ${cot.total.toFixed(2)}*. Quedo atento a su confirmación.`
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  const enviarCorreoManual = async (cot: Cotizacion) => {
+    if (!sendEmail) { toast.error('Ingresa un correo'); return }
+    setSendLoading(true)
+    const res = await fetch(`/api/cotizaciones/${cot.id}/enviar-correo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: sendEmail }) })
+    setSendLoading(false)
+    const d = await res.json()
+    if (d.ok) { toast.success('Cotización enviada por correo'); setSendModal(null) }
+    else toast.error(d.error || 'Error al enviar')
   }
 
   const imprimir = (cot: Cotizacion) => {
@@ -508,7 +531,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                         </button>
                       )}
                       <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Imprimir</button>
+                      <button className="btn-ghost btn-sm" onClick={() => abrirSendModal(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Enviar</button>
                     </div>
                   </td>
                 </tr>
@@ -845,7 +868,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-ghost" onClick={() => setShowPreview(false)}>Cerrar</button>
-                <button className="btn-primary" onClick={() => imprimir(selected)}>Imprimir / PDF</button>
+                <button className="btn-primary" onClick={() => { if (selected) abrirSendModal(selected) }}>Enviar / Descargar</button>
               </div>
             </div>
           </div>
@@ -885,6 +908,48 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                 style={{ flex: 1, background: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: !pin || pinLoading ? .6 : 1 }}
               >
                 {pinLoading ? 'Verificando...' : 'Autorizar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sendModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1.5px solid #e3e1d8' }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#18181b' }}>Enviar cotización</h3>
+                <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>{sendModal.numero} — {sendModal.clienteNombre}</div>
+              </div>
+              <button onClick={() => setSendModal(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => { enviarWA(sendModal); setSendModal(null) }} disabled={!sendModal.clienteTelefono}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: sendModal.clienteTelefono ? 'pointer' : 'not-allowed', opacity: sendModal.clienteTelefono ? 1 : 0.4, textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>WA</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por WhatsApp</div>
+                  <div style={{ fontSize: 11, color: '#8a887e' }}>{sendModal.clienteTelefono || 'Sin teléfono registrado'}</div>
+                </div>
+              </button>
+              <div style={{ border: '1.5px solid #d8d6cd', borderRadius: 6, padding: '13px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 7, background: '#1581E3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>@</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por correo</div>
+                </div>
+                <input className="input" type="email" placeholder="correo@cliente.com" value={sendEmail} onChange={e => setSendEmail(e.target.value)} style={{ marginBottom: 8 }} />
+                <button className="btn-primary" onClick={() => enviarCorreoManual(sendModal)} disabled={sendLoading || !sendEmail} style={{ width: '100%', justifyContent: 'center' }}>
+                  {sendLoading ? 'Enviando...' : 'Enviar por correo'}
+                </button>
+              </div>
+              <button onClick={() => { imprimir(sendModal); setSendModal(null) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>PDF</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Descargar / Imprimir PDF</div>
+                  <div style={{ fontSize: 11, color: '#8a887e' }}>Abre en nueva ventana</div>
+                </div>
               </button>
             </div>
           </div>

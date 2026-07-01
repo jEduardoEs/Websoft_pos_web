@@ -4,9 +4,9 @@ import { toast } from 'sonner'
 import { fmt, fmtDate, fmtDateTime } from '@/lib/utils'
 
 const ESTADOS = [
-  { value: 'recibido',   label: 'Recibido',    color: '#64748b', bg: '#f1f5f9' },
+  { value: 'recibido',   label: 'Recibido',    color: '#8a887e', bg: '#f1f5f9' },
   { value: 'diagnostico', label: 'Diagnóstico', color: '#d97706', bg: '#fef3c7' },
-  { value: 'en_proceso', label: 'En proceso',  color: '#2563eb', bg: '#eff6ff' },
+  { value: 'en_proceso', label: 'En proceso',  color: '#1581E3', bg: '#eff6ff' },
   { value: 'listo',      label: 'Listo',       color: '#16a34a', bg: '#f0fdf4' },
   { value: 'entregado',  label: 'Entregado',   color: '#7c3aed', bg: '#f5f3ff' },
   { value: 'cancelado',  label: 'Cancelado',   color: '#dc2626', bg: '#fef2f2' },
@@ -137,20 +137,20 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
 
   const estadoInfo = (e: string) => ESTADOS.find(x => x.value === e) || ESTADOS[0]
 
-  const thS = { background: '#f8fafc', fontSize: 11, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '.5px' as const, padding: '10px 14px', textAlign: 'left' as const, borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' as const }
-  const tdS = { padding: '11px 14px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }
-  const lbl = { display: 'block' as const, fontSize: 11, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, marginBottom: 4 }
+  const thS = { background: '#f4f3ef', fontSize: 11, fontWeight: 700 as const, color: '#8a887e', textTransform: 'uppercase' as const, letterSpacing: '.5px' as const, padding: '10px 14px', textAlign: 'left' as const, borderBottom: '1.5px solid #d8d6cd', whiteSpace: 'nowrap' as const }
+  const tdS = { padding: '11px 14px', fontSize: 13, borderBottom: '1px solid #e3e1d8', color: '#18181b' }
+  const lbl = { display: 'block' as const, fontSize: 11, fontWeight: 700 as const, color: '#8a887e', textTransform: 'uppercase' as const, marginBottom: 4 }
 
   // Stats
   const stats = ESTADOS.map(e => ({ ...e, count: ordenes.filter(o => o.estado === e.value).length }))
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="page-wrap" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Servicio Técnico</h1>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Órdenes de trabajo y reparaciones</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#18181b' }}>Servicio Técnico</h1>
+          <p style={{ fontSize: 12, color: '#8a887e', marginTop: 3 }}>Órdenes de trabajo y reparaciones</p>
         </div>
         <button className="btn-primary" onClick={() => { setForm(emptyForm); setRepuestos([]); setShowModal(true) }}>
           + Nueva Orden
@@ -163,7 +163,7 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
           <div key={s.value} onClick={() => setFiltroEstado(filtroEstado === s.value ? '' : s.value)}
             className="card" style={{ padding: '12px 14px', cursor: 'pointer', borderTop: `3px solid ${s.color}`, opacity: filtroEstado && filtroEstado !== s.value ? .5 : 1, transition: 'all .15s' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.count}</div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -185,18 +185,18 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
             </thead>
             <tbody>
               {ordenes.length === 0 ? (
-                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 50, color: '#94a3b8' }}>Sin órdenes</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 50, color: '#8a887e' }}>Sin órdenes</td></tr>
               ) : ordenes.map(o => {
                 const est = estadoInfo(o.estado)
                 const vencida = o.fechaPromesa && new Date(o.fechaPromesa) < new Date() && !['entregado', 'cancelado'].includes(o.estado)
                 return (
                   <tr key={o.id} onClick={() => { setSelected(o); setShowDetalle(true) }} style={{ cursor: 'pointer' }}>
-                    <td style={{ ...tdS, fontWeight: 700, color: '#2563eb' }}>{o.numero}</td>
-                    <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(o.fecha)}</td>
+                    <td style={{ ...tdS, fontWeight: 700, color: '#1581E3' }}>{o.numero}</td>
+                    <td style={{ ...tdS, color: '#8a887e', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(o.fecha)}</td>
                     <td style={{ ...tdS, fontWeight: 600 }}>{o.clienteNombre}</td>
-                    <td style={{ ...tdS, color: '#475569' }}>{o.tipoEquipo} {o.marca ? `· ${o.marca}` : ''}</td>
-                    <td style={{ ...tdS, color: '#475569', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.descripcionFalla}</td>
-                    <td style={{ ...tdS, color: '#64748b', fontSize: 12 }}>{o.tecnicoNombre || '—'}</td>
+                    <td style={{ ...tdS, color: '#52524d' }}>{o.tipoEquipo} {o.marca ? `· ${o.marca}` : ''}</td>
+                    <td style={{ ...tdS, color: '#52524d', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.descripcionFalla}</td>
+                    <td style={{ ...tdS, color: '#8a887e', fontSize: 12 }}>{o.tecnicoNombre || '—'}</td>
                     <td style={{ ...tdS, color: vencida ? '#dc2626' : '#64748b', fontSize: 12, fontWeight: vencida ? 700 : 400 }}>
                       {o.fechaPromesa ? fmtDate(o.fechaPromesa) : '—'}
                       {vencida && ' ⚠'}
@@ -219,15 +219,15 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
       {/* ─── MODAL NUEVA ORDEN ─── */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28, width: '100%', maxWidth: 800, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Nueva Orden de Servicio</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 800, margin: 'auto',  }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1.5px solid #d8d6cd' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b' }}>Nueva Orden de Servicio</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
               {/* Cliente */}
-              <div style={{ gridColumn: '1/-1', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', marginBottom: 10 }}>Cliente</div>
+              <div style={{ gridColumn: '1/-1', background: '#f4f3ef', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#1581E3', textTransform: 'uppercase', marginBottom: 10 }}>Cliente</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} /></div>
                   <div><label style={lbl}>Teléfono</label><input className="input" value={form.clienteTelefono} onChange={e => setF('clienteTelefono', e.target.value)} /></div>
@@ -242,8 +242,8 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
                 </div>
               </div>
               {/* Equipo */}
-              <div style={{ gridColumn: '1/-1', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', marginBottom: 10 }}>Equipo</div>
+              <div style={{ gridColumn: '1/-1', background: '#f4f3ef', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#1581E3', textTransform: 'uppercase', marginBottom: 10 }}>Equipo</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
                   <div><label style={lbl}>Tipo de equipo *</label><input className="input" value={form.tipoEquipo} onChange={e => setF('tipoEquipo', e.target.value)} placeholder="Ej: Laptop, Cámara, DVR..." /></div>
                   <div><label style={lbl}>Marca</label><input className="input" value={form.marca} onChange={e => setF('marca', e.target.value)} /></div>
@@ -285,18 +285,18 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
       {/* ─── DETALLE ─── */}
       {showDetalle && selected && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.15)' }}>
+          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 700, margin: 'auto',  }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{selected.numero}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{selected.clienteNombre} · {selected.tipoEquipo}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#18181b' }}>{selected.numero}</div>
+                <div style={{ fontSize: 12, color: '#8a887e' }}>{selected.clienteNombre} · {selected.tipoEquipo}</div>
               </div>
-              <button onClick={() => setShowDetalle(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+              <button onClick={() => setShowDetalle(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#8a887e' }}>×</button>
             </div>
 
             {/* Estado actual + cambiar */}
-            <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 10 }}>Cambiar estado</div>
+            <div style={{ background: '#f4f3ef', borderRadius: 6, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', marginBottom: 10 }}>Cambiar estado</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                 {ESTADOS.map(e => (
                   <button key={e.value} onClick={() => cambiarEstado(selected.id, e.value)}
@@ -312,8 +312,8 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, fontSize: 13 }}>
               {[['Falla', selected.descripcionFalla], ['Técnico', selected.tecnicoNombre || '—'], ['Promesa', selected.fechaPromesa ? fmtDate(selected.fechaPromesa) : '—'], ['Total', fmt(selected.total)]].map(([l, v]) => (
                 <div key={l}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-                  <div style={{ color: '#0f172a' }}>{v}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
+                  <div style={{ color: '#18181b' }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -321,13 +321,13 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
             {/* Historial */}
             {selected.historial?.length > 0 && (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Historial de cambios</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#18181b', marginBottom: 8 }}>Historial de cambios</div>
                 {selected.historial.map((h: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 }}>
-                    <span style={{ color: '#94a3b8', whiteSpace: 'nowrap' }}>{fmtDateTime(h.fecha)}</span>
-                    <span style={{ color: '#2563eb', fontWeight: 600 }}>{h.estadoNuevo}</span>
-                    {h.comentario && <span style={{ color: '#475569' }}>{h.comentario}</span>}
-                    <span style={{ color: '#94a3b8', marginLeft: 'auto' }}>{h.usuarioNombre}</span>
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid #e3e1d8', fontSize: 12 }}>
+                    <span style={{ color: '#8a887e', whiteSpace: 'nowrap' }}>{fmtDateTime(h.fecha)}</span>
+                    <span style={{ color: '#1581E3', fontWeight: 600 }}>{h.estadoNuevo}</span>
+                    {h.comentario && <span style={{ color: '#52524d' }}>{h.comentario}</span>}
+                    <span style={{ color: '#8a887e', marginLeft: 'auto' }}>{h.usuarioNombre}</span>
                   </div>
                 ))}
               </div>
