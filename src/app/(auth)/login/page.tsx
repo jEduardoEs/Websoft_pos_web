@@ -25,7 +25,7 @@ function LoginForm() {
         toast.error('Usuario o contrasena incorrectos')
       }
     } else {
-      router.push('/pos')
+      router.push('/dashboard')
       router.refresh()
     }
   }
