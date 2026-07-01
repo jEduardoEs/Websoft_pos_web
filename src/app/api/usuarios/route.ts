@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
     const users = await prisma.usuario.findMany({
-      select: { id: true, nombre: true, usuario: true, rol: true, permisos: true, activo: true, createdAt: true },
+      select: { id: true, nombre: true, usuario: true, rol: true, permisos: true, activo: true, metaMensual: true, createdAt: true },
       orderBy: { nombre: 'asc' },
     })
     return NextResponse.json(users)
@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
     const { metaMensual } = body
 
     if (id) {
-      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: permisosStr, metaMensual: parseFloat(metaMensual || '0') || 0 }
+      // Si se envían permisos vacíos desde la página de metas, preservar los que ya tiene el usuario
+      let finalPermisos = permisosStr
+      if (Array.isArray(permisos) && permisos.length === 0) {
+        const existing = await prisma.usuario.findUnique({ where: { id: Number(id) }, select: { permisos: true } })
+        if (existing?.permisos) finalPermisos = existing.permisos
+      }
+      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: finalPermisos, metaMensual: parseFloat(metaMensual || '0') || 0 }
       if (password) data.password = await bcrypt.hash(password, 12)
       await prisma.usuario.update({ where: { id: Number(id) }, data })
       return NextResponse.json({ ok: true })
