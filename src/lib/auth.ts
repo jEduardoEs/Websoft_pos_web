@@ -33,12 +33,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: { usuarioId: user.id }
             })
             if (existing) {
-              const hoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000)
+              const hoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000) // 24h
               if (existing.lastActivity > hoursAgo) {
-                // Active session exists — block login
                 throw new Error('SESION_ACTIVA')
               }
-              // Expired session — clean it up
+              // Sesión expirada — limpiar
               await prisma.activeSession.delete({ where: { usuarioId: user.id } })
             }
           } catch (e: any) {

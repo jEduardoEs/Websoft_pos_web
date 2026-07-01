@@ -69,6 +69,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    const body = await req.json()
+    const { id, accion } = body
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+
+    if (accion === 'activar') {
+      await prisma.usuario.update({ where: { id: Number(id) }, data: { activo: true } })
+      return NextResponse.json({ ok: true })
+    }
+
+    if (accion === 'cerrar_sesion') {
+      try {
+        await prisma.activeSession.delete({ where: { usuarioId: Number(id) } })
+      } catch { /* no había sesión activa */ }
+      return NextResponse.json({ ok: true })
+    }
+
+    return NextResponse.json({ error: 'Acción no reconocida' }, { status: 400 })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const session = await auth()

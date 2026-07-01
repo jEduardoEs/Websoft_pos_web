@@ -79,7 +79,19 @@ export default function UsuariosPage() {
   const del = async (u: Usuario) => {
     if (!confirm(`¿Desactivar "${u.nombre}"?`)) return
     const res = await fetch(`/api/usuarios?id=${u.id}`, { method: 'DELETE' })
-    if ((await res.json()).ok) { toast.success('Desactivado'); load() }
+    if ((await res.json()).ok) { toast.success('Usuario desactivado'); load() }
+  }
+
+  const activar = async (u: Usuario) => {
+    const res = await fetch('/api/usuarios', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id, accion: 'activar' }) })
+    if ((await res.json()).ok) { toast.success('Usuario reactivado'); load() }
+  }
+
+  const cerrarSesion = async (u: Usuario) => {
+    if (!confirm(`¿Forzar cierre de sesión de "${u.nombre}"?`)) return
+    const res = await fetch('/api/usuarios', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id, accion: 'cerrar_sesion' }) })
+    if ((await res.json()).ok) { toast.success(`Sesión de ${u.nombre} cerrada`); load() }
+    else toast.error('Error al cerrar sesión')
   }
 
   const rolDef = roles.find(r => r.id === form.rol)
@@ -146,7 +158,15 @@ export default function UsuariosPage() {
                     <td style={tdS}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn-ghost btn-sm" onClick={() => openEdit(u)}>Editar</button>
-                        <button className="btn-danger btn-sm" onClick={() => del(u)}>Desactivar</button>
+                        {u.activo
+                          ? <button className="btn-danger btn-sm" onClick={() => del(u)}>Desactivar</button>
+                          : <button className="btn-success btn-sm" onClick={() => activar(u)}>Activar</button>
+                        }
+                        <button onClick={() => cerrarSesion(u)}
+                          style={{ fontSize: 11, padding: '4px 9px', borderRadius: 4, border: '1.5px solid #d8d6cd', background: '#fff', cursor: 'pointer', color: '#52524d', fontFamily: 'inherit', fontWeight: 600 }}
+                          title="Forzar cierre de sesión activa">
+                          Cerrar sesión
+                        </button>
                       </div>
                     </td>
                   </tr>
