@@ -297,7 +297,7 @@ export default function CotizacionesPage() {
   }
 
   const duplicarCotizacion = (c: Cotizacion) => {
-    setEditingId(null) // null = nueva cotización, no edición
+    setEditingId(null)
     setForm({
       clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
       clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
@@ -316,6 +316,8 @@ export default function CotizacionesPage() {
     setShowModal(true)
     toast.info('Cotización duplicada — se creará con número nuevo al guardar')
   }
+
+  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
 
   const enviarWA = (cot: Cotizacion) => {
     const tel = (cot.clienteTelefono || '').replace(/\D/g, '')

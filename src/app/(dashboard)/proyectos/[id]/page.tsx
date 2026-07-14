@@ -20,7 +20,6 @@ interface Proyecto {
   id: number; numero: string; nombre: string
   clienteNombre: string; clienteTelefono: string | null
   clienteDireccion: string | null; clienteNit: string | null
-  ubicacion: string | null; ubicacionMaps: string | null
   contactoNombre: string | null; descripcion: string
   alcance: string | null; cotizacionNumero: string | null
   estado: string; fechaInicio: string | null; fechaFin: string | null
@@ -145,25 +144,8 @@ export default function ProyectoDetallePage({ params }: { params: { id: string }
             ))}
             {proyecto.clienteDireccion && (
               <div style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 3 }}>Dirección cliente</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 3 }}>Ubicación</div>
                 <div style={{ fontSize: 14, color: '#0f172a' }}>{proyecto.clienteDireccion}</div>
-              </div>
-            )}
-            {proyecto.ubicacion && (
-              <div style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 3 }}>Sitio de instalación</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 14, color: '#0f172a' }}>{proyecto.ubicacion}</div>
-                  {proyecto.ubicacionMaps && (
-                    <a href={proyecto.ubicacionMaps} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#1581E3', textDecoration: 'none', background: '#eaf3fd', padding: '3px 8px', borderRadius: 4, border: '1px solid #b9d8f7' }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                      </svg>
-                      Ver en mapa
-                    </a>
-                  )}
-                </div>
               </div>
             )}
           </div>
