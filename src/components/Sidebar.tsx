@@ -130,7 +130,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside style={{ width: 210, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+    <aside style={{ width: 210, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }}>
       <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
         {/* Dashboard */}
         <Link href="/dashboard" style={{ textDecoration: 'none' }}>

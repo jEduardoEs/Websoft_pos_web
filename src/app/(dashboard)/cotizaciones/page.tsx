@@ -101,6 +101,13 @@ export default function CotizacionesPage() {
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const handler = () => setOpenMenuId(null)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [])
   const [productos, setProductos] = useState<Producto[]>([])
   const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
   const [buscarProd, setBuscarProd] = useState('')
@@ -296,6 +303,8 @@ export default function CotizacionesPage() {
     setShowModal(true)
   }
 
+  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
+
   const duplicarCotizacion = (c: Cotizacion) => {
     setEditingId(null)
     setForm({
@@ -316,8 +325,6 @@ export default function CotizacionesPage() {
     setShowModal(true)
     toast.info('Cotización duplicada — se creará con número nuevo al guardar')
   }
-
-  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
 
   const enviarWA = (cot: Cotizacion) => {
     const tel = (cot.clienteTelefono || '').replace(/\D/g, '')
@@ -526,34 +533,64 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{fmt(c.total)}</td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                      {/* Acciones principales según estado */}
                       {(c.estado === 'aceptada' || c.estado === 'pendiente') && (
-                        <a href="/pos" onClick={() => { localStorage.setItem('cot_facturar', c.id.toString()); }}
-                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-                           Facturar
+                        <a href="/pos" onClick={() => { localStorage.setItem('cot_facturar', c.id.toString()) }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', background: '#1581E3', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                          Facturar
                         </a>
                       )}
                       {c.estado === 'pendiente' && (
                         <>
                           <button onClick={() => solicitarCambioEstado(c.id, 'aceptada', c.numero)}
-                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                             Aceptar
+                            style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                            Aceptar
                           </button>
                           <button onClick={() => solicitarCambioEstado(c.id, 'rechazada', c.numero)}
-                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                             Rechazar
+                            style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                            Rechazar
                           </button>
                         </>
                       )}
-                      {c.estado === 'aceptada' && (
-                        <button onClick={() => solicitarCambioEstado(c.id, 'pendiente', c.numero)}
-                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          ↩ Pendiente
+
+                      {/* Menú 3 puntos para acciones secundarias */}
+                      <div style={{ position: 'relative' }}>
+                        <button onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
+                          style={{ padding: '4px 7px', background: 'transparent', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#52524d', lineHeight: 1 }}>
+                          ⋯
                         </button>
-                      )}
-                      <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
-                      <button className="btn-ghost btn-sm" onClick={() => duplicarCotizacion(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Duplicar</button>
-                      <button className="btn-ghost btn-sm" onClick={() => abrirSendModal(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Enviar</button>
+                        {openMenuId === c.id && (
+                          <div style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}>
+                            <button onClick={() => { openEditCot(c); setOpenMenuId(null) }}
+                              style={{ display: 'block', width: '100%', padding: '9px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                              Editar
+                            </button>
+                            <button onClick={() => { duplicarCotizacion(c); setOpenMenuId(null) }}
+                              style={{ display: 'block', width: '100%', padding: '9px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                              Duplicar
+                            </button>
+                            <button onClick={() => { abrirSendModal(c); setOpenMenuId(null) }}
+                              style={{ display: 'block', width: '100%', padding: '9px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                              Enviar
+                            </button>
+                            {c.estado === 'aceptada' && (
+                              <button onClick={() => { solicitarCambioEstado(c.id, 'pendiente', c.numero); setOpenMenuId(null) }}
+                                style={{ display: 'block', width: '100%', padding: '9px 14px', fontSize: 12, fontWeight: 500, color: '#d97706', background: 'none', border: 'none', borderTop: '1px solid #f1f5f9', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#fffbeb')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                ↩ Revertir a pendiente
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

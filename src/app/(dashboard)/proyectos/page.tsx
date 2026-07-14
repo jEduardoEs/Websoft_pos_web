@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 interface Mant {
@@ -26,6 +27,9 @@ const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteD
 
 export default function ProyectosPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const rol = (session?.user as any)?.role || ''
+  const esAdminOSupervisor = rol === 'admin' || rol === 'supervisor'
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
   const [alertas, setAlertas] = useState({ proximos: 0, vencidos: 0 })
   const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'>('todos')
@@ -33,6 +37,8 @@ export default function ProyectosPage() {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
+  const [showPinEliminar, setShowPinEliminar] = useState<number | null>(null)
+  const [pinInput, setPinInput] = useState('')
 
   const load = useCallback(async () => {
     const params = new URLSearchParams()
@@ -57,6 +63,27 @@ export default function ProyectosPage() {
   }
 
   const diasPara = (fecha: string) => Math.ceil((new Date(fecha).getTime() - Date.now()) / 86400000)
+
+  const eliminarProyecto = async (id: number, conPin?: string) => {
+    const res = await fetch(`/api/proyectos/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: conPin }),
+    })
+    const d = await res.json()
+    if (d.ok) { toast.success('Proyecto eliminado'); setShowPinEliminar(null); setPinInput(''); load() }
+    else toast.error(d.error || 'No autorizado')
+  }
+
+  const handleEliminar = (id: number) => {
+    if (esAdminOSupervisor) {
+      if (!confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
+      eliminarProyecto(id)
+    } else {
+      setShowPinEliminar(id)
+      setPinInput('')
+    }
+  }
 
   const getAlertaMant = (mantenimientos: Mant[]) => {
     const pendientes = mantenimientos.filter(m => !m.realizado)
@@ -153,7 +180,13 @@ export default function ProyectosPage() {
                         </div>
                       </td>
                       <td style={tdS} onClick={e => e.stopPropagation()}>
-                        <button className="btn-ghost btn-sm" onClick={() => router.push(`/proyectos/${p.id}`)}>Ver →</button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn-ghost btn-sm" onClick={() => router.push(`/proyectos/${p.id}`)}>Ver →</button>
+                          <button onClick={() => handleEliminar(p.id)}
+                            style={{ fontSize: 11, padding: '4px 9px', borderRadius: 4, border: '1.5px solid #e3c3bd', background: '#fef2f2', color: '#b13a2e', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                            Eliminar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -227,6 +260,26 @@ export default function ProyectosPage() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
               <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Guardando...' : 'Crear proyecto'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal PIN para eliminar (técnicos) */}
+      {showPinEliminar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 28, width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b', marginBottom: 8 }}>Eliminar proyecto</h3>
+            <p style={{ fontSize: 13, color: '#52524d', marginBottom: 20, lineHeight: 1.6 }}>
+              Esta acción requiere autorización. Ingresa el PIN de administrador para continuar.
+            </p>
+            <input className="input" type="password" placeholder="PIN de administrador" value={pinInput}
+              onChange={e => setPinInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') eliminarProyecto(showPinEliminar, pinInput) }}
+              style={{ marginBottom: 16, letterSpacing: 4, textAlign: 'center', fontSize: 18 }} autoFocus />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn-ghost" onClick={() => { setShowPinEliminar(null); setPinInput('') }}>Cancelar</button>
+              <button className="btn-danger" onClick={() => eliminarProyecto(showPinEliminar, pinInput)}>Confirmar</button>
             </div>
           </div>
         </div>

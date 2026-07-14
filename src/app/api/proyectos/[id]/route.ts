@@ -65,9 +65,35 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true, proyecto })
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth()
-  if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const rol = (session.user as any).role || ''
+  const esAdminOSupervisor = rol === 'admin' || rol === 'supervisor'
+
+  if (!esAdminOSupervisor) {
+    // Técnico requiere PIN de admin
+    const body = await req.json().catch(() => ({}))
+    const { pin } = body
+    if (!pin) return NextResponse.json({ error: 'Se requiere PIN de administrador' }, { status: 403 })
+
+    // Verificar PIN contra cualquier usuario admin activo
+    const admins = await prisma.usuario.findMany({ where: { rol: 'admin', activo: true } })
+    const bcrypt = await import('bcryptjs')
+    let pinValido = false
+    for (const admin of admins) {
+      if (admin.password && await bcrypt.compare(pin, admin.password)) {
+        pinValido = true; break
+      }
+    }
+    // También verificar como PIN de 4 dígitos configurado
+    const pinConfig = await prisma.config.findUnique({ where: { clave: 'pin_admin' } })
+    if (pinConfig?.valor === pin) pinValido = true
+
+    if (!pinValido) return NextResponse.json({ error: 'PIN incorrecto' }, { status: 403 })
+  }
+
   await prisma.proyecto.delete({ where: { id: Number(params.id) } })
   return NextResponse.json({ ok: true })
 }
