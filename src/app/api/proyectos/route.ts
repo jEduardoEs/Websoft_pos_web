@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const {
     nombre, clienteNombre, clienteTelefono, clienteDireccion, clienteNit,
     contactoNombre, descripcion, alcance, cotizacionId, cotizacionNumero,
-    fechaInicio, fechaFin, notas,
+    fechaInicio, fechaFin, notas, ubicacion, ubicacionMaps,
   } = body
 
   if (!nombre || !clienteNombre || !descripcion) {
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     data: {
       numero, nombre, clienteNombre, clienteTelefono, clienteDireccion,
       clienteNit, contactoNombre, descripcion, alcance,
+      ubicacion: ubicacion || null, ubicacionMaps: ubicacionMaps || null,
       cotizacionId: cotizacionId ? Number(cotizacionId) : null,
       cotizacionNumero, fechaInicio: inicio,
       fechaFin: fechaFin ? new Date(fechaFin) : null,

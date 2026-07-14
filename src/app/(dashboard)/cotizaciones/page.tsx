@@ -296,7 +296,26 @@ export default function CotizacionesPage() {
     setShowModal(true)
   }
 
-  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
+  const duplicarCotizacion = (c: Cotizacion) => {
+    setEditingId(null) // null = nueva cotización, no edición
+    setForm({
+      clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
+      clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      atencion: c.atencion || '', formaPago: c.formaPago || '',
+      descripcion: c.descripcion || '', notas: c.notas || '',
+      validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
+    })
+    setItems((c.items || []).map((it: any) => ({
+      tipo: it.tipo || 'producto' as const, productoId: null, codigo: it.codigo || '',
+      descripcion: it.descripcion, costoCompra: 0,
+      precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
+      descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
+      total: Number(it.totalItem), zonaId: null, zonaNombre: '', zonaTarifa: 0,
+      cargoAdicional: 0, notaAdicional: '',
+    })))
+    setShowModal(true)
+    toast.info('Cotización duplicada — se creará con número nuevo al guardar')
+  }
 
   const enviarWA = (cot: Cotizacion) => {
     const tel = (cot.clienteTelefono || '').replace(/\D/g, '')
@@ -531,6 +550,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                         </button>
                       )}
                       <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
+                      <button className="btn-ghost btn-sm" onClick={() => duplicarCotizacion(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Duplicar</button>
                       <button className="btn-ghost btn-sm" onClick={() => abrirSendModal(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Enviar</button>
                     </div>
                   </td>

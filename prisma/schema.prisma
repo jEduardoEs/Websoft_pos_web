@@ -705,6 +705,8 @@ model Proyecto {
   contactoNombre   String?  @map("contacto_nombre")
   descripcion      String
   alcance          String?
+  ubicacion        String?  // Dirección específica del sitio de instalación
+  ubicacionMaps    String?  @map("ubicacion_maps") // Link de Google Maps
   cotizacionId     Int?     @unique @map("cotizacion_id")
   cotizacionNumero String?  @map("cotizacion_numero")
   fechaInicio      DateTime? @map("fecha_inicio")

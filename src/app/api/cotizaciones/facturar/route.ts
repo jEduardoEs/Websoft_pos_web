@@ -95,6 +95,49 @@ export async function POST(req: NextRequest) {
         data: { valor: String(num + 1) },
       })
 
+      // Auto-crear un proyecto por cada ítem de instalación
+      const itemsInstalacion = cotizacion.items.filter((it: any) =>
+        it.descripcion.toLowerCase().includes('instalac') ||
+        it.codigo?.toLowerCase().includes('inst')
+      )
+
+      if (itemsInstalacion.length > 0) {
+        const proyCount = await tx.proyecto.count()
+        for (let i = 0; i < itemsInstalacion.length; i++) {
+          const item = itemsInstalacion[i]
+          const pryNumero = `PRY-${String(proyCount + i + 1).padStart(6, '0')}`
+          const fechaInicio = new Date()
+          const addMonths = (d: Date, m: number) => { const r = new Date(d); r.setMonth(r.getMonth() + m); return r }
+
+          // Si hay múltiples instalaciones, nombrar cada una con su descripción
+          const nombreProyecto = itemsInstalacion.length > 1
+            ? `${item.descripcion} — ${cotizacion.clienteNombre}`
+            : `Instalación ${cotizacion.clienteNombre}`
+
+          await tx.proyecto.create({
+            data: {
+              numero: pryNumero,
+              nombre: nombreProyecto,
+              clienteNombre: clienteNombre || cotizacion.clienteNombre,
+              clienteTelefono: cotizacion.clienteTelefono,
+              clienteDireccion: cotizacion.clienteDireccion,
+              clienteNit: clienteNit || cotizacion.clienteNit || 'CF',
+              descripcion: item.descripcion,
+              cotizacionNumero: cotizacion.numero,
+              estado: 'planificado',
+              usuarioNombre: session.user.name,
+              fechaInicio,
+              mantenimientos: {
+                create: [1, 2, 3].map(n => ({
+                  numero: n,
+                  fechaProgramada: addMonths(fechaInicio, n * 4),
+                })),
+              },
+            },
+          })
+        }
+      }
+
       return v
     })
 

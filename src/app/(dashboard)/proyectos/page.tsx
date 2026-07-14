@@ -12,6 +12,7 @@ interface Proyecto {
   id: number; numero: string; nombre: string
   clienteNombre: string; clienteTelefono: string | null
   clienteDireccion: string | null; descripcion: string
+  ubicacion: string | null; ubicacionMaps: string | null
   cotizacionNumero: string | null; estado: string
   fechaInicio: string | null; mantenimientos: Mant[]
   createdAt: string
@@ -22,7 +23,7 @@ const ESTADO_LABEL: Record<string, string> = { planificado: 'Planificado', en_ej
 const ESTADO_COLOR: Record<string, string> = { planificado: '#1581E3', en_ejecucion: '#d97706', completado: '#16a34a', cancelado: '#94a3b8' }
 const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteDireccion: '', clienteNit: '', contactoNombre: '', descripcion: '', alcance: '', cotizacionNumero: '', fechaInicio: new Date().toISOString().split('T')[0], notas: '' }
+const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteDireccion: '', clienteNit: '', contactoNombre: '', descripcion: '', alcance: '', cotizacionNumero: '', fechaInicio: new Date().toISOString().split('T')[0], notas: '', ubicacion: '', ubicacionMaps: '' }
 
 export default function ProyectosPage() {
   const router = useRouter()
@@ -205,6 +206,17 @@ export default function ProyectosPage() {
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Alcance / detalles técnicos adicionales</label>
                 <textarea className="input" rows={2} value={form.alcance} onChange={e => setF('alcance', e.target.value)} placeholder="Metraje de cable, configuración especial, equipos adicionales..." style={{ resize: 'vertical' }} />
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label style={lbl}>Ubicación del sitio de instalación</label>
+                <input className="input" value={form.ubicacion} onChange={e => setF('ubicacion', e.target.value)} placeholder="Ej: Bodega principal, 2da calle zona 1 Sanarate..." />
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label style={lbl}>Link de Google Maps (opcional)</label>
+                <input className="input" value={form.ubicacionMaps} onChange={e => setF('ubicacionMaps', e.target.value)} placeholder="https://maps.google.com/..." />
+                <div style={{ fontSize: 11, color: '#8a887e', marginTop: 4 }}>
+                  Abre Google Maps → comparte ubicación → copia el link
+                </div>
               </div>
               <div>
                 <label style={lbl}>Fecha de instalación *</label>
