@@ -156,13 +156,13 @@ export default function InventarioPage() {
                   <td style={tdS}>
                     <div style={{ display: 'flex', gap: 5 }}>
                       <button className="btn-ghost btn-sm" onClick={() => openEdit(p)}>
-                        
+                        Editar
                       </button>
                       <button className="btn-ghost btn-sm" onClick={() => openKardex(p)} style={{ color: '#7c3aed', borderColor: '#ddd6fe' }}>
-                        
+                        Kardex
                       </button>
                       <button className="btn-danger btn-sm" onClick={() => del(p)}>
-                        
+                        Eliminar
                       </button>
                     </div>
                   </td>

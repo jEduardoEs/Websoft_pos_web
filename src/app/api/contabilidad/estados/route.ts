@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     if (tipo === 'pyg') {
       // Income statement from real data
-      const ventas = await prisma.venta.aggregate({ where: { fecha: { gte: fechaIni, lte: fechaFin }, estado: { not: 'cancelada' } }, _sum: { total: true }, _count: true })
+      const ventas = await prisma.venta.aggregate({ where: { fecha: { gte: fechaIni, lte: fechaFin }, estado: 'completada' }, _sum: { total: true }, _count: true })
       const compras = await prisma.compra.aggregate({ where: { fecha: { gte: fechaIni, lte: fechaFin } }, _sum: { total: true } })
       const ingresos = (ventas._sum.total || 0) / 1.05 // sin IVA
 

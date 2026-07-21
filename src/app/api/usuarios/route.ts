@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
     const users = await prisma.usuario.findMany({
-      select: { id: true, nombre: true, usuario: true, rol: true, permisos: true, activo: true, createdAt: true },
+      select: { id: true, nombre: true, usuario: true, rol: true, permisos: true, activo: true, metaMensual: true, createdAt: true },
       orderBy: { nombre: 'asc' },
     })
     return NextResponse.json(users)
@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
     const { metaMensual } = body
 
     if (id) {
-      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: permisosStr, metaMensual: parseFloat(metaMensual || '0') || 0 }
+      // Si se envían permisos vacíos desde la página de metas, preservar los que ya tiene el usuario
+      let finalPermisos = permisosStr
+      if (Array.isArray(permisos) && permisos.length === 0) {
+        const existing = await prisma.usuario.findUnique({ where: { id: Number(id) }, select: { permisos: true } })
+        if (existing?.permisos) finalPermisos = existing.permisos
+      }
+      const data: any = { nombre, usuario, rol: rol || 'cajero', permisos: finalPermisos, metaMensual: parseFloat(metaMensual || '0') || 0 }
       if (password) data.password = await bcrypt.hash(password, 12)
       await prisma.usuario.update({ where: { id: Number(id) }, data })
       return NextResponse.json({ ok: true })
@@ -58,6 +64,34 @@ export async function POST(req: NextRequest) {
       },
     })
     return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    const body = await req.json()
+    const { id, accion } = body
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+
+    if (accion === 'activar') {
+      await prisma.usuario.update({ where: { id: Number(id) }, data: { activo: true } })
+      return NextResponse.json({ ok: true })
+    }
+
+    if (accion === 'cerrar_sesion') {
+      try {
+        await prisma.activeSession.delete({ where: { usuarioId: Number(id) } })
+      } catch { /* no había sesión activa */ }
+      return NextResponse.json({ ok: true })
+    }
+
+    return NextResponse.json({ error: 'Acción no reconocida' }, { status: 400 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }

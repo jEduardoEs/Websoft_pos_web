@@ -1,189 +1,77 @@
-# WS POS Web — Sistema de Facturación
+# WebSoft Solutions POS — FEL + Correo + Tickets
 
-Sistema POS profesional full-stack para web, listo para desplegar en **Vercel + Neon (PostgreSQL)**.
+## Archivos incluidos
 
-## Stack tecnológico
+```
+src/lib/fel.ts                          → Servicio INFILE (sandbox/pruebas/produccion)
+src/lib/email-factura.ts                → Factura por correo (Resend o SMTP)
+src/lib/ticket-printer.ts              → Ticket 80mm para Epson TM-T30II
+src/app/api/ventas/route.ts            → API ventas con hooks FEL + email
+src/app/(dashboard)/pos/page.tsx       → POS actualizado
+src/app/(dashboard)/fel/page.tsx       → Panel FEL
+prisma/schema-venta-patch.prisma       → Campos FEL para agregar al schema
+```
 
-| Capa | Tecnología |
-|------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Base de datos | PostgreSQL (Neon.tech) |
-| ORM | Prisma |
-| Autenticación | NextAuth v5 (JWT) |
-| Estilos | Tailwind CSS |
-| Gráficas | Recharts |
-| Hosting | Vercel |
+## Instalación
 
-## Módulos incluidos
-
-- ✅ Login con roles (Admin / Cajero)
-- ✅ Dashboard con estadísticas del día
-- ✅ POS — punto de venta con carrito en tiempo real
-- ✅ Historial de ventas con filtros y anulación
-- ✅ Inventario con CRUD y Kardex
-- ✅ Clientes
-- ✅ Proveedores
-- ✅ Compras (actualiza stock automáticamente)
-- ✅ Devoluciones (restaura stock)
-- ✅ Códigos de descuento
-- ✅ Cierre de caja
-- ✅ Apertura/cierre de turno
-- ✅ Reportes con gráficas (barras, pie)
-- ✅ Configuración de empresa
-- ✅ Gestión de usuarios
-- ✅ Impresión de ticket (ventana del navegador)
-- ✅ Log de auditoría
-
----
-
-## Despliegue en Vercel (paso a paso)
-
-### 1. Base de datos — Neon (gratis)
-
-1. Ve a [neon.tech](https://neon.tech) y crea una cuenta gratuita
-2. Crea un nuevo proyecto → copia las URLs de conexión:
-   - `DATABASE_URL` (connection pooling)
-   - `DIRECT_URL` (direct connection)
-
-### 2. Subir código a GitHub
+**1. Schema** — reemplaza el modelo `Venta` con el del patch y corre:
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit - WS POS Web"
-git remote add origin https://github.com/TU_USUARIO/ws-pos-web.git
-git push -u origin main
+npx prisma@5.22.0 db push
 ```
 
-### 3. Desplegar en Vercel
-
-1. Ve a [vercel.com](https://vercel.com) → New Project → importa tu repo
-2. En **Environment Variables**, agrega:
+**2. Variables en Vercel** — las mínimas para empezar:
 
 ```
-DATABASE_URL = postgresql://user:pass@ep-xxx.neon.tech/ws_pos?sslmode=require
-DIRECT_URL   = postgresql://user:pass@ep-xxx.neon.tech/ws_pos?sslmode=require
-NEXTAUTH_SECRET = (genera con: openssl rand -base64 32)
-NEXTAUTH_URL = https://TU-APP.vercel.app
+FEL\_MODO=sandbox
 ```
 
-3. Build command: `prisma generate && next build`
-4. Deploy!
-
-### 4. Inicializar la base de datos
-
-Después del primer deploy, ejecuta desde tu máquina:
-
-```bash
-# Instala dependencias localmente
-npm install
-
-# Crea las tablas en Neon
-npx prisma db push
-
-# Carga datos iniciales (usuarios + productos de ejemplo)
-npm run db:seed
-```
-
-### 5. Acceder al sistema
-
-- URL: `https://tu-app.vercel.app`
-- **Admin:** usuario `admin` / contraseña `admin123`
-- **Cajero:** usuario `cajero` / contraseña `cajero123`
-
-> ⚠️ **Cambia las contraseñas en el primer uso** (Módulo Usuarios)
-
----
-
-## Desarrollo local
-
-```bash
-# 1. Clonar
-git clone https://github.com/TU_USUARIO/ws-pos-web.git
-cd ws-pos-web
-
-# 2. Instalar dependencias
-npm install
-
-# 3. Configurar variables de entorno
-cp .env.example .env.local
-# Edita .env.local con tus credenciales de Neon
-
-# 4. Inicializar BD
-npx prisma db push
-npm run db:seed
-
-# 5. Iniciar servidor de desarrollo
-npm run dev
-```
-
-Abre [http://localhost:3000](http://localhost:3000)
-
----
-
-## Estructura del proyecto
+Cuando tengas contrato con INFILE agrega:
 
 ```
-ws-pos-web/
-├── prisma/
-│   ├── schema.prisma     # Esquema de la BD (16 tablas)
-│   └── seed.ts           # Datos iniciales
-├── src/
-│   ├── app/
-│   │   ├── api/          # API Routes (REST)
-│   │   │   ├── auth/     # NextAuth
-│   │   │   ├── ventas/
-│   │   │   ├── productos/
-│   │   │   ├── clientes/
-│   │   │   └── ...
-│   │   ├── (auth)/
-│   │   │   └── login/
-│   │   └── (dashboard)/
-│   │       ├── pos/
-│   │       ├── ventas/
-│   │       ├── inventario/
-│   │       └── ...
-│   ├── components/
-│   │   ├── Sidebar.tsx
-│   │   └── Topbar.tsx
-│   └── lib/
-│       ├── auth.ts       # NextAuth config
-│       ├── prisma.ts     # Cliente Prisma
-│       └── utils.ts      # Helpers
-└── README.md
+FEL\_MODO=produccion
+FEL\_USUARIO=tu\_usuario
+FEL\_CLAVE=tu\_clave
+FEL\_NIT\_EMISOR=115471413
+FEL\_SERIE=A
 ```
 
----
+Para correo (Resend es gratis hasta 3,000/mes):
 
-## Personalización
+```
+EMAIL\_PROVIDER=resend
+RESEND\_API\_KEY=re\_xxxxxxxxxxxx
+EMAIL\_FROM=WebSoft Solutions <facturas@websoftsolutions.com.gt>
+```
 
-### Cambiar el nombre/logo de la empresa
-Ve a **Configuración → Empresa** en el sistema.
+**3. Configuración en el sistema:**
 
-### Cambiar IVA
-Ve a **Configuración → Sistema** → IVA (%).
+* FEL: Configuración → FEL / SAT → activar
+* Correo: Configuración → Ventas y Tickets → activar "Factura por correo"
 
-### Agregar categorías de productos
-Las categorías se crean automáticamente al agregar productos en Inventario.
+**4. Copiar archivos** al proyecto y hacer redeploy.
 
----
+## Cómo funciona
 
-## Seguridad
+Cada venta en el POS:
 
-- Contraseñas hasheadas con bcrypt (12 rounds)
-- Sesiones JWT firmadas
-- Middleware de autenticación en todas las rutas
-- Roles: `admin` (acceso total) / `cajero` (acceso limitado)
-- Log de auditoría en operaciones críticas
+1. Se guarda normalmente en la DB
+2. Si FEL está activo → llama a INFILE y guarda el UUID en la venta
+3. Si el cliente tiene correo → envía la factura en HTML
 
----
+El ticket se imprime automáticamente al cobrar. Incluye el UUID y QR del SAT cuando FEL está en producción.
 
-## Soporte
+## Impresora Epson TM-T30II (USB)
 
-Credenciales por defecto:
-| Usuario | Contraseña | Rol |
-|---------|-----------|-----|
-| admin | admin123 | Administrador |
-| cajero | cajero123 | Cajero |
+La impresora aparece como impresora normal del sistema. Al imprimir:
 
-**Cambia estas contraseñas inmediatamente después del primer login.**
+* Seleccionar la Epson en el diálogo
+* Papel: 80mm, sin márgenes, escala 100%
+* Desactivar encabezado y pie de página del navegador
+
+## INFILE
+
+Contactar en infile.com.gt o al PBX 2261-9595. Pedir plan básico, te asignan usuario, clave y serie en 1-3 días hábiles.
+
+….
+

@@ -2,12 +2,14 @@
 export const MODULOS = [
   { id: 'pos',          label: 'Nueva Venta (POS)',    group: 'Ventas' },
   { id: 'ventas',       label: 'Historial de Ventas',  group: 'Ventas' },
-  { id: 'cotizaciones', label: 'Cotizaciones',          group: 'Ventas' },
+  { id: 'cotizaciones',    label: 'Cotizaciones',          group: 'Ventas' },
+  { id: 'proyectos',      label: 'Proyectos',             group: 'Ventas' },
   { id: 'devoluciones', label: 'Devoluciones',          group: 'Ventas' },
   { id: 'inventario',   label: 'Inventario',            group: 'Inventario' },
   { id: 'clientes',     label: 'Clientes',              group: 'Clientes' },
-  { id: 'garantias',    label: 'Garantías',             group: 'Clientes' },
-  { id: 'servicio',     label: 'Servicio Técnico',      group: 'Servicios' },
+  { id: 'campanas',     label: 'Campañas WhatsApp',     group: 'Clientes' },
+  { id: 'garantias',        label: 'Garantías',             group: 'Clientes' },
+  { id: 'servicio',        label: 'Servicio Técnico',      group: 'Servicios' },
   { id: 'caja',         label: 'Control de Caja',       group: 'Caja' },
   { id: 'pedidos',      label: 'Pedidos Web',            group: 'Ventas' },
   { id: 'proveedores',  label: 'Proveedores',           group: 'Compras' },
@@ -19,6 +21,11 @@ export const MODULOS = [
   { id: 'reportes',     label: 'Reportes',              group: 'Admin' },
   { id: 'presupuesto',  label: 'Presupuesto vs Real',   group: 'Admin' },
   { id: 'fel',          label: 'FEL / SAT',             group: 'Admin' },
+  { id: 'usuarios',     label: 'Usuarios',              group: 'Sistema' },
+  { id: 'roles',        label: 'Roles',                 group: 'Sistema' },
+  { id: 'sesiones',     label: 'Sesiones Activas',      group: 'Sistema' },
+  { id: 'config',       label: 'Configuracion',         group: 'Sistema' },
+  { id: 'auditoria',    label: 'Auditoria',             group: 'Sistema' },
   { id: 'dashboard',    label: 'Dashboard',             group: 'General' },
 ]
 
@@ -48,11 +55,13 @@ export function parsePermisos(permisos: string | null | undefined): string[] {
 
 export function tienePermiso(permisos: string[], modulo: string, rol: string): boolean {
   if (rol === 'admin') return true
-  // If user has explicit permisos set, always use those
+  // Si el usuario tiene permisos explícitos definidos, usar SOLO esos — sin fallback
   if (permisos && permisos.length > 0) return permisos.includes(modulo)
-  // Fall back to role defaults
-  if (rol === 'contador') return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
+  // Fallback solo para roles predefinidos del sistema (sin permisos guardados aún)
+  if (rol === 'contador')   return PERMISOS_CONTADOR_DEFAULT.includes(modulo)
   if (rol === 'supervisor') return PERMISOS_SUPERVISOR_DEFAULT.includes(modulo)
-  if (rol === 'bodega') return PERMISOS_BODEGA_DEFAULT.includes(modulo)
-  return PERMISOS_CAJERO_DEFAULT.includes(modulo)
+  if (rol === 'bodega')     return PERMISOS_BODEGA_DEFAULT.includes(modulo)
+  if (rol === 'cajero')     return PERMISOS_CAJERO_DEFAULT.includes(modulo)
+  // Cualquier otro rol (personalizado) sin permisos definidos: sin acceso
+  return false
 }

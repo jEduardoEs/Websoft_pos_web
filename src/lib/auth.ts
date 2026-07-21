@@ -18,8 +18,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.usuario || !credentials?.password) return null
 
-        const user = await prisma.usuario.findUnique({
-          where: { usuario: credentials.usuario as string, activo: true },
+        const user = await prisma.usuario.findFirst({
+          where: { usuario: { equals: credentials.usuario as string, mode: 'insensitive' }, activo: true },
         })
         if (!user) return null
 
@@ -33,12 +33,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: { usuarioId: user.id }
             })
             if (existing) {
-              const hoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000)
+              const hoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000) // 24h
               if (existing.lastActivity > hoursAgo) {
-                // Active session exists — block login
                 throw new Error('SESION_ACTIVA')
               }
-              // Expired session — clean it up
+              // Sesión expirada — limpiar
               await prisma.activeSession.delete({ where: { usuarioId: user.id } })
             }
           } catch (e: any) {
@@ -57,24 +56,51 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           })
         } catch { /* ignore */ }
 
+        // Resolver permisos: si el usuario no tiene permisos guardados (o el array viene vacío),
+        // buscar los permisos definidos actualmente para su rol en el catálogo de roles personalizados.
+        let permisosResueltos = user.permisos || ''
+        try {
+          const parsed = permisosResueltos ? JSON.parse(permisosResueltos) : []
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            const cfgRoles = await prisma.config.findUnique({ where: { clave: 'roles_personalizados' } })
+            const roles = cfgRoles ? JSON.parse(cfgRoles.valor || '[]') : []
+            const rolDef = roles.find((r: any) => r.id === user.rol)
+            if (rolDef?.permisos?.length) {
+              permisosResueltos = JSON.stringify(rolDef.permisos)
+              // Persistir para que quede sincronizado de ahora en adelante
+              await prisma.usuario.update({ where: { id: user.id }, data: { permisos: permisosResueltos } })
+            }
+          }
+        } catch { /* si falla el parseo, se usa el valor original */ }
+
         return {
           id: String(user.id),
           name: user.nombre,
           email: user.usuario,
           role: user.rol,
           sessionToken,
-          permisos: user.permisos || '',
+          permisos: permisosResueltos,
         }
       },
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.role = (user as any).role
         token.id = user.id
         token.sessionToken = (user as any).sessionToken
         token.permisos = (user as any).permisos || ''
+      }
+      // Cuando se llama session.update() desde el cliente, recargar permisos frescos desde la DB
+      if (trigger === 'update' && token.id) {
+        try {
+          const fresh = await prisma.usuario.findUnique({ where: { id: parseInt(token.id as string) } })
+          if (fresh) {
+            token.permisos = fresh.permisos || ''
+            token.role = fresh.rol
+          }
+        } catch { /* ignore */ }
       }
       return token
     },

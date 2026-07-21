@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import ZonasInstalacionTab from '@/components/ZonasInstalacionTab'
 
 interface Cfg { [key: string]: string }
 
@@ -57,6 +58,7 @@ export default function ConfigPage() {
     fetch('/api/config').then(r => r.json()).then(setCfg)
   }, [])
 
+
   const set = (k: string, v: string) => setCfg(p => ({ ...p, [k]: v }))
 
   const save = async (keys?: string[]) => {
@@ -104,6 +106,7 @@ export default function ConfigPage() {
     { id: 'alertas',      label: 'Alertas' },
     { id: 'tienda',       label: 'Tienda Online' },
     { id: 'cuentas',      label: 'Cuentas Bancarias' },
+    { id: 'zonas',        label: 'Zonas de Instalación' },
   ]
 
   return (
@@ -253,6 +256,29 @@ export default function ConfigPage() {
           <FIELD label="Mostrar logo en el ticket">
             {toggle('ticket_mostrar_logo')}
           </FIELD>
+          <FIELD label="Factura por correo (Resend)" full helpText="Envía automáticamente la factura al email del cliente al completar una venta">
+            {toggle('email_factura_activo')}
+          </FIELD>
+          {cfg.email_factura_activo === 'true' && (
+            <div style={{ gridColumn: '1/-1', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#166534', marginBottom: 12 }}>Configuración de Resend</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 5 }}>RESEND_API_KEY</label>
+                  <input className="input" type="password" value={cfg.resend_api_key || ''} onChange={e => set('resend_api_key', e.target.value)} placeholder="re_xxxxxxxxxxxxxxxxxxxx" />
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Obtén tu key en <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#1581E3' }}>resend.com/api-keys</a></div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 5 }}>EMAIL_FROM (remitente)</label>
+                  <input className="input" value={cfg.email_from || ''} onChange={e => set('email_from', e.target.value)} placeholder="factura@tudominio.com" />
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Para pruebas usa: <code>onboarding@resend.dev</code></div>
+                </div>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, color: '#64748b', background: '#fff', borderRadius: 8, padding: '10px 14px', border: '1px solid #e2e8f0' }}>
+                <strong>Nota:</strong> Si usas tu propio dominio (recomendado), primero verifícalo en Resend → Domains. Si solo tienes la API key sin dominio verificado, usa <code>onboarding@resend.dev</code> como remitente — solo funciona para testing.
+              </div>
+            </div>
+          )}
         </SECTION>
       )}
 
@@ -356,7 +382,7 @@ export default function ConfigPage() {
               { key: 'STRIPE_SECRET_KEY', desc: 'Clave secreta de Stripe (stripe.com → Developers → API Keys)', req: true },
               { key: 'STRIPE_WEBHOOK_SECRET', desc: 'Secret del webhook de Stripe (para confirmar pagos automáticamente)', req: true },
               { key: 'NEXT_PUBLIC_POS_URL', desc: 'URL de tu POS (ej: https://websoft-pos-web.vercel.app)', req: true },
-              { key: 'NEXT_PUBLIC_LANDING_URL', desc: 'URL de tu landing (ej: https://websoft-solutions.vercel.app)', req: true },
+              { key: 'NEXT_PUBLIC_LANDING_URL', desc: 'URL de tu landing (ej: https://websoftsolutions.com.gt)', req: true },
             ].map(v => (
               <div key={v.key} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -437,12 +463,17 @@ export default function ConfigPage() {
         </div>
       )}
 
+      {/* ZONAS DE INSTALACIÓN */}
+      {activeTab === 'zonas' && <ZonasInstalacionTab />}
+
       {/* Save button bottom */}
+      {activeTab !== 'zonas' && (
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <button className="btn-primary" onClick={() => save()} disabled={loading} style={{ minWidth: 160, padding: '12px 24px' }}>
           {loading ? 'Guardando...' : saved ? ' Guardado' : ' Guardar Configuración'}
         </button>
       </div>
+      )}
     </div>
   )
 }

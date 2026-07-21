@@ -20,13 +20,13 @@ export async function GET(req: NextRequest) {
 
     const rows = await prisma.config.findMany({ where: { clave: { in: keys } } })
     const cfg: Record<string, string> = {}
-    rows.forEach(r => { cfg[r.clave] = r.valor })
+    rows.forEach((r: any) => { cfg[r.clave] = r.valor })
 
     const d = {
       empresa_nombre:   cfg.empresa_nombre   || 'WebSoft Solutions',
       empresa_nit:      cfg.empresa_nit      || '',
       empresa_telefono: cfg.empresa_telefono || '3836-1044 / 3671-4377',
-      empresa_web:      cfg.empresa_web      || 'websoft-solutions.vercel.app',
+      empresa_web:      cfg.empresa_web      || 'websoftsolutions.com.gt',
       empresa_direccion:cfg.empresa_direccion|| 'Guastatoya, El Progreso',
       cuentas_nota:     cfg.cuentas_nota     || 'Estas son las únicas cuentas bancarias autorizadas para recibir depósitos y transferencias. No procesamos órdenes si el depósito se realiza a otra cuenta.',
     }
@@ -37,17 +37,39 @@ export async function GET(req: NextRequest) {
       titular: cfg[`banco${i}_titular`] || '',
     })).filter(b => b.nombre && b.cuenta)
 
-    const bancosHTML = bancos.map(b => `
+    const bancosHTML = bancos.map(b => {
+      const nombreUpper = b.nombre.toUpperCase()
+      const bancoConfig: Record<string, { color: string; bg: string; logo: string | null; abbr: string }> = {
+        'BAC':         { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
+        'CREDOMATIC':  { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
+        'INDUSTRIAL':  { color: '#003087', bg: '#e6eaf4', logo: 'https://websoft-pos-web.vercel.app/bancos/industrial.png', abbr: 'BI'  },
+        'G&T':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'GYT':         { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'CONTINENTAL': { color: '#003087', bg: '#eef0f8', logo: 'https://websoft-pos-web.vercel.app/bancos/gyt.png',        abbr: 'G&T' },
+        'BANRURAL':    { color: '#006633', bg: '#e6f4ee', logo: 'https://websoft-pos-web.vercel.app/bancos/banrural.png',   abbr: 'BR'  },
+        'AGROMERCANTIL':{ color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
+        'BAM':         { color: '#ff6600', bg: '#fff0e6', logo: null, abbr: 'BAM' },
+        'OCCIDENTE':   { color: '#003366', bg: '#e6edf4', logo: null, abbr: 'BO'  },
+        'PROMERICA':   { color: '#e3000f', bg: '#fde8e9', logo: null, abbr: 'PRO' },
+        'BANTRAB':     { color: '#003087', bg: '#e6eaf4', logo: null, abbr: 'BT'  },
+        'CHN':         { color: '#006633', bg: '#e6f4ee', logo: null, abbr: 'CHN' },
+      }
+      const match = Object.entries(bancoConfig).find(([k]) => nombreUpper.includes(k))
+      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', logo: null, abbr: b.nombre.slice(0, 2).toUpperCase() }
+
+      const logoHTML = cfg2.logo
+        ? `<img src="${cfg2.logo}" style="height:28px;max-width:80px;object-fit:contain;display:block" alt="${b.nombre}" onerror="this.style.display='none'">`
+        : `<div style="background:${cfg2.color};color:#fff;font-size:11px;font-weight:900;padding:4px 8px;border-radius:6px;letter-spacing:-0.5px">${cfg2.abbr}</div>`
+
+      return `
       <div class="banco">
-        <div class="banco-header">
-          <div class="banco-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B7FD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
+        <div class="banco-header" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${cfg2.bg};border-bottom:1.5px solid ${cfg2.color}30">
+          <div style="height:36px;display:flex;align-items:center">
+            ${logoHTML}
           </div>
-          <div class="banco-nombre">${b.nombre}</div>
         </div>
         <div class="banco-datos">
+          <div style="font-size:12px;font-weight:800;color:${cfg2.color};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${b.nombre}</div>
           <div class="dato-row">
             <span class="dato-lbl">Número de cuenta</span>
             <span class="dato-val">${b.cuenta}</span>
@@ -57,7 +79,8 @@ export async function GET(req: NextRequest) {
             <span class="dato-val">${b.titular}</span>
           </div>
         </div>
-      </div>`).join('')
+      </div>`
+    }).join('')
 
     const html = `<!DOCTYPE html>
 <html lang="es">

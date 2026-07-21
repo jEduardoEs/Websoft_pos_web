@@ -26,13 +26,12 @@ interface LineItem {
   descuento: number
   subtotal: number
   total: number
-  // instalacion
-  km: number
-  precioGasolina: number
-  rendimiento: number
-  tecnicos: number
-  horas: number
-  manoObra: number
+  // instalacion — tarifa fija por zona + cargo adicional opcional
+  zonaId: number | null
+  zonaNombre: string
+  zonaTarifa: number
+  cargoAdicional: number
+  notaAdicional: string
 }
 
 interface Cotizacion {
@@ -43,6 +42,7 @@ interface Cotizacion {
   clienteDireccion: string | null
   clienteTelefono: string | null
   clienteNit: string | null
+  clienteCorreo: string | null
   atencion: string | null
   formaPago: string | null
   descripcion: string | null
@@ -57,14 +57,8 @@ interface Cotizacion {
   items: any[]
 }
 
-function calcGas(item: LineItem) {
-  return (item.km * 2) / (item.rendimiento || 30) * (item.precioGasolina || 28)
-}
-function calcComida(item: LineItem) {
-  return item.tecnicos * item.horas * 35
-}
 function calcInstalacion(item: LineItem) {
-  return calcGas(item) + calcComida(item) + (item.manoObra || 0)
+  return (item.zonaTarifa || 0) + (item.cargoAdicional || 0)
 }
 
 function recalc(item: LineItem): LineItem {
@@ -87,7 +81,7 @@ function recalc(item: LineItem): LineItem {
 }
 
 function newItem(tipo: LineItem['tipo']): LineItem {
-  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, km: 20, precioGasolina: 28, rendimiento: 30, tecnicos: 1, horas: 4, manoObra: 200 }
+  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, cargoAdicional: 0, notaAdicional: '' }
   if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' }
   return base
 }
@@ -108,6 +102,7 @@ export default function CotizacionesPage() {
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
   const [productos, setProductos] = useState<Producto[]>([])
+  const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
   const [buscarProd, setBuscarProd] = useState('')
 
   const { data: session } = useSession()
@@ -117,6 +112,10 @@ export default function CotizacionesPage() {
   const [pin, setPin] = useState('')
   const [pinLoading, setPinLoading] = useState(false)
   const [pinError, setPinError] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [sendModal, setSendModal] = useState<Cotizacion | null>(null)
+  const [sendEmail, setSendEmail] = useState('')
+  const [sendLoading, setSendLoading] = useState(false)
 
   const load = async () => {
     const c = await fetch('/api/cotizaciones').then(r => r.json())
@@ -128,8 +127,15 @@ export default function CotizacionesPage() {
     setProductos(await res.json())
   }, [buscarProd])
 
+  const loadZonas = async () => {
+    const res = await fetch('/api/zonas-instalacion?activas=true')
+    const d = await res.json()
+    setZonas(d.zonas || [])
+  }
+
   useEffect(() => { load() }, [])
   useEffect(() => { loadProductos() }, [loadProductos])
+  useEffect(() => { loadZonas() }, [])
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -191,51 +197,35 @@ export default function CotizacionesPage() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/cotizaciones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clienteNombre: form.clienteNombre,
-          clienteDireccion: form.clienteDireccion,
-          clienteTelefono: form.clienteTelefono,
-          clienteNit: form.clienteNit,
-          atencion: form.atencion,
-          formaPago: form.formaPago,
-          descripcion: form.descripcion,
-          notas: form.notas,
-          tiempoInstalacion: form.tiempoInstalacion,
-          validezDias: parseInt(form.validezDias) || 15,
-          items: validItems.map(it => ({
-            codigo: it.codigo,
-            descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.km}km · ${it.tecnicos} tec. · ${it.horas}h)` : ''),
-            cantidad: it.cantidad,
-            precioUnitario: it.precioVenta,
-            subtotal: it.subtotal,
-            descuento: it.descuento,
-            totalItem: it.total,
-          })),
-          subtotal: baseTotal,
-          descuento: descuentoTotal,
-          total: totalFinal,
-        }),
-      })
+      const payload = {
+        clienteNombre: form.clienteNombre, clienteDireccion: form.clienteDireccion,
+        clienteTelefono: form.clienteTelefono, clienteNit: form.clienteNit,
+        atencion: form.atencion, formaPago: form.formaPago,
+        descripcion: form.descripcion, notas: form.notas,
+        tiempoInstalacion: form.tiempoInstalacion,
+        validezDias: parseInt(form.validezDias) || 15,
+        items: validItems.map(it => ({
+          codigo: it.codigo,
+          descripcion: it.descripcion + (it.tipo === 'instalacion' ? ` (${it.zonaNombre || 'Zona'})` : ''),
+          cantidad: it.cantidad, precioUnitario: it.precioVenta,
+          subtotal: it.subtotal, descuento: it.descuento, totalItem: it.total,
+        })),
+        subtotal: baseTotal, descuento: descuentoTotal, total: totalFinal,
+      }
+      const url = editingId ? `/api/cotizaciones/${editingId}` : '/api/cotizaciones'
+      const method = editingId ? 'PUT' : 'POST'
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (data.ok) {
-        toast.success(`${data.cotizacion.numero} creada`)
-        setShowModal(false)
-        setForm(emptyForm)
-        setItems([newItem('producto')])
+        toast.success(editingId ? 'Cotizacion actualizada' : `${data.cotizacion.numero} creada`)
+        setShowModal(false); setForm(emptyForm); setItems([newItem('producto')]); setEditingId(null)
         await load()
-        setSelected(data.cotizacion)
-        setShowPreview(true)
+        if (!editingId) { setSelected(data.cotizacion); setShowPreview(true) }
       } else {
         toast.error(data.error || 'Error al guardar')
       }
-    } catch (err) {
-      toast.error('Error de conexion')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast.error('Error de conexion') }
+    finally { setLoading(false) }
   }
 
   const solicitarCambioEstado = (id: number, estado: string, numero: string) => {
@@ -284,6 +274,45 @@ export default function CotizacionesPage() {
     await fetch(`/api/cotizaciones/${id}`, { method: 'DELETE' })
     toast.success('Eliminada')
     setShowPreview(false); setSelected(null); load()
+  }
+
+  const openEditCot = (c: Cotizacion) => {
+    setEditingId(c.id)
+    setForm({
+      clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
+      clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      atencion: c.atencion || '', formaPago: c.formaPago || '',
+      descripcion: c.descripcion || '', notas: c.notas || '',
+      validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
+    })
+    setItems((c.items || []).map((it: any) => ({
+      tipo: 'producto' as const, productoId: null, codigo: it.codigo || '',
+      descripcion: it.descripcion, costoCompra: 0,
+      precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
+      descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
+      total: Number(it.totalItem), zonaId: null, zonaNombre: '', zonaTarifa: 0,
+      cargoAdicional: 0, notaAdicional: '',
+    })))
+    setShowModal(true)
+  }
+
+  const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
+
+  const enviarWA = (cot: Cotizacion) => {
+    const tel = (cot.clienteTelefono || '').replace(/\D/g, '')
+    const num = tel.startsWith('502') ? tel : '502' + tel
+    const msg = `Hola ${cot.clienteNombre}, le enviamos su cotización *${cot.numero}* de WebSoft Solutions por un total de *Q ${cot.total.toFixed(2)}*. Quedo atento a su confirmación.`
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  const enviarCorreoManual = async (cot: Cotizacion) => {
+    if (!sendEmail) { toast.error('Ingresa un correo'); return }
+    setSendLoading(true)
+    const res = await fetch(`/api/cotizaciones/${cot.id}/enviar-correo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: sendEmail }) })
+    setSendLoading(false)
+    const d = await res.json()
+    if (d.ok) { toast.success('Cotización enviada por correo'); setSendModal(null) }
+    else toast.error(d.error || 'Error al enviar')
   }
 
   const imprimir = (cot: Cotizacion) => {
@@ -349,7 +378,7 @@ export default function CotizacionesPage() {
 </head><body>
 <div class="header">
   <div class="logo-wrap">
-    <img class="logo-img" src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" onerror="this.style.display='none'"/>
+    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
     <div>
       <div class="brand-name">Web<span>Soft</span> Solutions</div>
       <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
@@ -359,7 +388,7 @@ export default function CotizacionesPage() {
     <strong>WEBSOFT SOLUTIONS</strong>
     Barrio el Calvario, Guastatoya, El Progreso<br>
     TEL: (502) 3836-1044 / 3671-4377<br>
-    www.websoft-solutions.vercel.app
+    www.websoftsolutions.com.gt
   </div>
 </div>
 
@@ -501,7 +530,8 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           ↩ Pendiente
                         </button>
                       )}
-                      <button className="btn-ghost btn-sm" onClick={() => imprimir(c)} style={{ fontSize: 10, padding: '3px 8px' }}>🖨 Imprimir</button>
+                      <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
+                      <button className="btn-ghost btn-sm" onClick={() => abrirSendModal(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Enviar</button>
                     </div>
                   </td>
                 </tr>
@@ -519,13 +549,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             {/* Header modal */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src="https://websoftsolutions.com.gt/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Nueva Cotizacion</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{editingId ? 'Editar Cotizacion' : 'Nueva Cotizacion'}</div>
                   <div style={{ fontSize: 11, color: '#2563eb', letterSpacing: .5 }}>WebSoft Solutions</div>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
             </div>
 
             {/* Cliente */}
@@ -660,36 +690,42 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                     <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, paddingTop: 4 }}>×</button>
                   </div>
 
-                  {/* Instalacion calculator */}
+                  {/* Instalacion: selector de zona con tarifa fija */}
                   {item.tipo === 'instalacion' && (
                     <div style={{ background: '#fffbeb', border: '1px solid #fed7aa', borderRadius: 8, padding: 12, marginTop: 6 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#d97706', marginBottom: 10, textTransform: 'uppercase' }}>
-                        Calculadora de instalacion
+                        Costo de instalación por zona
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
-                        {[
-                          { label: 'Km al destino', key: 'km', note: 'Ida y vuelta x2' },
-                          { label: 'Precio gas Q/L', key: 'precioGasolina' },
-                          { label: 'Rendimiento km/L', key: 'rendimiento' },
-                          { label: 'Num. tecnicos', key: 'tecnicos', note: 'Q35/tec/hora comida' },
-                          { label: 'Horas de trabajo', key: 'horas' },
-                        ].map(f => (
-                          <div key={f.key}>
-                            <label style={{ ...lbl, color: '#d97706' }}>{f.label}</label>
-                            <input className="input" type="number" min="0" value={(item as any)[f.key]} onChange={e => updItem(i, f.key as keyof LineItem, Number(e.target.value))} style={{ fontSize: 12 }} />
-                            {f.note && <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{f.note}</div>}
-                          </div>
-                        ))}
-                        <div style={{ gridColumn: '1/-1' }}>
-                          <label style={{ ...lbl, color: '#d97706' }}>Mano de obra (Q)</label>
-                          <input className="input" type="number" min="0" value={item.manoObra} onChange={e => updItem(i, 'manoObra', Number(e.target.value))} style={{ fontSize: 12, maxWidth: 160 }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, alignItems: 'end' }}>
+                        <div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Zona de instalación</label>
+                          <select className="input" value={item.zonaId || ''} style={{ fontSize: 13 }}
+                            onChange={e => {
+                              const zonaId = Number(e.target.value) || null
+                              const z = zonas.find(zz => zz.id === zonaId)
+                              setItems(prev => prev.map((it, idx) => idx === i ? recalc({ ...it, zonaId, zonaNombre: z?.nombre || '', zonaTarifa: z?.tarifa || 0 }) : it))
+                            }}>
+                            <option value="">Selecciona una zona...</option>
+                            {zonas.map(z => (
+                              <option key={z.id} value={z.id}>{z.nombre} — {z.departamento} (Q{z.tarifa.toFixed(2)})</option>
+                            ))}
+                          </select>
                         </div>
+                        <div>
+                          <label style={{ ...lbl, color: '#d97706' }}>Cargo adicional (Q)</label>
+                          <input className="input" type="number" min="0" value={item.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', Number(e.target.value))} placeholder="0.00" style={{ fontSize: 13 }} />
+                        </div>
+                        {item.cargoAdicional > 0 && (
+                          <div style={{ gridColumn: '1/-1' }}>
+                            <label style={{ ...lbl, color: '#d97706' }}>Motivo del cargo adicional</label>
+                            <input className="input" value={item.notaAdicional} onChange={e => updItem(i, 'notaAdicional', e.target.value)} placeholder="Ej: técnico extra, equipo especial, trabajo nocturno..." style={{ fontSize: 12 }} />
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 20, marginTop: 10, fontSize: 11, color: '#64748b' }}>
-                        <span>⛽ Gas: <strong style={{ color: '#d97706' }}>Q {calcGas(item).toFixed(2)}</strong></span>
-                        <span> Comida: <strong style={{ color: '#d97706' }}>Q {calcComida(item).toFixed(2)}</strong></span>
-                        <span> M.Obra: <strong style={{ color: '#d97706' }}>Q {(item.manoObra || 0).toFixed(2)}</strong></span>
-                        <span style={{ fontWeight: 700 }}>= <strong style={{ color: '#d97706', fontSize: 13 }}>Q {item.precioVenta.toFixed(2)}</strong></span>
+                        <span>Zona: <strong style={{ color: '#d97706' }}>Q {(item.zonaTarifa || 0).toFixed(2)}</strong></span>
+                        {item.cargoAdicional > 0 && <span>Adicional: <strong style={{ color: '#d97706' }}>Q {item.cargoAdicional.toFixed(2)}</strong></span>}
+                        <span style={{ fontWeight: 700 }}>Total: <strong style={{ color: '#d97706', fontSize: 13 }}>Q {item.precioVenta.toFixed(2)}</strong></span>
                       </div>
                     </div>
                   )}
@@ -748,9 +784,9 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+              <button className="btn-ghost" onClick={() => { setShowModal(false); setEditingId(null) }}>Cancelar</button>
               <button className="btn-primary" onClick={save} disabled={loading} style={{ minWidth: 140 }}>
-                {loading ? 'Guardando...' : 'Guardar Cotizacion'}
+                {loading ? 'Guardando...' : editingId ? 'Actualizar Cotizacion' : 'Guardar Cotizacion'}
               </button>
             </div>
           </div>
@@ -763,7 +799,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.15)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="https://websoft-solutions.vercel.app/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src="https://websoftsolutions.com.gt/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>{selected.numero}</div>
                   <div style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(selected.fecha)} · {selected.clienteNombre}</div>
@@ -832,7 +868,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-ghost" onClick={() => setShowPreview(false)}>Cerrar</button>
-                <button className="btn-primary" onClick={() => imprimir(selected)}>Imprimir / PDF</button>
+                <button className="btn-primary" onClick={() => { if (selected) abrirSendModal(selected) }}>Enviar / Descargar</button>
               </div>
             </div>
           </div>
@@ -872,6 +908,48 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                 style={{ flex: 1, background: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: !pin || pinLoading ? .6 : 1 }}
               >
                 {pinLoading ? 'Verificando...' : 'Autorizar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sendModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1.5px solid #e3e1d8' }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#18181b' }}>Enviar cotización</h3>
+                <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>{sendModal.numero} — {sendModal.clienteNombre}</div>
+              </div>
+              <button onClick={() => setSendModal(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => { enviarWA(sendModal); setSendModal(null) }} disabled={!sendModal.clienteTelefono}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: sendModal.clienteTelefono ? 'pointer' : 'not-allowed', opacity: sendModal.clienteTelefono ? 1 : 0.4, textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>WA</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por WhatsApp</div>
+                  <div style={{ fontSize: 11, color: '#8a887e' }}>{sendModal.clienteTelefono || 'Sin teléfono registrado'}</div>
+                </div>
+              </button>
+              <div style={{ border: '1.5px solid #d8d6cd', borderRadius: 6, padding: '13px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 7, background: '#1581E3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>@</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por correo</div>
+                </div>
+                <input className="input" type="email" placeholder="correo@cliente.com" value={sendEmail} onChange={e => setSendEmail(e.target.value)} style={{ marginBottom: 8 }} />
+                <button className="btn-primary" onClick={() => enviarCorreoManual(sendModal)} disabled={sendLoading || !sendEmail} style={{ width: '100%', justifyContent: 'center' }}>
+                  {sendLoading ? 'Enviando...' : 'Enviar por correo'}
+                </button>
+              </div>
+              <button onClick={() => { imprimir(sendModal); setSendModal(null) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>PDF</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Descargar / Imprimir PDF</div>
+                  <div style={{ fontSize: 11, color: '#8a887e' }}>Abre en nueva ventana</div>
+                </div>
               </button>
             </div>
           </div>

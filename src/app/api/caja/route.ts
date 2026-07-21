@@ -27,9 +27,9 @@ export async function GET() {
       const ventas = await prisma.venta.findMany({
         where: { fecha: { gte: activa.fecha }, estado: 'completada' }
       })
-      ventasEfectivo = ventas.filter(v => v.metodoPago === 'efectivo').reduce((s, v) => s + v.total, 0)
-      ventasTarjeta = ventas.filter(v => v.metodoPago === 'tarjeta').reduce((s, v) => s + v.total, 0)
-      ventasTransferencia = ventas.filter(v => v.metodoPago === 'transferencia').reduce((s, v) => s + v.total, 0)
+      ventasEfectivo = ventas.filter((v: any) => v.metodoPago === 'efectivo').reduce((s: number, v: any) => s + v.total, 0)
+      ventasTarjeta = ventas.filter((v: any) => v.metodoPago === 'tarjeta').reduce((s: number, v: any) => s + v.total, 0)
+      ventasTransferencia = ventas.filter((v: any) => v.metodoPago === 'transferencia').reduce((s: number, v: any) => s + v.total, 0)
 
       // Movimientos de esta apertura
       movimientos = await prisma.movimientoCaja.findMany({
@@ -94,13 +94,13 @@ export async function POST(req: NextRequest) {
 
       // Calc ventas
       const ventas = await prisma.venta.findMany({ where: { fecha: { gte: activa.fecha }, estado: 'completada' } })
-      const efectivo = ventas.filter(v => v.metodoPago === 'efectivo').reduce((s, v) => s + v.total, 0)
-      const tarjeta = ventas.filter(v => v.metodoPago === 'tarjeta').reduce((s, v) => s + v.total, 0)
-      const transferencia = ventas.filter(v => v.metodoPago === 'transferencia').reduce((s, v) => s + v.total, 0)
+      const efectivo = ventas.filter((v: any) => v.metodoPago === 'efectivo').reduce((s: number, v: any) => s + v.total, 0)
+      const tarjeta = ventas.filter((v: any) => v.metodoPago === 'tarjeta').reduce((s: number, v: any) => s + v.total, 0)
+      const transferencia = ventas.filter((v: any) => v.metodoPago === 'transferencia').reduce((s: number, v: any) => s + v.total, 0)
 
       const movimientos = await prisma.movimientoCaja.findMany({ where: { aperturaId: activa.id } })
-      const inyecciones = movimientos.filter(m => m.tipo === 'inyeccion').reduce((s, m) => s + m.monto, 0)
-      const retiros = movimientos.filter(m => m.tipo === 'retiro').reduce((s, m) => s + m.monto, 0)
+      const inyecciones = movimientos.filter((m: any) => m.tipo === 'inyeccion').reduce((s: number, m: any) => s + m.monto, 0)
+      const retiros = movimientos.filter((m: any) => m.tipo === 'retiro').reduce((s: number, m: any) => s + m.monto, 0)
 
       const debeHaber = activa.fondoInicial + efectivo + inyecciones - retiros
       const contado = +efectivoContado || 0
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
           fechaInicio: activa.fecha, fechaFin: new Date(),
           totalVentas: ventas.length,
           totalEfectivo: efectivo, totalTarjeta: tarjeta, totalTransferencia: transferencia,
-          granTotal: ventas.reduce((s, v) => s + v.total, 0),
+          granTotal: ventas.reduce((s: number, v: any) => s + v.total, 0),
           usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
           notas: `Fondo: Q${activa.fondoInicial} | Inyecciones: Q${inyecciones} | Retiros: Q${retiros} | Debe haber: Q${debeHaber.toFixed(2)} | Contado: Q${contado.toFixed(2)} | Diferencia: Q${diferencia.toFixed(2)} | ${notas || ''}`,
         }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
       await prisma.aperturaCaja.update({ where: { id: activa.id }, data: { estado: 'cerrada' } })
 
-      return NextResponse.json({ ok: true, cierre, debeHaber, contado, diferencia, totalVentas: ventas.reduce((s,v) => s+v.total, 0) })
+      return NextResponse.json({ ok: true, cierre, debeHaber, contado, diferencia, totalVentas: ventas.reduce((s: number,v: any) => s+v.total, 0) })
     }
 
     return NextResponse.json({ error: 'Accion invalida' }, { status: 400 })

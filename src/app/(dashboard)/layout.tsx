@@ -1,8 +1,8 @@
 import { auth } from '@/lib/auth'
 import Providers from '@/components/Providers'
 import { redirect } from 'next/navigation'
-import Sidebar from '@/components/Sidebar'
 import Topbar from '@/components/Topbar'
+import MobileLayout from '@/components/MobileLayout'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -12,12 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <Providers>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', flexDirection: 'column' }}>
         <Topbar user={session.user} />
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Sidebar />
-          <main style={{ flex: 1, overflowY: 'auto', background: '#f0f4f8' }}>
-            {children}
-          </main>
-        </div>
+        <MobileLayout>{children}</MobileLayout>
       </div>
     </Providers>
   )

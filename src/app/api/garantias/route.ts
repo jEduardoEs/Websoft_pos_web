@@ -44,7 +44,7 @@ export async function POST(req: NextRequest)  {
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await req.json()
-    const { clienteNombre, clienteTelefono, clienteNit, productoNombre, productoSerie, ventaNumero, ventaId, diasGarantia, fechaVenta, condiciones, notas } = body
+    const { clienteNombre, clienteTelefono, clienteNit, productoNombre, productoSerie, ventaNumero, ventaId, diasGarantia, fechaVenta, condiciones, notas, proyectoId } = body
 
     if (!clienteNombre || !productoNombre) {
       return NextResponse.json({ error: 'Cliente y producto son requeridos' }, { status: 400 })
@@ -56,11 +56,28 @@ export async function POST(req: NextRequest)  {
     const dias = +diasGarantia || 365
     const fVencimiento = new Date(fVenta.getTime() + dias * 24 * 60 * 60 * 1000)
 
+    // Auto-vincular proyecto: buscar por ventaNumero (cotizacionNumero) o por clienteNombre
+    let resolvedProyectoId: number | null = proyectoId ? Number(proyectoId) : null
+    if (!resolvedProyectoId) {
+      const proyecto = await prisma.proyecto.findFirst({
+        where: {
+          OR: [
+            ventaNumero ? { cotizacionNumero: ventaNumero } : {},
+            ventaNumero ? { numero: ventaNumero } : {},
+            clienteNombre ? { clienteNombre: { contains: clienteNombre, mode: 'insensitive' as const } } : {},
+          ].filter(c => Object.keys(c).length > 0),
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (proyecto) resolvedProyectoId = proyecto.id
+    }
+
     const garantia = await prisma.garantia.create({
       data: {
         numero, clienteNombre, clienteTelefono, clienteNit,
         productoNombre, productoSerie, ventaNumero,
         ventaId: ventaId ? Number(ventaId) : null,
+        proyectoId: resolvedProyectoId,
         diasGarantia: dias, fechaVenta: fVenta,
         fechaVencimiento: fVencimiento, condiciones, notas,
         usuarioNombre: session.user.name,
