@@ -559,7 +559,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                         </button>
                         {openMenuId === c.id && (
                           <div onClick={e => e.stopPropagation()}
-                            style={{ position: 'fixed', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
+                            style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
                             {[
                               { label: 'Editar', action: () => { openEditCot(c); setOpenMenuId(null) } },
                               { label: 'Duplicar', action: () => { duplicarCotizacion(c); setOpenMenuId(null) } },

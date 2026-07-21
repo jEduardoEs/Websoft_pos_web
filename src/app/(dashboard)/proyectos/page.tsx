@@ -195,7 +195,7 @@ export default function ProyectosPage() {
                           </button>
                           {openMenuId === p.id && (
                             <div onClick={e => e.stopPropagation()}
-                              style={{ position: 'fixed', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 150, overflow: 'hidden' }}>
+                              style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 150, overflow: 'hidden' }}>
                               <button onClick={() => { router.push(`/proyectos/${p.id}`); setOpenMenuId(null) }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
