@@ -101,6 +101,13 @@ export default function CotizacionesPage() {
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const close = () => setOpenMenuId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [])
   const [productos, setProductos] = useState<Producto[]>([])
   const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
   const [buscarProd, setBuscarProd] = useState('')
@@ -297,6 +304,27 @@ export default function CotizacionesPage() {
   }
 
   const abrirSendModal = (cot: Cotizacion) => { setSendEmail(cot.clienteCorreo || ''); setSendModal(cot) }
+
+  const duplicarCotizacion = (c: Cotizacion) => {
+    setEditingId(null)
+    setForm({
+      clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
+      clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      atencion: c.atencion || '', formaPago: c.formaPago || '',
+      descripcion: c.descripcion || '', notas: c.notas || '',
+      validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
+    })
+    setItems((c.items || []).map((it: any) => ({
+      tipo: 'producto' as const, productoId: null, codigo: it.codigo || '',
+      descripcion: it.descripcion, costoCompra: 0,
+      precioVenta: Number(it.precioUnitario), cantidad: Number(it.cantidad),
+      descuento: Number(it.descuento) || 0, subtotal: Number(it.subtotal),
+      total: Number(it.totalItem), zonaId: null, zonaNombre: '', zonaTarifa: 0,
+      cargoAdicional: 0, notaAdicional: '',
+    })))
+    setShowModal(true)
+    toast.info('Cotización duplicada — se guardará con número nuevo')
+  }
 
   const enviarWA = (cot: Cotizacion) => {
     const tel = (cot.clienteTelefono || '').replace(/\D/g, '')
@@ -504,34 +532,54 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <td style={{ padding: '10px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.atencion || '—'}</td>
                   <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{fmt(c.total)}</td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
-                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      {/* Acciones primarias según estado */}
                       {(c.estado === 'aceptada' || c.estado === 'pendiente') && (
-                        <a href="/pos" onClick={() => { localStorage.setItem('cot_facturar', c.id.toString()); }}
-                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-                           Facturar
+                        <a href="/pos" onClick={() => localStorage.setItem('cot_facturar', c.id.toString())}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '4px 9px', background: '#1581E3', color: '#fff', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                          Facturar
                         </a>
                       )}
                       {c.estado === 'pendiente' && (
                         <>
                           <button onClick={() => solicitarCambioEstado(c.id, 'aceptada', c.numero)}
-                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                             Aceptar
+                            style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                            Aceptar
                           </button>
                           <button onClick={() => solicitarCambioEstado(c.id, 'rechazada', c.numero)}
-                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                             Rechazar
+                            style={{ fontSize: 10, fontWeight: 700, padding: '4px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                            Rechazar
                           </button>
                         </>
                       )}
-                      {c.estado === 'aceptada' && (
-                        <button onClick={() => solicitarCambioEstado(c.id, 'pendiente', c.numero)}
-                          style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          ↩ Pendiente
+
+                      {/* Menú ⋯ para acciones secundarias */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id) }}
+                          style={{ padding: '4px 8px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontSize: 15, color: '#52524d', lineHeight: 1, fontFamily: 'inherit' }}>
+                          ⋯
                         </button>
-                      )}
-                      <button className="btn-ghost btn-sm" onClick={() => openEditCot(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Editar</button>
-                      <button className="btn-ghost btn-sm" onClick={() => abrirSendModal(c)} style={{ fontSize: 10, padding: '3px 8px' }}>Enviar</button>
+                        {openMenuId === c.id && (
+                          <div onClick={e => e.stopPropagation()}
+                            style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.12)', zIndex: 99, minWidth: 160, overflow: 'hidden' }}>
+                            {[
+                              { label: 'Editar', action: () => { openEditCot(c); setOpenMenuId(null) } },
+                              { label: 'Duplicar', action: () => { duplicarCotizacion(c); setOpenMenuId(null) } },
+                              { label: 'Enviar', action: () => { abrirSendModal(c); setOpenMenuId(null) } },
+                              ...(c.estado === 'aceptada' ? [{ label: '↩ Revertir a pendiente', action: () => { solicitarCambioEstado(c.id, 'pendiente', c.numero); setOpenMenuId(null) } }] : []),
+                            ].map((item, idx) => (
+                              <button key={idx} onClick={item.action}
+                                style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
