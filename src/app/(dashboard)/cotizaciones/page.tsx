@@ -534,7 +534,6 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
                   <td style={{ padding: '8px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      {/* Acciones primarias según estado */}
                       {(c.estado === 'aceptada' || c.estado === 'pendiente') && (
                         <a href="/pos" onClick={() => localStorage.setItem('cot_facturar', c.id.toString())}
                           style={{ fontSize: 10, fontWeight: 700, padding: '4px 9px', background: '#1581E3', color: '#fff', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -553,25 +552,22 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           </button>
                         </>
                       )}
-
-                      {/* Menú ⋯ para acciones secundarias */}
                       <div style={{ position: 'relative' }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id) }}
+                        <button onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id) }}
                           style={{ padding: '4px 8px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontSize: 15, color: '#52524d', lineHeight: 1, fontFamily: 'inherit' }}>
                           ⋯
                         </button>
                         {openMenuId === c.id && (
                           <div onClick={e => e.stopPropagation()}
-                            style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.12)', zIndex: 99, minWidth: 160, overflow: 'hidden' }}>
+                            style={{ position: 'fixed', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
                             {[
                               { label: 'Editar', action: () => { openEditCot(c); setOpenMenuId(null) } },
                               { label: 'Duplicar', action: () => { duplicarCotizacion(c); setOpenMenuId(null) } },
                               { label: 'Enviar', action: () => { abrirSendModal(c); setOpenMenuId(null) } },
-                              ...(c.estado === 'aceptada' ? [{ label: '↩ Revertir a pendiente', action: () => { solicitarCambioEstado(c.id, 'pendiente', c.numero); setOpenMenuId(null) } }] : []),
+                              ...(c.estado === 'aceptada' ? [{ label: '↩ Revertir', action: () => { solicitarCambioEstado(c.id, 'pendiente', c.numero); setOpenMenuId(null) } }] : []),
                             ].map((item, idx) => (
                               <button key={idx} onClick={item.action}
-                                style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                style={{ display: 'block', width: '100%', padding: '10px 16px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                                 {item.label}

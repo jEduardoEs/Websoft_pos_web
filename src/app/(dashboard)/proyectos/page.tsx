@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 interface Mant {
@@ -26,7 +27,19 @@ const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteD
 
 export default function ProyectosPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const rol = (session?.user as any)?.role || ''
+  const esAdminOSupervisor = rol === 'admin' || rol === 'supervisor'
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+  const [showPinEliminar, setShowPinEliminar] = useState<number | null>(null)
+  const [pinInput, setPinInput] = useState('')
+
+  useEffect(() => {
+    const close = () => setOpenMenuId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [])
   const [alertas, setAlertas] = useState({ proximos: 0, vencidos: 0 })
   const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'>('todos')
   const [buscar, setBuscar] = useState('')
@@ -57,6 +70,24 @@ export default function ProyectosPage() {
   }
 
   const diasPara = (fecha: string) => Math.ceil((new Date(fecha).getTime() - Date.now()) / 86400000)
+
+  const eliminarProyecto = async (id: number, pin?: string) => {
+    const res = await fetch(`/api/proyectos/${id}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    })
+    const d = await res.json()
+    if (d.ok) { toast.success('Proyecto eliminado'); setShowPinEliminar(null); setPinInput(''); load() }
+    else toast.error(d.error || 'No autorizado')
+  }
+
+  const handleEliminar = (id: number) => {
+    setOpenMenuId(null)
+    if (esAdminOSupervisor) {
+      if (!confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
+      eliminarProyecto(id)
+    } else { setShowPinEliminar(id); setPinInput('') }
+  }
 
   const getAlertaMant = (mantenimientos: Mant[]) => {
     const pendientes = mantenimientos.filter(m => !m.realizado)
@@ -153,7 +184,33 @@ export default function ProyectosPage() {
                         </div>
                       </td>
                       <td style={tdS} onClick={e => e.stopPropagation()}>
-                        <button className="btn-ghost btn-sm" onClick={() => router.push(`/proyectos/${p.id}`)}>Ver →</button>
+                        <div style={{ display: 'flex', position: 'relative' }}>
+                          <button onClick={() => router.push(`/proyectos/${p.id}`)}
+                            style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', background: '#fff', border: '1.5px solid #d8d6cd', borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', color: '#52524d' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id) }}
+                            style={{ display: 'flex', alignItems: 'center', padding: '5px 7px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: '0 4px 4px 0', cursor: 'pointer', color: '#52524d' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                          </button>
+                          {openMenuId === p.id && (
+                            <div onClick={e => e.stopPropagation()}
+                              style={{ position: 'fixed', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 150, overflow: 'hidden' }}>
+                              <button onClick={() => { router.push(`/proyectos/${p.id}`); setOpenMenuId(null) }}
+                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                Editar
+                              </button>
+                              <button onClick={() => handleEliminar(p.id)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#b13a2e', background: 'none', border: 'none', borderTop: '1px solid #f1f5f9', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#fef2f2')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -227,6 +284,23 @@ export default function ProyectosPage() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
               <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Guardando...' : 'Crear proyecto'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPinEliminar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 28, width: '100%', maxWidth: 360, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b', marginBottom: 8 }}>Autorización requerida</h3>
+            <p style={{ fontSize: 13, color: '#52524d', marginBottom: 20, lineHeight: 1.6 }}>Ingresa la contraseña de un administrador para eliminar este proyecto.</p>
+            <input className="input" type="password" placeholder="Contraseña de administrador" value={pinInput}
+              onChange={e => setPinInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && showPinEliminar) eliminarProyecto(showPinEliminar, pinInput) }}
+              style={{ marginBottom: 16, textAlign: 'center', fontSize: 16 }} autoFocus />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn-ghost" onClick={() => { setShowPinEliminar(null); setPinInput('') }}>Cancelar</button>
+              <button className="btn-danger" onClick={() => showPinEliminar && eliminarProyecto(showPinEliminar, pinInput)}>Confirmar</button>
             </div>
           </div>
         </div>

@@ -65,9 +65,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true, proyecto })
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth()
-  if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const rol = (session.user as any).role || ''
+  if (rol !== 'admin' && rol !== 'supervisor') {
+    const body = await req.json().catch(() => ({}))
+    const { pin } = body
+    if (!pin) return NextResponse.json({ error: 'Se requiere contraseña de administrador' }, { status: 403 })
+    const bcrypt = await import('bcryptjs')
+    const admins = await prisma.usuario.findMany({ where: { rol: 'admin', activo: true } })
+    let valido = false
+    for (const a of admins) {
+      if (a.password && await bcrypt.compare(pin, a.password)) { valido = true; break }
+    }
+    if (!valido) return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 403 })
+  }
   await prisma.proyecto.delete({ where: { id: Number(params.id) } })
   return NextResponse.json({ ok: true })
 }
