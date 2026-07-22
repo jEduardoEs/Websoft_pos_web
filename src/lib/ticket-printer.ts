@@ -108,11 +108,21 @@ export function buildTicketHTML(d: TicketData): string {
 <meta charset="UTF-8">
 <title>Ticket ${d.numero}</title>
 <style>
+<<<<<<< HEAD
   * { margin:0; padding:0; box-sizing:border-box; }
 
   @page {
     size: 80mm auto;
     margin: 2mm 1mm;
+=======
+  /* ── Reset ── */
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  /* ── Papel 80mm: área imprimible ~72mm = ~272px a 96dpi ── */
+  @page {
+    size: 80mm auto;
+    margin: 3mm 2mm;
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
   }
 
   body {
@@ -120,13 +130,18 @@ export function buildTicketHTML(d: TicketData): string {
     font-size: 11px;
     color: #000;
     background: #fff;
+<<<<<<< HEAD
     width: 76mm;
+=======
+    width: 72mm;
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
     margin: 0 auto;
     padding: 4px 2px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+<<<<<<< HEAD
   /* ── Header empresa ── */
   .logo-wrap  { text-align:center; margin-bottom:4px; }
   .logo       { width:48px; height:48px; object-fit:contain; }
@@ -163,19 +178,48 @@ export function buildTicketHTML(d: TicketData): string {
   .col-header { display:flex; justify-content:space-between; font-size:9px; font-weight:bold;
                 text-transform:uppercase; border-bottom:1px solid #000; padding-bottom:2px; margin-bottom:3px; }
   .item-name  { font-size:10px; font-weight:bold; margin-top:4px; word-break:break-word; }
+=======
+  /* ── Header ── */
+  .logo-wrap  { text-align:center; margin-bottom:6px; }
+  .logo       { width:52px; height:52px; object-fit:contain; }
+  .empresa    { font-size:13px; font-weight:bold; text-align:center; text-transform:uppercase; }
+  .empresa-sub{ font-size:9px; text-align:center; color:#444; line-height:1.5; }
+
+  /* ── Divisores ── */
+  .hr  { border-top:1px dashed #000; margin:5px 0; }
+  .hr2 { border-top:2px solid #000; margin:5px 0; }
+
+  /* ── Info venta ── */
+  .info-row { display:flex; justify-content:space-between; font-size:10px; margin:2px 0; }
+  .info-label{ font-weight:bold; }
+  .factura-num{ font-size:14px; font-weight:bold; text-align:center; margin:4px 0; }
+
+  /* ── Header tabla items ── */
+  .col-header { display:flex; justify-content:space-between; font-size:9px; font-weight:bold;
+                text-transform:uppercase; border-bottom:1px solid #000; padding-bottom:2px; margin-bottom:3px; }
+
+  /* ── Items ── */
+  .item-name  { font-size:10px; font-weight:bold; margin-top:3px; word-break:break-word; }
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
   .item-line  { display:flex; justify-content:space-between; font-size:10px; }
   .item-qty   { color:#333; }
   .item-total { font-weight:bold; }
   .item-desc  { font-size:9px; color:#555; }
 
   /* ── Totales ── */
+<<<<<<< HEAD
   .total-row  { display:flex; justify-content:space-between; font-size:11px; margin:1.5px 0; }
   .total-final{ display:flex; justify-content:space-between; font-size:17px; font-weight:bold;
+=======
+  .total-row  { display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
+  .total-final{ display:flex; justify-content:space-between; font-size:16px; font-weight:bold;
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
                 border-top:2px solid #000; border-bottom:2px solid #000;
                 padding:4px 0; margin:4px 0; }
   .total-cambio{ display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
 
   /* ── FEL ── */
+<<<<<<< HEAD
   .sandbox-badge{ font-size:9px; font-weight:bold; text-align:center; margin:2px 0; letter-spacing:0.5px; }
   .dte-label  { font-size:8px; text-align:center; margin:2px 0; color:#333; font-weight:bold; }
   .dte-uuid   { font-size:7.5px; word-break:break-all; text-align:center; margin:2px 0; line-height:1.4; }
@@ -188,6 +232,24 @@ export function buildTicketHTML(d: TicketData): string {
   @media print {
     body { padding:0; width:76mm; }
     @page { margin: 1mm; }
+=======
+  .dte-title  { font-size:8px; font-weight:normal; text-align:center; color:#666;
+                margin:3px 0; letter-spacing:0px; }
+  .sandbox-badge{ font-size:9px; font-weight:bold; text-align:center; margin:2px 0; }
+  .dte-label  { font-size:8px; text-align:center; margin:2px 0; color:#666; }
+  .dte-uuid   { font-size:7.5px; font-weight:normal; word-break:break-all; text-align:center;
+                margin:2px 0; line-height:1.4; color:#777; }
+  .dte-row    { display:flex; justify-content:space-between; font-size:8px; margin:1px 0; color:#666; }
+
+  /* ── Leyendas ── */
+  .legend     { font-size:9px; text-align:center; margin:3px 0; line-height:1.4; }
+  .mensaje    { font-size:11px; text-align:center; font-weight:bold; margin:6px 0; }
+
+  /* ── No imprimir elementos del navegador ── */
+  @media print {
+    body { padding:0; }
+    @page { margin: 2mm 1mm; }
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
   }
 </style>
 </head>
@@ -202,6 +264,7 @@ export function buildTicketHTML(d: TicketData): string {
   </div>
 
   ${HR2}
+<<<<<<< HEAD
   <div class="dte-header">Documento Tributario Electrónico</div>
   <div class="dte-tipo">Factura</div>
   ${HR2}
@@ -239,6 +302,38 @@ export function buildTicketHTML(d: TicketData): string {
   <div class="total-cambio"><span>Valor en letras:</span></div>
   <div class="total-cambio"><span>Recibido</span><span>${fmt(d.montoRecibido)}</span></div>
   <div class="total-cambio"><span><b>Cambio</b></span><span><b>${fmt(d.cambio)}</b></span></div>
+=======
+
+  <div class="factura-num">${d.numero}</div>
+  ${d.felSerie && d.felNumero ? `<div style="text-align:center;font-size:10px;font-weight:bold;margin:0 0 3px">Serie ${d.felSerie} | No. ${d.felNumero}</div>` : ''}
+  ${HR}
+  <div class="info-row"><span class="info-label">Fecha:</span><span>${fechaStr}</span></div>
+  <div class="info-row"><span class="info-label">Hora:</span><span>${horaStr}</span></div>
+  <div class="info-row"><span class="info-label">Cajero:</span><span>${trunc(d.cajero, 18)}</span></div>
+  ${HR}
+  <div class="info-row"><span class="info-label">Cliente:</span><span>${trunc(d.clienteNombre, 18)}</span></div>
+  <div class="info-row"><span class="info-label">NIT:</span><span>${d.clienteNit}</span></div>
+  <div class="info-row"><span class="info-label">Pago:</span><span>${d.metodoPago}</span></div>
+
+  ${HR}
+
+  <div class="col-header">
+    <span>Descripción</span>
+    <span>Total</span>
+  </div>
+
+  ${itemRows}
+
+  ${HR}
+
+  <!-- Totales -->
+  <div class="total-row"><span>Subtotal</span><span>${fmt(d.subtotal)}</span></div>
+  ${d.descuento > 0 ? `<div class="total-row"><span>Descuento</span><span>-${fmt(d.descuento)}</span></div>` : ''}
+  <div class="total-row"><span>IVA (${ivaPct}%)</span><span>${fmt(d.impuesto)}</span></div>
+  <div class="total-final"><span>TOTAL</span><span>${fmt(d.total)}</span></div>
+  <div class="total-cambio"><span>Recibido</span><span>${fmt(d.montoRecibido)}</span></div>
+  <div class="total-cambio"><b>Cambio</b><b>${fmt(d.cambio)}</b></div>
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
 
   ${felSection}
 
@@ -265,11 +360,17 @@ export function buildTicketHTML(d: TicketData): string {
  *   printTicketWindow(html)
  */
 export function printTicketWindow(html: string): void {
+<<<<<<< HEAD
   const w = window.open('', '_blank', 'width=340,height=750,left=100,top=50')
+=======
+  // Ancho 302px ≈ 80mm a 96dpi, alto suficiente para scroll
+  const w = window.open('', '_blank', 'width=302,height=700,left=100,top=50')
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
   if (!w) {
     alert('El navegador bloqueó la ventana emergente. Permite pop-ups para este sitio.')
     return
   }
+<<<<<<< HEAD
 
   // Envuelve el ticket con instrucciones de impresión arriba
   const wrapped = html.replace('<body>', `<body>
@@ -288,4 +389,12 @@ export function printTicketWindow(html: string): void {
 
   w.document.write(wrapped)
   w.document.close()
+=======
+  w.document.write(html)
+  w.document.close()
+  setTimeout(() => {
+    w.focus()
+    w.print()
+  }, 700)
+>>>>>>> 79a2254633af0aeaf8455b165cfafa971d8e0337
 }
