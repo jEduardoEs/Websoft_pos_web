@@ -74,6 +74,13 @@ model Venta {
   usuarioId      Int?     @map("usuario_id")
   usuarioNombre  String?  @map("usuario_nombre")
 
+  felUuid          String?  @map("fel_uuid")
+  felSerie         String?  @map("fel_serie")
+  felNumero        Int?     @map("fel_numero")
+  felCertificacion String?  @map("fel_certificacion")
+  felPdfUrl        String?  @map("fel_pdf_url")
+  felEstado        String?  @map("fel_estado")
+
   usuario      Usuario?   @relation(fields: [usuarioId], references: [id])
   items        VentaItem[]
   devoluciones Devolucion[]
