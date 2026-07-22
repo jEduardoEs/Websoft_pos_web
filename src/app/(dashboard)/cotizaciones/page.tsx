@@ -556,7 +556,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           </button>
                         </>
                       )}
-                      <div ref={menuRef} style={{ position: 'relative' }}>
+                      <div ref={openMenuId === c.id ? menuRef : null} style={{ position: 'relative' }}>
                         <button onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
                           style={{ padding: '4px 8px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontSize: 15, color: '#52524d', lineHeight: 1, fontFamily: 'inherit' }}>
                           ⋯
