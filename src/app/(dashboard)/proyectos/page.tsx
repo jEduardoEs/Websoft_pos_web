@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
@@ -35,15 +35,10 @@ export default function ProyectosPage() {
   const [showPinEliminar, setShowPinEliminar] = useState<number | null>(null)
   const [pinInput, setPinInput] = useState('')
 
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (menuRef.current && menuRef.current.contains(e.target as Node)) return
-      setOpenMenuId(null)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
+    const close = () => setOpenMenuId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
   }, [])
   const [alertas, setAlertas] = useState({ proximos: 0, vencidos: 0 })
   const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'>('todos')
@@ -189,17 +184,17 @@ export default function ProyectosPage() {
                         </div>
                       </td>
                       <td style={tdS} onClick={e => e.stopPropagation()}>
-                        <div ref={openMenuId === p.id ? menuRef : null} style={{ display: 'flex', position: 'relative' }}>
+                        <div style={{ display: 'flex', position: 'relative' }}>
                           <button onClick={() => router.push(`/proyectos/${p.id}`)}
                             style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', background: '#fff', border: '1.5px solid #d8d6cd', borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', color: '#52524d' }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                           </button>
-                          <button onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
+                          <button onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id) }}
                             style={{ display: 'flex', alignItems: 'center', padding: '5px 7px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: '0 4px 4px 0', cursor: 'pointer', color: '#52524d' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                           </button>
                           {openMenuId === p.id && (
-                            <div
+                            <div onClick={e => e.stopPropagation()}
                               style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 150, overflow: 'hidden' }}>
                               <button onClick={() => { router.push(`/proyectos/${p.id}`); setOpenMenuId(null) }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}

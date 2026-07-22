@@ -1,23 +1,19 @@
-// Integración FEL con DTEvia (QAPI) para Guatemala
-// Docs: https://docs.dtevia.com.gt
-// La API key se lee de Config (clave: dtevia_api_key) con fallback a env DTEVIA_API_KEY
-// Key qapi_test_... = sandbox (certificador MOCK), qapi_live_... = producción SAT
-
-import { prisma } from './prisma'
+// Integración FEL con INFILE para Guatemala
+// Cambia FEL_MODO en Vercel: sandbox | pruebas | produccion
 
 export interface FELItem {
   cantidad: number
   descripcion: string
-  precioUnitario: number   // precio CON IVA (como se maneja en el POS)
+  precioUnitario: number
   descuento: number
   subtotal: number
   codigoProducto?: string
-  unidadMedida?: string
+  unidadMedida?: string // "UND" por defecto
 }
 
 export interface FELInput {
   numeroInterno: string
-  tipoDTE?: 'FACT'
+  tipoDTE?: 'FACT' | 'FCAM' | 'FESP'
   nitReceptor: string
   nombreReceptor: string
   correoReceptor?: string
@@ -43,127 +39,221 @@ export interface FELResponse {
   sandbox?: boolean
 }
 
-const BASE = 'https://api.dtevia.com.gt/v1'
+const INFILE_URLS = {
+  pruebas:    'https://api.feel-gt.com/api/documentos/emision/json/dte/?ambiente=2',
+  produccion: 'https://api.feel-gt.com/api/documentos/emision/json/dte/?ambiente=1',
+}
 
 function nowGT(): string {
-  const gt = new Date(Date.now() - 6 * 60 * 60 * 1000)
-  return gt.toISOString().slice(0, 19) + '-06:00'
+  // Guatemala es UTC-6, sin DST
+  const now = new Date()
+  const gt = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+  return gt.toISOString().replace('Z', '-06:00').slice(0, 19) + '-06:00'
 }
 
 function nitFormat(nit: string): string {
-  if (!nit || nit.trim().toUpperCase() === 'CF') return 'CF'
+  // INFILE quiere NIT sin guion, solo dígitos. CF se manda como "CF"
+  if (!nit || nit.toUpperCase() === 'CF') return 'CF'
   return nit.replace(/[^0-9Kk]/g, '').toUpperCase()
 }
 
-async function getApiKey(): Promise<string | null> {
-  try {
-    const row = await prisma.config.findUnique({ where: { clave: 'dtevia_api_key' } })
-    if (row?.valor) return row.valor
-  } catch {}
-  return process.env.DTEVIA_API_KEY || null
-}
-
-function buildInvoice(input: FELInput) {
+function buildDTE(input: FELInput): object {
   const env = process.env
-  // DTEvia pide precio_unitario SIN IVA; el POS maneja precios CON IVA (12%)
-  const items = input.items.map(it => {
-    const totalLinea = it.subtotal - (it.descuento || 0)   // con IVA
-    const gravable = totalLinea / 1.12
-    const iva = totalLinea - gravable
-    return {
-      tipo: 'B',
-      cantidad: it.cantidad,
-      unidad_medida: it.unidadMedida || 'UND',
-      descripcion: it.descripcion,
-      precio_unitario: Number((it.precioUnitario / 1.12).toFixed(6)),
-      descuento: Number(((it.descuento || 0) / 1.12).toFixed(6)),
-      impuestos: [{
-        nombre: 'IVA',
-        codigo_unidad_gravable: 1,
-        monto_gravable: Number(gravable.toFixed(6)),
-        monto_impuesto: Number(iva.toFixed(6)),
-      }],
-    }
-  })
+
+  const tipoDTE = input.tipoDTE || 'FACT'
+  const fechaEmision = input.fechaEmision || nowGT()
+
+  // Calcular totales
+  const baseImponible = input.total - input.impuesto
+  const ivaTasa = 12
+
+  const frases = tipoDTE === 'FACT'
+    ? [{ TipoFrase: 1, CodigoEscenario: 1 }]  // SUJETO A PAGOS TRIMESTRALES ISR
+    : [{ TipoFrase: 2, CodigoEscenario: 1 }]
+
+  const items = input.items.map((it, idx) => ({
+    NumeroLinea: idx + 1,
+    BienOServicio: 'B',
+    Cantidad: it.cantidad,
+    UnidadMedida: it.unidadMedida || 'UND',
+    Descripcion: it.descripcion,
+    PrecioUnitario: Number(it.precioUnitario.toFixed(5)),
+    Precio: Number((it.precioUnitario * it.cantidad).toFixed(5)),
+    Descuento: Number((it.descuento || 0).toFixed(5)),
+    Impuestos: [{
+      NombreCorto: 'IVA',
+      CodigoUnidadGravable: 1,
+      MontoGravable: Number(((it.subtotal - it.descuento) / 1.12).toFixed(5)),
+      MontoImpuesto: Number(((it.subtotal - it.descuento) - (it.subtotal - it.descuento) / 1.12).toFixed(5)),
+    }],
+    Total: Number((it.subtotal - (it.descuento || 0)).toFixed(5)),
+  }))
 
   return {
-    tipo_dte: 'FACT',
-    moneda: 'GTQ',
-    fecha_emision: input.fechaEmision || nowGT(),
-    emisor: {
-      nit: nitFormat(env.FEL_NIT_EMISOR || '115471413'),
-      nombre: env.FEL_NOMBRE_EMISOR || 'WebSoft Solutions',
-      nombre_comercial: env.FEL_NOMBRE_EMISOR || 'WebSoft Solutions',
-      codigo_establecimiento: 1,
-      afiliacion_iva: 'GEN',
-      direccion: {
-        calle: env.FEL_DIRECCION || 'Barrio el Calvario',
-        municipio: env.FEL_MUNICIPIO || 'Guastatoya',
-        departamento: env.FEL_DEPARTAMENTO || 'El Progreso',
-        codigo_postal: env.FEL_CODIGO_POSTAL || '02001',
-        pais: 'GT',
+    Version: 1,
+    DatosEmision: {
+      IDDoc: {
+        CodigoTipo: tipoDTE,
+        FechaHoraEmision: fechaEmision,
+        CodigoMoneda: 'GTQ',
+        NumeroAcceso: Math.floor(Math.random() * 9000000000) + 1000000000,
       },
-      correo: env.FEL_CORREO_EMISOR || 'fact@websoftsolutions.com.gt',
+      Emisor: {
+        NITEmisor: nitFormat(env.FEL_NIT_EMISOR || '115471413'),
+        NombreEmisor: env.FEL_NOMBRE_EMISOR || 'WebSoft Solutions',
+        CodigoEstablecimiento: 1,
+        TipoEmisor: 'INDIVIDUAL',
+        NombreComercial: env.FEL_NOMBRE_EMISOR || 'WebSoft Solutions',
+        DireccionEmisor: {
+          Direccion: env.FEL_DIRECCION || 'Barrio el Calvario, Guastatoya, El Progreso',
+          CodigoPostal: env.FEL_CODIGO_POSTAL || '22001',
+          Municipio: env.FEL_MUNICIPIO || 'Guastatoya',
+          Departamento: env.FEL_DEPARTAMENTO || 'El Progreso',
+          Pais: 'GT',
+        },
+        CorreoEmisor: env.FEL_CORREO_EMISOR || '',
+        AfiliacionIVA: 'GEN',
+      },
+      Receptor: {
+        IDReceptor: nitFormat(input.nitReceptor),
+        NombreReceptor: input.nombreReceptor || 'Consumidor Final',
+        CorreoReceptor: input.correoReceptor || '',
+        DireccionReceptor: {
+          Direccion: input.direccionReceptor || 'Ciudad',
+          CodigoPostal: '01001',
+          Municipio: 'Guatemala',
+          Departamento: 'Guatemala',
+          Pais: 'GT',
+        },
+      },
+      Frases: frases,
+      Items: { Item: items },
+      Totales: {
+        TotalImpuestos: {
+          TotalImpuesto: [{
+            NombreCorto: 'IVA',
+            TotalMontoImpuesto: Number(input.impuesto.toFixed(5)),
+          }],
+        },
+        GranTotal: Number(input.total.toFixed(5)),
+      },
     },
-    receptor: {
-      id: nitFormat(input.nitReceptor),
-      tipo_id: 'NIT',
-      nombre: input.nombreReceptor || 'Consumidor Final',
-      ...(input.correoReceptor ? { correo: input.correoReceptor } : {}),
-    },
-    frases: [{ tipo_frase: 1, codigo_escenario: 1 }],
-    items,
   }
 }
 
-async function pollCertification(invoiceId: string, apiKey: string): Promise<any> {
-  const headers = { Authorization: `Bearer ${apiKey}` }
-  for (let i = 0; i < 12; i++) {
-    const res = await fetch(`${BASE}/invoices/${invoiceId}`, { headers })
-    const inv = await res.json()
-    if (inv.status === 'CERTIFIED') return inv
-    if (inv.status === 'FAILED') throw new Error(inv.error_message || 'Certificación fallida')
-    await new Promise(r => setTimeout(r, 1000))
+function mockResponse(input: FELInput): FELResponse {
+  const uuid = 'SANDBOX-' + Math.random().toString(36).substring(2, 10).toUpperCase() +
+               '-' + Math.random().toString(36).substring(2, 10).toUpperCase()
+  return {
+    ok: true,
+    uuid,
+    serie: process.env.FEL_SERIE || 'TEST',
+    numero: Math.floor(Math.random() * 900000) + 100000,
+    fechaCertificacion: nowGT(),
+    xmlCertificado: `<!-- XML DTE SANDBOX — ${input.numeroInterno} -->`,
+    sandbox: true,
   }
-  throw new Error('Timeout esperando certificación DTEvia')
 }
 
 export async function emitirFEL(input: FELInput): Promise<FELResponse> {
-  const apiKey = await getApiKey()
-  if (!apiKey) {
-    console.error('[FEL] DTEVIA_API_KEY no configurada (Config dtevia_api_key o env var)')
-    return { ok: false, error: 'API key de DTEvia no configurada' }
+  const modo = (process.env.FEL_MODO || 'sandbox').toLowerCase()
+
+  // Modo sandbox: no llama a INFILE
+  if (modo === 'sandbox') {
+    console.log('[FEL] Modo SANDBOX — simulando DTE para', input.numeroInterno)
+    return mockResponse(input)
   }
 
-  const esSandbox = apiKey.startsWith('qapi_test_')
-  const payload = buildInvoice(input)
+  const usuario = process.env.FEL_USUARIO
+  const clave   = process.env.FEL_CLAVE
+
+  if (!usuario || !clave) {
+    console.error('[FEL] Faltan credenciales FEL_USUARIO / FEL_CLAVE')
+    return { ok: false, error: 'Credenciales FEL no configuradas' }
+  }
+
+  const url = modo === 'produccion' ? INFILE_URLS.produccion : INFILE_URLS.pruebas
+  const dte = buildDTE(input)
 
   try {
-    const res = await fetch(`${BASE}/invoices`, {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        'usuario': usuario,
+        'llave': clave,
+        'identificador': input.numeroInterno,
+      },
+      body: JSON.stringify(dte),
     })
+
     const data = await res.json()
 
-    if (!res.ok || !data.id) {
-      console.error('[FEL] Error DTEvia:', data)
-      return { ok: false, error: data.message || data.error || `HTTP ${res.status}` }
+    if (!res.ok || data.resultado !== true) {
+      console.error('[FEL] Error INFILE:', data)
+      return {
+        ok: false,
+        error: data.descripcion || data.mensaje || `HTTP ${res.status}`,
+      }
     }
-
-    const cert = await pollCertification(data.id, apiKey)
 
     return {
       ok: true,
-      uuid: cert.uuid_sat,
-      serie: cert.serie,
-      numero: Number(cert.numero_dte),
-      fechaCertificacion: cert.certified_at,
-      pdfUrl: cert.pdf_url,
-      sandbox: esSandbox,
+      uuid:               data.uuid,
+      serie:              data.serie,
+      numero:             data.numero,
+      fechaCertificacion: data.fecha_certificacion || nowGT(),
+      xmlCertificado:     data.xml_certificado,
+      pdfUrl:             data.pdf_url,
     }
+
   } catch (err: any) {
-    console.error('[FEL] Error DTEvia:', err)
-    return { ok: false, error: err?.message || 'Error interno DTEvia' }
+    console.error('[FEL] Error de red:', err.message)
+    return { ok: false, error: 'Error de conexión con INFILE: ' + err.message }
+  }
+}
+
+export async function anularFEL(uuid: string, motivo: string): Promise<{ ok: boolean; error?: string }> {
+  const modo = (process.env.FEL_MODO || 'sandbox').toLowerCase()
+  if (modo === 'sandbox') {
+    console.log('[FEL] Anulación SANDBOX — UUID:', uuid)
+    return { ok: true }
+  }
+
+  const usuario = process.env.FEL_USUARIO
+  const clave   = process.env.FEL_CLAVE
+  if (!usuario || !clave) return { ok: false, error: 'Credenciales no configuradas' }
+
+  const url = modo === 'produccion'
+    ? 'https://api.feel-gt.com/api/documentos/anulacion/json/dte/?ambiente=1'
+    : 'https://api.feel-gt.com/api/documentos/anulacion/json/dte/?ambiente=2'
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'usuario': usuario,
+        'llave': clave,
+      },
+      body: JSON.stringify({
+        Version: 1,
+        DatosAnulacion: {
+          IDDoc: {
+            FechaEmisionDocumentoAnular: nowGT(),
+            FechaAnulacion: nowGT(),
+            NITEmisor: process.env.FEL_NIT_EMISOR || '115471413',
+            IDReceptor: 'CF',
+            NumeroDocumentoAnular: uuid,
+            MotivoAnulacion: motivo,
+          },
+        },
+      }),
+    })
+    const data = await res.json()
+    if (data.resultado !== true) return { ok: false, error: data.descripcion }
+    return { ok: true }
+  } catch (err: any) {
+    return { ok: false, error: err.message }
   }
 }

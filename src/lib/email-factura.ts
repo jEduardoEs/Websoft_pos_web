@@ -3,7 +3,6 @@ export interface FacturaEmailData {
   serie?: string
   numero?: number
   fechaCertificacion?: string
-  pdfUrl?: string
   sandbox?: boolean
   numeroInterno: string
   fecha: Date | string
@@ -160,7 +159,6 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
               ${d.fechaCertificacion ? `Certificado: ${new Date(d.fechaCertificacion).toLocaleString('es-GT')}` : ''}
             </div>
             ${d.uuid && !d.sandbox ? `<div style="margin-top:10px"><img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https://fel.sat.gob.gt/verificar/${d.uuid}" width="72" height="72" style="border:1px solid #dce8f8;display:block" alt="QR SAT"><div style="font-size:8px;color:#94a3b8;margin-top:3px">Verificar en fel.sat.gob.gt</div></div>` : ''}
-            ${d.pdfUrl && !d.sandbox ? `<div style="margin-top:12px"><a href="${d.pdfUrl}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;padding:9px 18px;border-radius:4px;font-size:12px;font-weight:700">Descargar factura oficial (PDF)</a></div>` : ''}
           </td>
           <td style="padding:16px 24px;vertical-align:top;text-align:right">
             <table cellpadding="0" cellspacing="0" style="margin-left:auto;font-size:12px">

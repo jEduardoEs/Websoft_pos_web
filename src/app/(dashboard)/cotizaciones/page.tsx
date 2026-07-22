@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
@@ -102,11 +102,15 @@ export default function CotizacionesPage() {
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const close = () => setOpenMenuId(null)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return
+      setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
   }, [])
   const [productos, setProductos] = useState<Producto[]>([])
   const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
@@ -552,14 +556,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           </button>
                         </>
                       )}
-                      <div style={{ position: 'relative' }}>
-                        <button onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id) }}
+                      <div ref={menuRef} style={{ position: 'relative' }}>
+                        <button onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
                           style={{ padding: '4px 8px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontSize: 15, color: '#52524d', lineHeight: 1, fontFamily: 'inherit' }}>
                           ⋯
                         </button>
                         {openMenuId === c.id && (
-                          <div onClick={e => e.stopPropagation()}
-                            style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
                             {[
                               { label: 'Editar', action: () => { openEditCot(c); setOpenMenuId(null) } },
                               { label: 'Duplicar', action: () => { duplicarCotizacion(c); setOpenMenuId(null) } },
