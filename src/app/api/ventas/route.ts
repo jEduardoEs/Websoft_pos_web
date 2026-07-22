@@ -189,16 +189,15 @@ export async function POST(req: NextRequest) {
         await prisma.venta.update({
           where: { id: venta.id },
           data: {
-            felUuid:             felResult.uuid,
-            felSerie:            felResult.serie,
-            felNumero:           felResult.numero,
-            felCertificacion:    felResult.fechaCertificacion,
-            felXml:              felResult.xmlCertificado,
-            felEstado:           felResult.sandbox ? 'sandbox' : 'certificado',
-          } as any, // Los campos FEL requieren migración de schema (ver abajo)
-        }).catch(() => {
-          // Si los campos FEL no existen aún en el schema, ignorar error silencioso
-          console.warn('[FEL] Campos FEL no encontrados en schema. Ejecutar: npx prisma@5.22.0 db push')
+            felUuid:          felResult.uuid,
+            felSerie:         felResult.serie,
+            felNumero:        felResult.numero,
+            felCertificacion: felResult.fechaCertificacion,
+            felPdfUrl:        felResult.pdfUrl,
+            felEstado:        felResult.sandbox ? 'sandbox' : 'certificado',
+          },
+        }).catch(err => {
+          console.warn('[FEL] No se pudieron guardar campos FEL (¿falta migración?):', err?.message)
         })
       }
     } catch (err) {
@@ -223,6 +222,7 @@ export async function POST(req: NextRequest) {
         serie:              felResult?.serie,
         numero:             felResult?.numero,
         fechaCertificacion: felResult?.fechaCertificacion,
+        pdfUrl:             felResult?.pdfUrl,
         sandbox:            felResult?.sandbox,
         numeroInterno:      numero,
         fecha:              venta.fecha,

@@ -16,6 +16,35 @@ export default function FelPage() {
   const [config, setConfig] = useState<Record<string, string>>({})
   const [fi, setFi] = useState(new Date().toISOString().slice(0, 10))
   const [ff, setFf] = useState(new Date().toISOString().slice(0, 10))
+  const [dteviaKey, setDteviaKey] = useState('')
+  const [savingKey, setSavingKey] = useState(false)
+
+  const guardarDteviaKey = async () => {
+    if (!dteviaKey.startsWith('qapi_')) { toast.error('La key debe empezar con qapi_test_ o qapi_live_'); return }
+    setSavingKey(true)
+    const res = await fetch('/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dtevia_api_key: dteviaKey, fel_certificador: 'dtevia' }),
+    })
+    setSavingKey(false)
+    if ((await res.json()).ok !== false) {
+      toast.success('API key de DTEvia guardada')
+      setDteviaKey('')
+      fetch('/api/config').then(r => r.json()).then(setConfig)
+    } else toast.error('Error al guardar')
+  }
+
+  const toggleFel = async () => {
+    const nuevo = config.fel_activo === 'true' ? 'false' : 'true'
+    const res = await fetch('/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fel_activo: nuevo }),
+    })
+    if ((await res.json()).ok !== false) {
+      toast.success(nuevo === 'true' ? 'FEL activado — las ventas emitirán DTE' : 'FEL desactivado')
+      fetch('/api/config').then(r => r.json()).then(setConfig)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(setConfig)
@@ -97,6 +126,31 @@ export default function FelPage() {
       {/* ── TAB: ESTADO ── */}
       {tab === 'estado' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Configuración DTEvia */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#18181b', marginBottom: 4 }}>Certificador: DTEvia (QAPI)</div>
+            <div style={{ fontSize: 12, color: '#8a887e', marginBottom: 16 }}>
+              Pega tu API key de dtevia.com.gt. Con key <code style={{ background: '#f4f3ef', padding: '1px 5px', borderRadius: 3 }}>qapi_test_...</code> los DTE son de prueba (MOCK); con <code style={{ background: '#f4f3ef', padding: '1px 5px', borderRadius: 3 }}>qapi_live_...</code> son reales ante la SAT.
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>API Key DTEvia</label>
+                <input className="input" type="password" placeholder={config.dtevia_api_key ? '••••••••  (ya configurada)' : 'qapi_test_... o qapi_live_...'} value={dteviaKey} onChange={e => setDteviaKey(e.target.value)} />
+              </div>
+              <button className="btn-primary" disabled={!dteviaKey || savingKey} onClick={guardarDteviaKey}>
+                {savingKey ? 'Guardando...' : 'Guardar key'}
+              </button>
+              <button
+                onClick={toggleFel}
+                style={{ padding: '10px 18px', borderRadius: 4, border: '1.5px solid', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  background: felActivo ? '#fef2f2' : '#f0fdf4',
+                  color: felActivo ? '#b13a2e' : '#166534',
+                  borderColor: felActivo ? '#e3c3bd' : '#bbf7d0' }}>
+                {felActivo ? 'Desactivar FEL' : 'Activar FEL'}
+              </button>
+            </div>
+          </div>
 
           {/* Status card */}
           <div style={{ background: felActivo ? '#f0fdf4' : '#fffbeb', border: `1px solid ${felActivo ? '#bbf7d0' : '#fde68a'}`, borderRadius: 10, padding: '16px 20px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>

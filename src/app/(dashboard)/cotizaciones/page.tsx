@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
@@ -102,15 +102,11 @@ export default function CotizacionesPage() {
   const [items, setItems] = useState<LineItem[]>([newItem('producto')])
   const [loading, setLoading] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (menuRef.current && menuRef.current.contains(e.target as Node)) return
-      setOpenMenuId(null)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
+    const close = () => setOpenMenuId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
   }, [])
   const [productos, setProductos] = useState<Producto[]>([])
   const [zonas, setZonas] = useState<{ id: number; nombre: string; departamento: string; tarifa: number }[]>([])
@@ -536,7 +532,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <td style={{ padding: '10px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.atencion || '—'}</td>
                   <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>{fmt(c.total)}</td>
                   <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}><span className={estadoBadge(c.estado)} style={{ textTransform: 'capitalize' }}>{c.estado}</span></td>
-                  <td style={{ padding: '8px 14px', borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '8px 14px', borderBottom: '1px solid #f1f5f9' }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       {(c.estado === 'aceptada' || c.estado === 'pendiente') && (
                         <a href="/pos" onClick={() => localStorage.setItem('cot_facturar', c.id.toString())}
@@ -556,13 +552,14 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           </button>
                         </>
                       )}
-                      <div ref={menuRef} style={{ position: 'relative' }}>
-                        <button onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
+                      <div style={{ position: 'relative' }}>
+                        <button onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id) }}
                           style={{ padding: '4px 8px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 4, cursor: 'pointer', fontSize: 15, color: '#52524d', lineHeight: 1, fontFamily: 'inherit' }}>
                           ⋯
                         </button>
                         {openMenuId === c.id && (
-                          <div style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
+                          <div onClick={e => e.stopPropagation()}
+                            style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 160, overflow: 'hidden' }}>
                             {[
                               { label: 'Editar', action: () => { openEditCot(c); setOpenMenuId(null) } },
                               { label: 'Duplicar', action: () => { duplicarCotizacion(c); setOpenMenuId(null) } },
