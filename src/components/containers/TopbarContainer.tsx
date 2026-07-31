@@ -12,8 +12,15 @@ export default function TopbarContainer({ user }: TopbarContainerProps) {
   const ADMIN_TIMEOUT = 30 * 60 * 1000
 
   const handleSignOut = async () => {
-    try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
-    signOut({ callbackUrl: '/login' })
+    try {
+      await fetch('/api/sesion/cerrar', { method: 'POST', credentials: 'include' })
+    } catch {}
+
+    try {
+      await signOut({ redirect: false })
+    } catch {}
+
+    window.location.href = '/login'
   }
 
   useEffect(() => {
@@ -33,8 +40,9 @@ export default function TopbarContainer({ user }: TopbarContainerProps) {
       const resetTimer = () => {
         if (inactivityRef.current) clearTimeout(inactivityRef.current)
         inactivityRef.current = setTimeout(async () => {
-          try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
-          signOut({ callbackUrl: '/login' })
+          try { await fetch('/api/sesion/cerrar', { method: 'POST', credentials: 'include' }) } catch {}
+          try { await signOut({ redirect: false }) } catch {}
+          window.location.href = '/login'
         }, ADMIN_TIMEOUT)
       }
       resetTimer()

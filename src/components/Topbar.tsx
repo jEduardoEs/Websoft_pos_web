@@ -11,8 +11,15 @@ export default function Topbar({ user }: TopbarProps) {
   const ADMIN_TIMEOUT = 30 * 60 * 1000 // 30 min inactivity for admin
 
   const handleSignOut = async () => {
-    try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
-    signOut({ callbackUrl: '/login' })
+    try {
+      await fetch('/api/sesion/cerrar', { method: 'POST', credentials: 'include' })
+    } catch {}
+
+    try {
+      await signOut({ redirect: false })
+    } catch {}
+
+    window.location.href = '/login'
   }
 
   useEffect(() => {
@@ -35,8 +42,9 @@ export default function Topbar({ user }: TopbarProps) {
       const resetTimer = () => {
         if (inactivityRef.current) clearTimeout(inactivityRef.current)
         inactivityRef.current = setTimeout(async () => {
-          try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
-          signOut({ callbackUrl: '/login' })
+          try { await fetch('/api/sesion/cerrar', { method: 'POST', credentials: 'include' }) } catch {}
+          try { await signOut({ redirect: false }) } catch {}
+          window.location.href = '/login'
         }, ADMIN_TIMEOUT)
       }
       resetTimer()
@@ -59,7 +67,7 @@ export default function Topbar({ user }: TopbarProps) {
   }, [user.role])
 
   return (
-    <div style={{
+    <header role="banner" style={{
       background: '#ffffff', height: 56, display: 'flex', alignItems: 'center',
       padding: '0 16px', gap: 10, flexShrink: 0,
       borderBottom: '1.5px solid #e3e1d8', zIndex: 50,
@@ -91,7 +99,7 @@ export default function Topbar({ user }: TopbarProps) {
             <div style={{ fontSize: 10, color: '#8a887e', textTransform: 'capitalize' }}>{user.role}</div>
           </div>
         </div>
-        <button onClick={handleSignOut} style={{ background: '#fff', color: '#b13a2e', border: '1.5px solid #e3c3bd', padding: '5px 12px', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+        <button type="button" onClick={handleSignOut} style={{ background: '#fff', color: '#b13a2e', border: '1.5px solid #e3c3bd', padding: '5px 12px', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
           Salir
         </button>
       </div>
@@ -104,6 +112,6 @@ export default function Topbar({ user }: TopbarProps) {
           .topbar-userinfo { display: none; }
         }
       `}</style>
-    </div>
+    </header>
   )
 }
