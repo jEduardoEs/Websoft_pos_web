@@ -1,0 +1,80 @@
+// ══════════════════════════════════════════════════════════════════════
+// AGREGAR estos campos al modelo Venta en prisma/schema.prisma
+// Busca "model Venta {" y agrega los campos felUuid … felEstado antes de @@map
+// Luego ejecutar: npx prisma@5.22.0 db push
+// ══════════════════════════════════════════════════════════════════════
+
+// model Venta {
+//   id             Int      @id @default(autoincrement()
+//   numero         String   @unique
+//   fecha          DateTime @default(now())
+//   clienteNombre  String   @default("Consumidor Final") @map("cliente_nombre")
+//   clienteNit     String   @default("CF")               @map("cliente_nit")
+//   clienteCorreo  String?                                @map("cliente_correo")   // NUEVO
+//   subtotal       Float    @default(0)
+//   descuento      Float    @default(0)
+//   impuesto       Float    @default(0)
+//   total          Float    @default(0)
+//   metodoPago     String   @default("efectivo")          @map("metodo_pago")
+//   montoRecibido  Float    @default(0)                   @map("monto_recibido")
+//   cambio         Float    @default(0)
+//   estado         String   @default("completada")
+//   notas          String?
+//   usuarioId      Int?     @map("usuario_id")
+//   usuarioNombre  String?  @map("usuario_nombre")
+//   // ── FEL ──────────────────────────────────────────────────────────
+//   felUuid          String?  @map("fel_uuid")             // UUID autorización SAT
+//   felSerie         String?  @map("fel_serie")            // Serie INFILE
+//   felNumero        Int?     @map("fel_numero")           // Número correlativo DTE
+//   felCertificacion String?  @map("fel_certificacion")   // Fecha y hora certificación
+//   felXml           String?  @map("fel_xml")             // XML DTE firmado
+//   felEstado        String?  @map("fel_estado")          // "sandbox" | "certificado" | "anulado"
+//   // ─────────────────────────────────────────────────────────────────
+//   usuario      Usuario?   @relation(fields: [usuarioId], references: [id])
+//   items        VentaItem[]
+//   devoluciones Devolucion[]
+//   @@map("ventas")
+// }
+
+// ══════════════════════════════════════════════════════════════════════
+// TAMBIÉN agregar estas entradas en la tabla config (via seed o manual):
+// INSERT INTO config (clave, valor) VALUES
+//   ('fel_activo',           'false'),
+//   ('email_factura_activo', 'false'),
+//   ('ticket_mostrar_fel',   'true');
+// ══════════════════════════════════════════════════════════════════════
+
+// Diff exacto para copiar en schema.prisma:
+
+model Venta {
+  id             Int      @id @default(autoincrement())
+  numero         String   @unique
+  fecha          DateTime @default(now())
+  clienteNombre  String   @default("Consumidor Final") @map("cliente_nombre")
+  clienteNit     String   @default("CF")               @map("cliente_nit")
+  clienteCorreo  String?                                @map("cliente_correo")
+  subtotal       Float    @default(0)
+  descuento      Float    @default(0)
+  impuesto       Float    @default(0)
+  total          Float    @default(0)
+  metodoPago     String   @default("efectivo")          @map("metodo_pago")
+  montoRecibido  Float    @default(0)                   @map("monto_recibido")
+  cambio         Float    @default(0)
+  estado         String   @default("completada")
+  notas          String?
+  usuarioId      Int?     @map("usuario_id")
+  usuarioNombre  String?  @map("usuario_nombre")
+  // FEL
+  felUuid          String?  @map("fel_uuid")
+  felSerie         String?  @map("fel_serie")
+  felNumero        Int?     @map("fel_numero")
+  felCertificacion String?  @map("fel_certificacion")
+  felXml           String?  @map("fel_xml")
+  felEstado        String?  @map("fel_estado")
+
+  usuario      Usuario?   @relation(fields: [usuarioId], references: [id])
+  items        VentaItem[]
+  devoluciones Devolucion[]
+
+  @@map("ventas")
+}
