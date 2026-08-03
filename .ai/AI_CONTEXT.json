@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "project": "WebSoft POS / ERP",
+  "architecture_version": "V2.0",
+  "pattern": "Modular Monolith + Clean Architecture",
+  "stack": {
+    "framework": "Next.js 14 App Router",
+    "language": "TypeScript (Strict)",
+    "orm": "Prisma ORM",
+    "database": "PostgreSQL",
+    "auth": "NextAuth v5 (Credentials + JWT)",
+    "validation": "Zod",
+    "styling": "TailwindCSS / Vanilla CSS"
+  },
+  "rules_for_ai": [
+    "Never import @prisma/client or @/lib/prisma inside React Views or UI Components.",
+    "Never write fetch() calls directly inside React Views; always consume Services via Hooks.",
+    "Keep business logic strictly inside modules/[modulo]/logic as pure TypeScript functions.",
+    "Enforce module isolation: only import from a module's public index.ts file.",
+    "Respect max line limits per file (Views: 250, Logic: 150, Repositories: 200, Components: 120)."
+  ]
+}

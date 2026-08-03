@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "domain": "Guatemala ERP / POS Domain Rules",
+  "tax_rules": {
+    "currency": "GTQ (Q)",
+    "iva_rate": 0.12,
+    "calculate_gravable": "total / 1.12",
+    "calculate_iva": "total - (total / 1.12)"
+  },
+  "fel_sat": {
+    "provider": "DTEvia / QAPI Guatemala",
+    "required_fields": ["nit", "nombre", "items", "subtotal", "total"]
+  },
+  "inviolable_rules": [
+    "No sale can be completed without a registered Cash Register Opening (AperturaCaja).",
+    "Stock changes must always generate a corresponding Kardex entry.",
+    "Every administrative API endpoint must verify session and tienePermiso()."
+  ]
+}

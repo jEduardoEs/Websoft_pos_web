@@ -1,11 +1,20 @@
-import { PrismaClient } from '@prisma/client'
+// Server-only Prisma initialization
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+let prisma: any;
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
+if (process.env.NEXT_RUNTIME === 'nodejs') {
+  // Dynamically require PrismaClient only in Node.js server runtime
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { PrismaClient } = require('@prisma/client');
+  prisma = (global as any).prisma || new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  })
+  });
+  if (process.env.NODE_ENV !== 'production') {
+    (global as any).prisma = prisma;
+  }
+} else {
+  // Browser or edge runtime – provide placeholder
+  prisma = {} as any;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export { prisma };

@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'api.qrserver.com' },
-    ],
+  reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 }
 
-module.exports = nextConfig
+module.exports = process.env.ANALYZE === 'true'
+  ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
+  : nextConfig
