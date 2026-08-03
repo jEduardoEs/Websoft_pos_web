@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { emitirFEL } from '@/lib/fel'
-import { enviarFacturaPorCorreo } from '@/lib/email-factura'
+import { emitirFEL, FELResponse } from '@/lib/fel'
+import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura'
 
 export const dynamic = 'force-dynamic'
 
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     return v
   })
 
-  let felResult = null
+  let felResult: FELResponse | null = null
   const felActivo = await prisma.config.findUnique({ where: { clave: 'fel_activo' } })
 
   if (felActivo?.valor === 'true') {
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let emailResult = null
+  let emailResult: EmailResult | null = null
   const emailActivo = await prisma.config.findUnique({ where: { clave: 'email_factura_activo' } })
 
   if (emailActivo?.valor === 'true' && clienteCorreo && clienteCorreo.includes('@')) {

@@ -80,7 +80,7 @@ export async function GET() {
     }
 
     // Cajero: own meta
-    let miMeta = null
+    let miMeta: { meta: number; realMes: number; ventasMes: number; realHoy: number; ventasHoy: number; cumplimiento: number | null; mes: string } | null = null
     if (session.user.role !== 'admin') {
       const usuario = await prisma.usuario.findUnique({
         where: { id: parseInt(session.user.id) },

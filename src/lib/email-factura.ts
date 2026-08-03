@@ -24,6 +24,7 @@ export interface FacturaEmailData {
   total: number
   metodoPago: string
 }
+export type EmailResult = { ok: boolean; error?: string }
 
 export function buildFacturaHTML(d: FacturaEmailData): string {
   const fmt = (n: number) => `Q ${n.toFixed(2)}`

@@ -8,7 +8,7 @@ export async function POST() {
   const session = await auth()
   if (!session) return NextResponse.json({ ok: false })
   try {
-    await prisma.activeSession.delete({ where: { usuarioId: parseInt(session.user.id) } })
+    await prisma.activeSession.deleteMany({ where: { usuarioId: parseInt(session.user.id) } })
   } catch { /* already deleted */ }
   return NextResponse.json({ ok: true })
 }
