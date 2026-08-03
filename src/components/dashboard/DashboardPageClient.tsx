@@ -71,10 +71,10 @@ export default function DashboardPageClient() {
 
       <section aria-label="Indicadores principales" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }} className="dash-kpis">
         {[
-          { label: 'Ventas hoy', value: fmt(data.ventasHoy.total), sub: `${data.ventasHoy.count} transacciones`, accent: false },
-          { label: 'Ventas esta semana', value: fmt(data.ventasSemana.total), sub: `${data.ventasSemana.count} transacciones`, accent: false },
-          { label: 'Ventas este mes', value: fmt(data.ventasMes.total), sub: `${data.ventasMes.count} transacciones`, accent: true },
-          { label: 'Clientes registrados', value: String(data.totalClientes), sub: `${data.productosbajostock} productos con stock bajo`, accent: false },
+          { label: 'Ventas hoy', value: fmt(data?.ventasHoy?.total ?? 0), sub: `${data?.ventasHoy?.count ?? 0} transacciones`, accent: false },
+          { label: 'Ventas esta semana', value: fmt(data?.ventasSemana?.total ?? 0), sub: `${data?.ventasSemana?.count ?? 0} transacciones`, accent: false },
+          { label: 'Ventas este mes', value: fmt(data?.ventasMes?.total ?? 0), sub: `${data?.ventasMes?.count ?? 0} transacciones`, accent: true },
+          { label: 'Clientes registrados', value: String(data?.totalClientes ?? 0), sub: `${data?.productosbajostock ?? 0} productos con stock bajo`, accent: false },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 10, color: '#8a887e', textTransform: 'uppercase', letterSpacing: .6, fontWeight: 700, marginBottom: 8 }}>{s.label}</div>
