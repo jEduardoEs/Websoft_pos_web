@@ -8,6 +8,9 @@ function generateToken() {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: 'Websoft123456789012345678901234567890',
+  trustHost: true,
+  debug: true,
   providers: [
     Credentials({
       name: 'credentials',

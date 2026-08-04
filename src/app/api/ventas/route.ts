@@ -1,277 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
-import { emitirFEL, FELResponse } from '@/lib/fel'
-import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { VentaService } from '@/modules/ventas/services/venta.service';
+import { CreateVentaDto } from '@/modules/ventas/dto/create-venta.dto';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const { searchParams } = new URL(req.url)
-  const fechaIni = searchParams.get('fecha_ini')
-  const fechaFin = searchParams.get('fecha_fin')
-  const estado = searchParams.get('estado') || ''
-  const buscar = searchParams.get('buscar') || ''
+  const { searchParams } = new URL(req.url);
+  const fechaIni = searchParams.get('fecha_ini');
+  const fechaFin = searchParams.get('fecha_fin');
+  const estado = searchParams.get('estado');
+  const buscar = searchParams.get('buscar');
 
-  const where: any = {}
-  if (estado) {
-    where.estado = estado  // filtro explícito (ej: 'anulada' para ver anuladas)
-  } else {
-    where.estado = { not: 'anulada' }  // por defecto excluir anuladas en listados
+  try {
+    const ventas = await VentaService.findAll({ fechaIni, fechaFin, estado, buscar });
+    return NextResponse.json(ventas);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  if (buscar) where.OR = [
-    { clienteNombre: { contains: buscar, mode: 'insensitive' } },
-    { clienteNit: { contains: buscar, mode: 'insensitive' } },
-    { numero: { contains: buscar, mode: 'insensitive' } },
-  ]
-  if (fechaIni || fechaFin) {
-    where.fecha = {}
-    if (fechaIni) where.fecha.gte = new Date(fechaIni)
-    if (fechaFin) {
-      const end = new Date(fechaFin)
-      end.setHours(23, 59, 59, 999)
-      where.fecha.lte = end
-    }
-  }
-
-  const ventas = await prisma.venta.findMany({
-    where, orderBy: { fecha: 'desc' }, take: 200,
-    include: { items: true },
-  })
-  return NextResponse.json(ventas)
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const body = await req.json()
-  const {
-    clienteNombre, clienteNit, clienteCorreo,
-    items, subtotal, descuento, impuesto, total,
-    metodoPago, montoRecibido, cambio, notas, cotizacionId,
-  } = body
-
-  if (!items || items.length === 0) return NextResponse.json({ error: 'Sin items' }, { status: 400 })
-
-  // Get next number
-  const cfg = await prisma.config.findUnique({ where: { clave: 'numero_siguiente' } })
-  const num = parseInt(cfg?.valor || '1')
-  const numero = `FAC-${String(num).padStart(6, '0')}`
-
-  // Verify stock — solo para items de inventario (productoId no nulo)
-  for (const item of items) {
-    if (!item.productoId) continue
-    const prod = await prisma.producto.findUnique({ where: { id: item.productoId } })
-    if (!prod || prod.stock < item.cantidad) {
-      return NextResponse.json({ error: `Stock insuficiente: ${item.nombre}` }, { status: 400 })
-    }
+  try {
+    const body: CreateVentaDto = await req.json();
+    const result = await VentaService.create(body, session.user.id, session.user.name || 'Usuario');
+    
+    return NextResponse.json({
+      ok: true,
+      venta: result.venta,
+      fel: result.fel,
+      email: result.email,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
-
-  // Create venta with items
-  const venta = await prisma.$transaction(async (tx) => {
-    const v = await tx.venta.create({
-      data: {
-        numero, fecha: new Date(),
-        clienteNombre: clienteNombre || 'Consumidor Final',
-        clienteNit: clienteNit || 'CF',
-        subtotal: +subtotal, descuento: +descuento, impuesto: +impuesto,
-        total: +total, metodoPago, montoRecibido: +montoRecibido, cambio: +cambio,
-        notas, usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-        items: {
-          create: items.map((item: any) => ({
-            productoId: item.productoId, codigo: item.codigo || '',
-            nombre: item.nombre, cantidad: +item.cantidad,
-            precioUnitario: +item.precioUnitario, descuento: +item.descuento || 0,
-            subtotal: +item.subtotal,
-          })),
-        },
-      },
-      include: { items: true },
-    })
-
-    // Update stock & kardex — solo items de inventario
-    for (const item of items) {
-      if (!item.productoId) continue
-      const prod = await tx.producto.findUnique({ where: { id: item.productoId } })
-      if (prod) {
-        const newStock = prod.stock - item.cantidad
-        await tx.producto.update({ where: { id: item.productoId }, data: { stock: newStock } })
-        await tx.kardex.create({
-          data: {
-            productoId: item.productoId, tipo: 'salida', cantidad: item.cantidad,
-            stockAntes: prod.stock, stockDespues: newStock,
-            motivo: `Venta ${numero}`, referencia: numero,
-            usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-          },
-        })
-      }
-    }
-
-    // Marcar cotización como facturada si viene de una
-    if (cotizacionId) {
-      try {
-        await tx.cotizacion.update({ where: { id: parseInt(cotizacionId) }, data: { estado: 'facturada' } })
-      } catch { /* cotizacion puede no existir, no es crítico */ }
-    }
-
-    // Auto-upgrade: prospecto → cliente al facturar
-    if (clienteNit && clienteNit !== 'CF') {
-      try {
-        await (tx as any).cliente.updateMany({
-          where: { OR: [{ nit: clienteNit }, { nombre: { contains: clienteNombre || '', mode: 'insensitive' } }], tipo: 'prospecto' },
-          data: { tipo: 'cliente' },
-        })
-      } catch { /* si no existe el campo tipo aún en DB, no falla */ }
-    }
-
-    // Auto-upgrade cliente: prospecto → cliente al facturar
-    if (clienteNit && clienteNit !== 'CF') {
-      try {
-        await tx.cliente.updateMany({
-          where: {
-            OR: [
-              { nit: clienteNit },
-              { nombre: { contains: clienteNombre || '', mode: 'insensitive' } },
-            ],
-            tipo: 'prospecto',
-          },
-          data: { tipo: 'cliente' },
-        })
-      } catch { /* si no existe cliente registrado, no es crítico */ }
-    }
-
-    // Update numero siguiente
-    await tx.config.update({ where: { clave: 'numero_siguiente' }, data: { valor: String(num + 1) } })
-
-    // Audit
-    await tx.auditLog.create({
-      data: {
-        usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-        accion: 'CREATE', tabla: 'ventas', registroId: String(v.id),
-        detalle: `Venta ${numero} por ${total}`,
-      },
-    })
-
-    return v
-  })
-
-  let felResult: FELResponse | null = null
-  const felActivo = await prisma.config.findUnique({ where: { clave: 'fel_activo' } })
-
-  if (felActivo?.valor === 'true') {
-    try {
-      felResult = await emitirFEL({
-        numeroInterno: numero,
-        nitReceptor:   clienteNit || 'CF',
-        nombreReceptor: clienteNombre || 'Consumidor Final',
-        correoReceptor: clienteCorreo || '',
-        items: items.map((it: any) => ({
-          cantidad:       +it.cantidad,
-          descripcion:    it.nombre,
-          precioUnitario: +it.precioUnitario,
-          descuento:      +it.descuento || 0,
-          subtotal:       +it.subtotal,
-          codigoProducto: it.codigo,
-        })),
-        subtotal: +subtotal,
-        descuento: +descuento,
-        impuesto: +impuesto,
-        total: +total,
-        metodoPago,
-      })
-
-      // Guardar datos FEL en la venta si la respuesta fue exitosa
-      if (felResult.ok) {
-        await prisma.venta.update({
-          where: { id: venta.id },
-          data: {
-            felUuid:          felResult.uuid,
-            felSerie:         felResult.serie,
-            felNumero:        felResult.numero,
-            felCertificacion: felResult.fechaCertificacion,
-            felPdfUrl:        felResult.pdfUrl,
-            felEstado:        felResult.sandbox ? 'sandbox' : 'certificado',
-          },
-        }).catch(err => {
-          console.warn('[FEL] No se pudieron guardar campos FEL (¿falta migración?):', err?.message)
-        })
-      }
-    } catch (err) {
-      console.error('[FEL] Error al emitir DTE:', err)
-      felResult = { ok: false, error: 'Error interno FEL' }
-    }
-  }
-
-  let emailResult: EmailResult | null = null
-  const emailActivo = await prisma.config.findUnique({ where: { clave: 'email_factura_activo' } })
-
-  if (emailActivo?.valor === 'true' && clienteCorreo && clienteCorreo.includes('@')) {
-    // Obtener config de empresa
-    const cfgEmpresa = await prisma.config.findMany({
-      where: { clave: { in: ['empresa_nombre', 'empresa_nit', 'empresa_telefono', 'empresa_direccion'] } }
-    })
-    const cfgMap = Object.fromEntries(cfgEmpresa.map(c => [c.clave, c.valor]))
-
-    try {
-      emailResult = await enviarFacturaPorCorreo({
-        uuid:               felResult?.uuid,
-        serie:              felResult?.serie,
-        numero:             felResult?.numero,
-        fechaCertificacion: felResult?.fechaCertificacion,
-        pdfUrl:             felResult?.pdfUrl,
-        sandbox:            felResult?.sandbox,
-        numeroInterno:      numero,
-        fecha:              venta.fecha,
-        clienteNombre:      clienteNombre || 'Consumidor Final',
-        clienteNit:         clienteNit || 'CF',
-        clienteCorreo,
-        items: items.map((it: any) => ({
-          codigo:         it.codigo,
-          nombre:         it.nombre,
-          cantidad:       +it.cantidad,
-          precioUnitario: +it.precioUnitario,
-          descuento:      +it.descuento || 0,
-          subtotal:       +it.subtotal,
-        })),
-        subtotal: +subtotal,
-        descuento: +descuento,
-        impuesto:  +impuesto,
-        total:     +total,
-        metodoPago,
-      })
-    } catch (err) {
-      console.error('[EMAIL] Error al enviar factura:', err)
-      emailResult = { ok: false, error: 'Error al enviar correo' }
-    }
-  }
-
-  return NextResponse.json({
-    ok: true,
-    venta,
-    fel: felResult,
-    email: emailResult,
-  })
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const { searchParams } = new URL(req.url)
-  const id = searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-  const venta = await prisma.venta.findUnique({ where: { id: parseInt(id) } })
-  if (!venta) return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 })
-
-  await prisma.venta.update({
-    where: { id: parseInt(id) },
-    data: { estado: 'anulada' },
-  })
-
-  return NextResponse.json({ ok: true })
+  try {
+    await VentaService.anular(parseInt(id));
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 }

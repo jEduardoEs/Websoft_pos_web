@@ -15,17 +15,27 @@ function LoginFormContent() {
     e.preventDefault()
     setSessionError(false)
     setLoading(true)
-    const res = await signIn('credentials', { ...form, redirect: false })
-    setLoading(false)
-    if (res?.error) {
-      if (res.error.includes('SESION_ACTIVA') || res.error === 'CredentialsSignin') {
-        setSessionError(true)
+    try {
+      const res = await signIn('credentials', { ...form, redirect: false, callbackUrl: '/dashboard' })
+      setLoading(false)
+      console.log('SignIn Response:', res)
+      if (res?.error) {
+        if (res.error.includes('SESION_ACTIVA') || res.error === 'CredentialsSignin') {
+          setSessionError(true)
+        } else {
+          toast.error(`Error de login: ${res.error}`)
+        }
+      } else if (res?.ok) {
+        toast.success('Login exitoso, redirigiendo...')
+        router.push('/dashboard')
+        router.refresh()
       } else {
-        toast.error('Usuario o contrasena incorrectos')
+        toast.error('Ocurrió un problema inesperado al iniciar sesión.')
       }
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+    } catch (err: any) {
+      setLoading(false)
+      console.error('SignIn Exception:', err)
+      toast.error(err.message || 'Error de conexión')
     }
   }
 
