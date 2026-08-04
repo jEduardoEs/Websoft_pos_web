@@ -1,3 +1,4 @@
+'use client';
 import { useState } from 'react';
 import { RolDef } from '../types/role';
 import { useRoles } from '../hooks/useRoles';

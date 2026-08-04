@@ -1,5 +1,3 @@
-// src/modules/clientes/dto/create-cliente.dto.ts
-
 export class CreateClienteDto {
   nombre!: string;
   nit?: string;
@@ -7,5 +5,4 @@ export class CreateClienteDto {
   email?: string;
   direccion?: string;
   notas?: string;
-  activo?: boolean;
 }

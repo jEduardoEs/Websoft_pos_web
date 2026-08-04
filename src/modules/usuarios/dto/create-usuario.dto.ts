@@ -5,6 +5,7 @@ export class CreateUsuarioDto {
   usuario!: string;
   password!: string;
   rol!: string;
+  permisos?: string | string[];
   activo?: boolean;
   metaMensual?: number;
 }
