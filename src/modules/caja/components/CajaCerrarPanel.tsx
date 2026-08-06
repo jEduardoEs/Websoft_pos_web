@@ -46,7 +46,7 @@ export function CajaCerrarPanel({ data, loading, onCerrarCaja, cierreResult }: C
   if (cierreResult) {
     return (
       <div className="card" style={{ padding: 40, textAlign: 'center' }}>
-        <div style={{ fontSize: 50, marginBottom: 10 }}>✅</div>
+        <div style={{ fontSize: 50, marginBottom: 10 }}></div>
         <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>Caja Cerrada Exitosamente</h2>
         <p style={{ color: '#64748b', fontSize: 15, marginBottom: 20 }}>El turno ha finalizado y el arqueo fue guardado.</p>
         <div style={{ display: 'inline-block', textAlign: 'left', background: '#f8fafc', padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', minWidth: 300 }}>

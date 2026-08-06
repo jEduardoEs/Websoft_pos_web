@@ -88,7 +88,7 @@ export default function GarantiasModule() {
                                   Reclamar
                                 </button>
                               )}
-                              <button className="btn-ghost btn-sm" onClick={() => printGarantia(g)}>🖨</button>
+                              <button className="btn-ghost btn-sm" onClick={() => printGarantia(g)}></button>
                             </div>
                           </td>
                         </tr>
@@ -193,7 +193,7 @@ export default function GarantiasModule() {
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 12, marginBottom: 16, fontSize: 12 }}>
               <div style={{ display: 'flex', gap: 20 }}>
                 <span> Vence: <strong>{fmtDate(selectedGarantia.fechaVencimiento)}</strong></span>
-                <span>⏳ {diasRestantes(selectedGarantia)} días restantes</span>
+                <span> {diasRestantes(selectedGarantia)} días restantes</span>
                 <span> Serie: <strong>{selectedGarantia.productoSerie || '—'}</strong></span>
               </div>
             </div>

@@ -111,8 +111,8 @@ export function CotizacionesModule() {
             </div>
 
             <div style={{ marginTop: 24, display: 'flex', gap: 10 }}>
-              <a href={`/api/cotizaciones/${selected.id}`} target="_blank" className="btn-primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>🖨️ Imprimir PDF</a>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSendModal(selected); setSelected(null); }}>✉️ Enviar Correo</button>
+              <a href={`/api/cotizaciones/${selected.id}`} target="_blank" className="btn-primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>️ Imprimir PDF</a>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSendModal(selected); setSelected(null); }}>️ Enviar Correo</button>
             </div>
           </div>
         </div>

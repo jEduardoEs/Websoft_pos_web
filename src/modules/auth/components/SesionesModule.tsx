@@ -89,7 +89,7 @@ export function SesionesModule() {
         </div>
         {sessionError && (
           <div style={{ padding: '12px 18px', background: '#fef2f2', borderTop: '1px solid #fecaca', fontSize: 12, color: '#dc2626', fontWeight: 600 }}>
-            ⚠ {sessionError}
+             {sessionError}
           </div>
         )}
         <div style={{ padding: '12px 18px', background: '#fffbeb', borderTop: '1px solid #fef3c7', fontSize: 12, color: '#92400e' }}>

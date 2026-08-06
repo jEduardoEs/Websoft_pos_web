@@ -76,7 +76,7 @@ export function UsuarioFormModal({
             {showPermisos && (
               <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: 12, color: '#d97706', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, marginBottom: 16 }}>
-                  ⚠️ <b>Nota:</b> Al modificar estos permisos individualmente, este usuario tendrá reglas personalizadas diferentes al rol base seleccionado.
+                  ️ <b>Nota:</b> Al modificar estos permisos individualmente, este usuario tendrá reglas personalizadas diferentes al rol base seleccionado.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
                   {GROUPS.map(group => (

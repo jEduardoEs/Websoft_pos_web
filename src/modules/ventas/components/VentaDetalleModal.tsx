@@ -23,7 +23,7 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
 
         {venta.estado === 'anulada' && (
           <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 16px', borderRadius: 8, marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
-            ⚠️ Esta venta se encuentra ANULADA
+            ️ Esta venta se encuentra ANULADA
           </div>
         )}
 
@@ -41,7 +41,7 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
                 <div style={{ color: '#475569', fontSize: 12, marginTop: 2 }}>Serie: {venta.felSerie} - Num: {venta.felNumero}</div>
                 {venta.felPdfUrl && (
                   <a href={venta.felPdfUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
-                    📄 Descargar PDF FEL
+                     Descargar PDF FEL
                   </a>
                 )}
               </>

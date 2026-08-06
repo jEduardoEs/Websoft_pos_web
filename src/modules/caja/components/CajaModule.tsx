@@ -81,7 +81,7 @@ export function CajaModule() {
 
       {!data?.activa && !cierreResult && (
         <div className="card" style={{ padding: 40, textAlign: 'center', maxWidth: 500, margin: '40px auto' }}>
-          <div style={{ fontSize: 40, marginBottom: 14 }}>💰</div>
+          <div style={{ fontSize: 40, marginBottom: 14 }}></div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Apertura de Caja</h2>
           <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Ingresa el fondo de cambio inicial para comenzar a facturar.</p>
           

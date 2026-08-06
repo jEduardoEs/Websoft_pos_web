@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RolDef } from '../types/role';
-import { roleService } from '../services/roleService';
 import { toast } from 'sonner';
 
 export const useRoles = () => {
@@ -10,18 +9,22 @@ export const useRoles = () => {
 
   const load = useCallback(async () => {
     try {
-      const all = await roleService.getAllRoles();
+      const res = await fetch('/api/roles');
+      if (!res.ok) throw new Error('Error en API');
+      const all = await res.json();
       setRoles(all);
       // Fetch user counts from legacy endpoint for now (will be replaced later)
       const usersRes = await fetch('/api/usuarios');
-      const usuarios = await usersRes.json();
-      const counts: Record<string, number> = {};
-      if (Array.isArray(usuarios)) {
-        usuarios.forEach((u: any) => {
-          counts[u.rol] = (counts[u.rol] || 0) + 1;
-        });
+      if (usersRes.ok) {
+        const usuarios = await usersRes.json();
+        const counts: Record<string, number> = {};
+        if (Array.isArray(usuarios)) {
+          usuarios.forEach((u: any) => {
+            counts[u.rol] = (counts[u.rol] || 0) + 1;
+          });
+        }
+        setUsuariosPorRol(counts);
       }
-      setUsuariosPorRol(counts);
     } catch (e) {
       toast.error('Error al cargar roles');
     }
@@ -34,7 +37,12 @@ export const useRoles = () => {
   const save = async (nuevaLista: RolDef[]) => {
     setLoading(true);
     try {
-      await roleService.saveRoles(nuevaLista);
+      const res = await fetch('/api/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevaLista),
+      });
+      if (!res.ok) throw new Error('Error al guardar');
       setRoles(nuevaLista);
       toast.success('Roles actualizados');
     } catch (e) {

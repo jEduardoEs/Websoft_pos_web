@@ -81,20 +81,20 @@ export function CotizacionesTable({ cotizaciones, loading, isAdmin, onView, onAn
                   {menuOpen && (
                     <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 160, padding: 6 }}>
                       <button onClick={() => { onView(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                        👀 Ver detalles
+                         Ver detalles
                       </button>
                       <button onClick={() => { onEnviar(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                        ✉️ Enviar por correo
+                        ️ Enviar por correo
                       </button>
                       <a href={`/api/cotizaciones/${c.id}`} target="_blank" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
-                        🖨️ Imprimir PDF
+                        ️ Imprimir PDF
                       </a>
                       
                       {c.estado === 'pendiente' && (
                         <>
                           <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
                           <button onClick={() => { onFacturar(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
-                            🛒 Convertir a Venta
+                             Convertir a Venta
                           </button>
                           {isAdmin && (
                             <button onClick={() => { onAnular(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#dc2626', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>

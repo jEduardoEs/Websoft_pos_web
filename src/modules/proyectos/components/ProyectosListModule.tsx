@@ -33,8 +33,8 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
       {/* Alertas */}
       {(alertas.vencidos > 0 || alertas.proximos > 0) && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {alertas.vencidos > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}>⚠ {alertas.vencidos} proyecto(s) con mantenimiento vencido</div>}
-          {alertas.proximos > 0 && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#92400e', fontWeight: 600 }}>⏰ {alertas.proximos} mantenimiento(s) en los próximos 15 días</div>}
+          {alertas.vencidos > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}> {alertas.vencidos} proyecto(s) con mantenimiento vencido</div>}
+          {alertas.proximos > 0 && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#92400e', fontWeight: 600 }}> {alertas.proximos} mantenimiento(s) en los próximos 15 días</div>}
         </div>
       )}
 
@@ -93,7 +93,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                           <span style={{ fontSize: 11, color: '#94a3b8' }}>{realizados}/3</span>
                           {alerta && (
                             <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 10, background: alerta.tipo === 'vencido' ? '#fef2f2' : '#fffbeb', color: alerta.tipo === 'vencido' ? '#dc2626' : '#d97706', fontWeight: 700 }}>
-                              {alerta.tipo === 'vencido' ? `⚠ M${alerta.num} vencido` : `⏰ M${alerta.num} en ${alerta.dias}d`}
+                              {alerta.tipo === 'vencido' ? ` M${alerta.num} vencido` : ` M${alerta.num} en ${alerta.dias}d`}
                             </span>
                           )}
                         </div>

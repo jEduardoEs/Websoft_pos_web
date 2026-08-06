@@ -29,7 +29,7 @@ export function PosCheckoutModal({
       <div style={{ background: '#fff', padding: 24, borderRadius: 16, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
         {lastVenta ? (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Venta Completada</h2>
             <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>Documento: {lastVenta.numero}</p>
             
@@ -45,7 +45,7 @@ export function PosCheckoutModal({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button onClick={printTicket} className="btn-secondary" style={{ padding: 12, fontWeight: 700 }}>🖨️ Re-Imprimir</button>
+              <button onClick={printTicket} className="btn-secondary" style={{ padding: 12, fontWeight: 700 }}>️ Re-Imprimir</button>
               <button onClick={resetPos} className="btn-primary" style={{ padding: 12, fontWeight: 700 }}>Nueva Venta</button>
             </div>
           </div>

@@ -41,7 +41,7 @@ export class GarantiasService {
 
   static async getReclamos(garantiaId?: number): Promise<Reclamo[]> {
     const p = garantiaId ? `?garantia_id=${garantiaId}` : ''
-    const res = await fetch(`/api/garantias/reclamos${p}`)
+    const res = await fetch(`/api/garantias/reclamos${p}`, { credentials: 'include' })
     return res.json()
   }
 

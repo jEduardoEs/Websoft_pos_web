@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log(' Seeding database...')
 
   // Usuarios
   const adminPass = await bcrypt.hash('admin123', 12)
@@ -52,7 +52,7 @@ async function main() {
     if (!exists) await prisma.producto.create({ data: p })
   }
 
-  console.log('✅ Seed complete!')
+  console.log(' Seed complete!')
 }
 
 main()

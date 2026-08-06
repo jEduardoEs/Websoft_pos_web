@@ -46,7 +46,7 @@ export function ComprasTable({ compras, onView }: ComprasTableProps) {
                     {c.numeroFactura}
                     {c.facturaUrl && (
                       <a href={c.facturaUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', marginLeft: 4 }} title="Ver factura">
-                        📄
+                        
                       </a>
                     )}
                   </span>

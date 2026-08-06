@@ -1,5 +1,6 @@
 import React from 'react';
 import { Cliente } from '../types/cliente';
+import { Mail, Phone, MessageCircle } from 'lucide-react';
 
 interface ClientesTableProps {
   clientes: Cliente[];
@@ -32,10 +33,25 @@ export function ClientesTable({ clientes, onEdit, onDelete, onWhatsApp }: Client
               <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.nit || '-'}</td>
               <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>
                 {c.telefono ? (
-                  <span onClick={() => onWhatsApp(c.telefono!)} style={{ cursor: 'pointer', color: '#16a34a', textDecoration: 'underline' }}>{c.telefono}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{c.telefono}</span>
+                    <button onClick={() => onWhatsApp(c.telefono!)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#16a34a', display: 'flex' }} title="Mensaje por WhatsApp">
+                      <MessageCircle size={15} />
+                    </button>
+                    <a href={`tel:${c.telefono}`} style={{ color: '#2563eb', display: 'flex' }} title="Llamar">
+                      <Phone size={15} />
+                    </a>
+                  </div>
                 ) : '-'}
               </td>
-              <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{c.email || '-'}</td>
+              <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>
+                {c.email ? (
+                  <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${c.email}`} target="_blank" style={{ color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }} title="Enviar correo vía Gmail">
+                    <Mail size={15} />
+                    {c.email}
+                  </a>
+                ) : '-'}
+              </td>
               <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.notas || '-'}</td>
               <td style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: 12 }}>
                 {c.creadoEn ? new Date(c.creadoEn).toLocaleDateString() : '-'}

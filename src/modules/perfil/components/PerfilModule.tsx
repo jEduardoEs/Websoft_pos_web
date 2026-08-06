@@ -160,7 +160,7 @@ export function PerfilModule() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '32px', marginBottom: '10px' }}>🎯</div>
+                <div style={{ fontSize: '32px', marginBottom: '10px' }}></div>
                 <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>No tienes una meta de ventas asignada.</div>
               </div>
             )}

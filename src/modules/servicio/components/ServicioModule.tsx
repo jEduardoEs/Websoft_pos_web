@@ -78,14 +78,14 @@ export default function ServicioModule() {
                     <td style={{ ...tdS, color: '#8a887e', fontSize: 12 }}>{o.tecnicoNombre || '—'}</td>
                     <td style={{ ...tdS, color: vencida ? '#dc2626' : '#64748b', fontSize: 12, fontWeight: vencida ? 700 : 400 }}>
                       {o.fechaPromesa ? fmtDate(o.fechaPromesa) : '—'}
-                      {vencida && ' ⚠'}
+                      {vencida && ' '}
                     </td>
                     <td style={{ ...tdS, fontWeight: 700 }}>{o.total > 0 ? fmt(o.total) : '—'}</td>
                     <td style={{ ...tdS }}>
                       <span style={{ background: est.bg, color: est.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{est.label}</span>
                     </td>
                     <td style={{ ...tdS }} onClick={e => e.stopPropagation()}>
-                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}>🖨</button>
+                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}></button>
                     </td>
                   </tr>
                 )

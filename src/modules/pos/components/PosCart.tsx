@@ -59,7 +59,7 @@ export function PosCart({
                 }} 
                 onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} 
               />
-              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 12px' }}>🔍</button>
+              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 12px' }}></button>
             </div>
           </div>
         </div>
@@ -83,10 +83,10 @@ export function PosCart({
               </button>
             )}
             {nitStatus === 'found' && clienteTieneCorreo && (
-              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}>📧</span>
+              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
             )}
             {nitStatus === 'found' && !clienteTieneCorreo && (
-              <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}>🚫📧</span>
+              <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}></span>
             )}
           </div>
         </div>

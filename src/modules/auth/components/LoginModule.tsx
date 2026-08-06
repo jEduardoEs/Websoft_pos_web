@@ -27,7 +27,7 @@ function LoginModuleContent() {
         {sessionError && (
           <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10, padding: 14, marginBottom: 18 }} role="alert">
             <div style={{ fontWeight: 700, fontSize: 13, color: '#dc2626', marginBottom: 6 }}>
-              ⚠ Sesión activa o credenciales inválidas
+               Sesión activa o credenciales inválidas
             </div>
             <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.5 }}>
               Verifica tus credenciales o contacta al administrador si tu usuario ya tiene una sesión activa en otro equipo.
