@@ -42,7 +42,7 @@ export class ReclamoBackendService {
           descripcionFalla: data.descripcionFalla,
           tieneFactura: !!data.tieneFactura,
           numeroFactura: data.numeroFactura || garantia.ventaNumero,
-          usuarioNombre: user.name,
+          usuarioNombre: user?.name || user?.nombre || 'Sistema',
           notas: data.notas,
         },
       });
@@ -66,6 +66,7 @@ export class ReclamoBackendService {
       if (data.decision === 'reparar' && !ordenTrabajoId && data.crearOrden) {
         const count = await tx.ordenTrabajo.count();
         const numero = `OT-${String(count + 1).padStart(6, '0')}`;
+        const uName = user?.name || user?.nombre || 'Sistema';
         const orden = await tx.ordenTrabajo.create({
           data: {
             numero,
@@ -77,13 +78,13 @@ export class ReclamoBackendService {
             descripcionFalla: `GARANTÍA ${reclamo.garantiaNumero}: ${reclamo.descripcionFalla}`,
             observaciones: `Reclamo ${reclamo.numero} — ${reclamo.motivoReclamo}`,
             prioridad: 'urgente',
-            usuarioId: parseInt(user.id),
-            usuarioNombre: user.name,
+            usuarioId: user?.id ? Number(user.id) : undefined,
+            usuarioNombre: uName,
             historial: {
               create: {
                 estadoNuevo: 'recibido',
                 comentario: `Creado desde reclamo de garantía ${reclamo.numero}`,
-                usuarioNombre: user.name,
+                usuarioNombre: uName,
               },
             },
           },

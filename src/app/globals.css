@@ -103,7 +103,28 @@ body, button, input, textarea, select {
     border-color: var(--ws-border2);
     color: var(--ws-text);
   }
+  /* btn-secondary is an alias for btn-ghost for legacy compatibility */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-all;
+    background: transparent;
+    color: var(--ws-text2);
+    border: 1.5px solid var(--ws-border);
+    border-radius: 4px;
+  }
+  .btn-secondary:hover {
+    background: var(--ws-bg3);
+    border-color: var(--ws-border2);
+    color: var(--ws-text);
+  }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
+
+  /* page-wrap: contenedor estandar de pagina */
+  .page-wrap {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
   .input {
     @apply w-full text-sm outline-none transition-all;

@@ -7,16 +7,20 @@ import { printGarantia } from '../utils/pdfGenerators'
 export default function GarantiasModule() {
   const { state, actions } = useGarantias()
   const {
-    garantias, buscar, filtroEstado, showModal, showReclamo, selectedGarantia,
+    garantias, buscar, showModal, showReclamo, selectedGarantia,
     todosReclamos, form, reclamoForm, loading, ventas, tab
   } = state
   const {
-    setBuscar, setFiltroEstado, setShowModal, setShowReclamo, setTab,
+    setBuscar, setShowModal, setShowReclamo, setTab,
     setForm, setF, setRF, selVenta,
     saveGarantia, abrirReclamo, saveReclamo, resolverReclamo, emptyForm
   } = actions
 
-  const diasRestantes = (g: any) => Math.ceil((new Date(g.fechaVencimiento).getTime() - Date.now()) / 86400000)
+  const diasRestantes = (g: any) => {
+    if (!g?.fechaVencimiento) return 0
+    const venc = new Date(g.fechaVencimiento).getTime()
+    return isNaN(venc) ? 0 : Math.ceil((venc - Date.now()) / 86400000)
+  }
 
   const estadoBadge: any = { vigente: 'badge-green', vencida: 'badge-red', reclamada: 'badge-orange', anulada: 'badge-gray', facturada: 'badge-blue' }
   const estadoReclamoBadge: any = { recibido: 'badge-blue', en_revision: 'badge-orange', aprobado: 'badge-green', rechazado: 'badge-red', resuelto: 'badge-gray' }
@@ -36,108 +40,296 @@ export default function GarantiasModule() {
         <button className="btn-primary" onClick={() => { setForm(emptyForm); setShowModal(true) }}>+ Nueva Garantía</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 2, background: '#f4f3ef', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 4, width: 'fit-content' }}>
-        {([['garantias', ' Garantías'], ['reclamos', ' Reclamos']] as const).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{ padding: '8px 16px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', background: tab === id ? '#2563eb' : 'transparent', color: tab === id ? '#fff' : '#64748b', transition: 'all .15s' }}>{label}</button>
+      <div style={{ display: 'flex', gap: 2, background: '#f4f3ef', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 4, width: 'fit-content', flexWrap: 'wrap' }}>
+        {([
+          ['todas', 'Todas'],
+          ['vigente', 'Vigentes'],
+          ['reclamada', 'Reclamadas'],
+          ['vencida', 'Vencidas'],
+          ['anulada', 'Anuladas']
+        ] as const).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id as any)} style={{ padding: '8px 16px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', background: tab === id ? '#2563eb' : 'transparent', color: tab === id ? '#fff' : '#64748b', transition: 'all .15s' }}>{label}</button>
         ))}
       </div>
 
-      {tab === 'garantias' && (
-        <>
-          <div className="card" style={{ padding: 14 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input className="input" placeholder="Buscar por cliente, producto, número..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ flex: 1 }} />
-              <select className="input" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ width: 160 }}>
-                <option value="">Todos</option>
-                <option value="vigente">Vigente</option>
-                <option value="vencida">Vencida</option>
-                <option value="reclamada">Reclamada</option>
-                <option value="anulada">Anulada</option>
-              </select>
-            </div>
-          </div>
+      {tab !== 'reclamada' && (() => {
+        const garantiasFiltradas = (garantias || []).filter(g => {
+          const matchBuscar = !buscar || (
+            g.numero?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.clienteNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.productoNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.productoSerie?.toLowerCase().includes(buscar.toLowerCase())
+          )
+          const estadoLow = (g.estado || '').toLowerCase()
+          const dias = diasRestantes(g)
+          let matchTab = false
+          if (tab === 'todas') {
+            matchTab = true
+          } else if (tab === 'vigente') {
+            matchTab = estadoLow === 'vigente' && dias > 0
+          } else if (tab === 'vencida') {
+            matchTab = estadoLow === 'vencida' || (estadoLow === 'vigente' && dias <= 0)
+          } else if (tab === 'anulada') {
+            matchTab = estadoLow === 'anulada'
+          } else {
+            matchTab = estadoLow === tab.toLowerCase()
+          }
+          return matchBuscar && matchTab
+        })
 
-          <div className="card">
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr>{['#', 'Cliente', 'Producto', 'Serie', 'Venta', 'Vence', 'Días', 'Estado', ''].map(h => <th key={h} style={thS}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {garantias.length === 0
-                    ? <tr><td colSpan={9} style={{ textAlign: 'center', padding: 50, color: '#8a887e' }}>Sin garantías</td></tr>
-                    : garantias.map(g => {
-                      const dias = diasRestantes(g)
-                      return (
-                        <tr key={g.id}>
-                          <td style={{ ...tdS, fontWeight: 700, color: '#16a34a' }}>{g.numero}</td>
-                          <td style={{ ...tdS, fontWeight: 600, color: '#18181b' }}>{g.clienteNombre}</td>
-                          <td style={{ ...tdS, color: '#52524d' }}>{g.productoNombre}</td>
-                          <td style={{ ...tdS, color: '#8a887e', fontSize: 11, fontFamily: 'monospace' }}>{g.productoSerie || '—'}</td>
-                          <td style={{ ...tdS, color: '#8a887e', fontSize: 11 }}>{fmtDate(g.fechaVenta)}</td>
-                          <td style={{ ...tdS, color: '#8a887e', fontSize: 11 }}>{fmtDate(g.fechaVencimiento)}</td>
+        return (
+          <>
+            <div className="card" style={{ padding: 14 }}>
+              <input className="input" placeholder="Buscar por cliente, producto, número..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ width: '100%' }} />
+            </div>
+
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                      <th style={{ ...thS, width: 110 }}>No. Garantía</th>
+                      <th style={{ ...thS, width: 180 }}>Cliente</th>
+                      <th style={{ ...thS, minWidth: 160 }}>Producto</th>
+                      <th style={{ ...thS, width: 130 }}>No. Serie</th>
+                      <th style={{ ...thS, width: 100 }}>Venta</th>
+                      <th style={{ ...thS, width: 100 }}>Vencimiento</th>
+                      <th style={{ ...thS, width: 90 }}>Días</th>
+                      <th style={{ ...thS, width: 100 }}>Estado</th>
+                      <th style={{ ...thS, width: 130, textAlign: 'right' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {garantiasFiltradas.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} style={{ textAlign: 'center', padding: 48, color: '#8a887e', fontSize: 13 }}>
+                          Sin garantías en esta sección
+                        </td>
+                      </tr>
+                    ) : (
+                      garantiasFiltradas.map(g => {
+                        const dias = diasRestantes(g)
+                        return (
+                          <tr key={g.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color .15s' }}>
+                            <td style={{ ...tdS, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>{g.numero}</td>
+                            <td style={{ ...tdS, fontWeight: 600, color: '#18181b', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.clienteNombre}</td>
+                            <td style={{ ...tdS, color: '#334155', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.productoNombre}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, fontFamily: 'monospace' }}>{g.productoSerie || '—'}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(g.fechaVenta)}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(g.fechaVencimiento)}</td>
+                            <td style={{ ...tdS, whiteSpace: 'nowrap' }}>
+                              <span style={{ fontWeight: 700, color: dias <= 0 ? '#dc2626' : dias <= 30 ? '#d97706' : '#16a34a', fontSize: 12 }}>
+                                {dias <= 0 ? 'Vencida' : `${dias} d`}
+                              </span>
+                            </td>
+                            <td style={tdS}>
+                              <span className={estadoBadge[g.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>
+                                {g.estado}
+                              </span>
+                            </td>
+                            <td style={{ ...tdS, textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {g.estado === 'vigente' && (
+                                  <button
+                                    onClick={() => abrirReclamo(g)}
+                                    style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                                  >
+                                    Reclamar
+                                  </button>
+                                )}
+                                <button
+                                  className="btn-ghost btn-sm"
+                                  onClick={() => printGarantia(g)}
+                                  style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px' }}
+                                >
+                                  Imprimir
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      {tab === 'reclamada' && (() => {
+        const reclamosFiltrados = (todosReclamos || []).filter((r: any) => {
+          if (!buscar) return true
+          const q = buscar.toLowerCase()
+          return (
+            r.numero?.toLowerCase().includes(q) ||
+            r.garantiaNumero?.toLowerCase().includes(q) ||
+            r.clienteNombre?.toLowerCase().includes(q) ||
+            r.motivoReclamo?.toLowerCase().includes(q)
+          )
+        })
+
+        const garantiasReclamadas = (garantias || []).filter(g => {
+          const matchBuscar = !buscar || (
+            g.numero?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.clienteNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.productoNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.productoSerie?.toLowerCase().includes(buscar.toLowerCase())
+          )
+          return matchBuscar && (g.estado || '').toLowerCase() === 'reclamada'
+        })
+
+        if (reclamosFiltrados.length === 0 && garantiasReclamadas.length > 0) {
+          return (
+            <>
+              <div className="card" style={{ padding: 14 }}>
+                <input className="input" placeholder="Buscar por cliente, producto, número..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ width: '100%' }} />
+              </div>
+
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                        <th style={{ ...thS, width: 110 }}>No. Garantía</th>
+                        <th style={{ ...thS, width: 180 }}>Cliente</th>
+                        <th style={{ ...thS, minWidth: 160 }}>Producto</th>
+                        <th style={{ ...thS, width: 130 }}>No. Serie</th>
+                        <th style={{ ...thS, width: 100 }}>Venta</th>
+                        <th style={{ ...thS, width: 100 }}>Vencimiento</th>
+                        <th style={{ ...thS, width: 90 }}>Días</th>
+                        <th style={{ ...thS, width: 100 }}>Estado</th>
+                        <th style={{ ...thS, width: 130, textAlign: 'right' }}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {garantiasReclamadas.map(g => {
+                        const dias = diasRestantes(g)
+                        return (
+                          <tr key={g.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color .15s' }}>
+                            <td style={{ ...tdS, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>{g.numero}</td>
+                            <td style={{ ...tdS, fontWeight: 600, color: '#18181b', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.clienteNombre}</td>
+                            <td style={{ ...tdS, color: '#334155', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.productoNombre}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, fontFamily: 'monospace' }}>{g.productoSerie || '—'}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(g.fechaVenta)}</td>
+                            <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(g.fechaVencimiento)}</td>
+                            <td style={{ ...tdS, whiteSpace: 'nowrap' }}>
+                              <span style={{ fontWeight: 700, color: dias <= 0 ? '#dc2626' : dias <= 30 ? '#d97706' : '#16a34a', fontSize: 12 }}>
+                                {dias <= 0 ? 'Vencida' : `${dias} d`}
+                              </span>
+                            </td>
+                            <td style={tdS}>
+                              <span className={estadoBadge[g.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>
+                                {g.estado}
+                              </span>
+                            </td>
+                            <td style={{ ...tdS, textAlign: 'right' }}>
+                              <button
+                                className="btn-ghost btn-sm"
+                                onClick={() => printGarantia(g)}
+                                style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px' }}
+                              >
+                                Imprimir
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )
+        }
+
+        return (
+          <>
+            <div className="card" style={{ padding: 14 }}>
+              <input className="input" placeholder="Buscar reclamo por cliente, garantía, motivo, número..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ width: '100%' }} />
+            </div>
+
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                      <th style={{ ...thS, width: 110 }}>No. Reclamo</th>
+                      <th style={{ ...thS, width: 100 }}>Fecha</th>
+                      <th style={{ ...thS, width: 110 }}>Garantía</th>
+                      <th style={{ ...thS, width: 170 }}>Cliente</th>
+                      <th style={{ ...thS, minWidth: 180 }}>Motivo</th>
+                      <th style={{ ...thS, width: 110 }}>Decisión</th>
+                      <th style={{ ...thS, width: 100 }}>Estado</th>
+                      <th style={{ ...thS, width: 230, textAlign: 'right' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reclamosFiltrados.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: 48, color: '#8a887e', fontSize: 13 }}>
+                          Sin reclamos registrados
+                        </td>
+                      </tr>
+                    ) : (
+                      reclamosFiltrados.map(r => (
+                        <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color .15s' }}>
+                          <td style={{ ...tdS, fontWeight: 700, color: '#dc2626', whiteSpace: 'nowrap' }}>{r.numero}</td>
+                          <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(r.fecha)}</td>
+                          <td style={{ ...tdS, color: '#2563eb', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.garantiaNumero}</td>
+                          <td style={{ ...tdS, fontWeight: 600, color: '#18181b', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.clienteNombre}</td>
+                          <td style={{ ...tdS, color: '#334155', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.motivoReclamo}</td>
                           <td style={tdS}>
-                            <span style={{ fontWeight: 700, color: dias <= 0 ? '#dc2626' : dias <= 30 ? '#d97706' : '#16a34a', fontSize: 13 }}>
-                              {dias <= 0 ? 'Vencida' : `${dias}d`}
+                            {r.decision ? (
+                              <span className="badge-blue" style={{ textTransform: 'capitalize' }}>
+                                {r.decision}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: 12 }}>Pendiente</span>
+                            )}
+                          </td>
+                          <td style={tdS}>
+                            <span className={estadoReclamoBadge[r.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>
+                              {r.estado}
                             </span>
                           </td>
-                          <td style={tdS}><span className={estadoBadge[g.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>{g.estado}</span></td>
-                          <td style={{ ...tdS }}>
-                            <div style={{ display: 'flex', gap: 5 }}>
-                              {g.estado === 'vigente' && (
-                                <button onClick={() => abrirReclamo(g)}
-                                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                  Reclamar
+                          <td style={{ ...tdS, textAlign: 'right' }}>
+                            {r.estado === 'recibido' ? (
+                              <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={() => resolverReclamo(r, 'reparar', 'En reparación')}
+                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  Reparar
                                 </button>
-                              )}
-                              <button className="btn-ghost btn-sm" onClick={() => printGarantia(g)}></button>
-                            </div>
+                                <button
+                                  onClick={() => resolverReclamo(r, 'reemplazar', 'Producto reemplazado')}
+                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  Reemplazar
+                                </button>
+                                <button
+                                  onClick={() => resolverReclamo(r, 'rechazar', 'No cubre garantía')}
+                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  Rechazar
+                                </button>
+                              </div>
+                            ) : r.ordenTrabajoId ? (
+                              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>OT #{r.ordenTrabajoId}</span>
+                            ) : null}
                           </td>
                         </tr>
-                      )
-                    })}
-                </tbody>
-              </table>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        </>
-      )}
-
-      {tab === 'reclamos' && (
-        <div className="card">
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['#', 'Fecha', 'Garantía', 'Cliente', 'Motivo', 'Decisión', 'Estado', ''].map(h => <th key={h} style={thS}>{h}</th>)}</tr></thead>
-              <tbody>
-                {todosReclamos.length === 0
-                  ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: 50, color: '#8a887e' }}>Sin reclamos</td></tr>
-                  : todosReclamos.map(r => (
-                    <tr key={r.id}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#dc2626' }}>{r.numero}</td>
-                      <td style={{ ...tdS, color: '#8a887e', fontSize: 11, whiteSpace: 'nowrap' }}>{fmtDate(r.fecha)}</td>
-                      <td style={{ ...tdS, color: '#1581E3', fontWeight: 600 }}>{r.garantiaNumero}</td>
-                      <td style={{ ...tdS, fontWeight: 600 }}>{r.clienteNombre}</td>
-                      <td style={{ ...tdS, color: '#52524d', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.motivoReclamo}</td>
-                      <td style={tdS}>{r.decision ? <span className="badge-blue" style={{ textTransform: 'capitalize' }}>{r.decision}</span> : <span style={{ color: '#8a887e' }}>Pendiente</span>}</td>
-                      <td style={tdS}><span className={estadoReclamoBadge[r.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>{r.estado}</span></td>
-                      <td style={tdS}>
-                        {r.estado === 'recibido' && (
-                          <div style={{ display: 'flex', gap: 5 }}>
-                            <button onClick={() => resolverReclamo(r, 'reparar', 'En reparación')}
-                              style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#1581E3', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}> Reparar</button>
-                            <button onClick={() => resolverReclamo(r, 'reemplazar', 'Producto reemplazado')}
-                              style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>↻ Reemplazar</button>
-                            <button onClick={() => resolverReclamo(r, 'rechazar', 'No cubre garantía')}
-                              style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}> Rechazar</button>
-                          </div>
-                        )}
-                        {r.ordenTrabajoId && <span style={{ fontSize: 10, color: '#8a887e' }}>OT #{r.ordenTrabajoId}</span>}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          </>
+        )
+      })()}
 
       {/* MODAL NUEVA GARANTIA */}
       {showModal && (

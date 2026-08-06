@@ -29,7 +29,7 @@ export default function AuditoriaModule() {
   const tdS = { padding: '10px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="page-wrap">
       <div>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Auditoría</h1>
         <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Registro de acciones realizadas en el sistema</p>

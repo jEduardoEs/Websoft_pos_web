@@ -58,7 +58,7 @@ export default function DashboardModule() {
   const mesNombre = now.toLocaleString('es-GT', { month: 'long', year: 'numeric' })
 
   return (
-    <main aria-label="Dashboard" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <main aria-label="Dashboard" className="page-wrap">
       <section aria-labelledby="dashboard-title">
         <h1 id="dashboard-title" style={{ fontSize: 20, fontWeight: 700, color: '#18181b' }}>
           {isAdmin ? 'Dashboard — Administrador' : `Hola, ${session?.user?.name}`}

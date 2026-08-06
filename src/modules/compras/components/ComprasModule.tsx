@@ -36,7 +36,7 @@ export function ComprasModule() {
   }
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%', gap: 20 }}>
+    <div className="page-wrap">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Compras e Ingresos</h1>

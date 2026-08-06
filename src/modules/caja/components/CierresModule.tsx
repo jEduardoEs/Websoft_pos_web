@@ -27,7 +27,7 @@ export function CierresModule() {
   }
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="page-wrap">
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Cierre de Caja</h1>
         <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>Registra el cierre diario de ventas</p>

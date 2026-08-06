@@ -41,7 +41,11 @@ export class GarantiasService {
 
   static async getReclamos(garantiaId?: number): Promise<Reclamo[]> {
     const p = garantiaId ? `?garantia_id=${garantiaId}` : ''
-    const res = await fetch(`/api/garantias/reclamos${p}`, { credentials: 'include' })
+    const res = await fetch(`/api/garantias/reclamos${p}`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `Error al cargar reclamos (status ${res.status})`)
+    }
     return res.json()
   }
 

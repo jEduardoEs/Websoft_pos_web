@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import { GarantiasService, Garantia, Reclamo } from '../services/garantias.service'
 import { printGarantia, printReclamo } from '../utils/pdfGenerators'
+import { useSession } from 'next-auth/react'
 
 const emptyForm = {
   clienteNombre: '', clienteTelefono: '', clienteNit: 'CF',
@@ -30,7 +31,7 @@ export function useGarantias() {
   const [reclamoForm, setReclamoForm] = useState(emptyReclamo)
   const [loading, setLoading] = useState(false)
   const [ventas, setVentas] = useState<any[]>([])
-  const [tab, setTab] = useState<'garantias'|'reclamos'>('garantias')
+  const [tab, setTab] = useState<'todas' | 'vigente' | 'reclamada' | 'vencida' | 'anulada'>('todas')
 
   const load = useCallback(async () => {
     try {
@@ -44,15 +45,28 @@ export function useGarantias() {
   const loadReclamos = useCallback(async (garantiaId?: number) => {
     try {
       const data = await GarantiasService.getReclamos(garantiaId)
-      if (garantiaId) setReclamos(data)
-      else setTodosReclamos(data)
-    } catch {
+      const list = Array.isArray(data) ? data : []
+      if (garantiaId) setReclamos(list)
+      else setTodosReclamos(list)
+    } catch (e) {
+      console.error('loadReclamos error', e)
       toast.error('Error al cargar reclamos')
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => { if (tab === 'reclamos') loadReclamos() }, [tab, loadReclamos])
+  useEffect(() => {
+    load()
+    loadReclamos()
+  }, [load, loadReclamos])
+
+  useEffect(() => {
+    if (tab === 'reclamada') {
+      loadReclamos()
+    } else {
+      load()
+    }
+  }, [tab, load, loadReclamos])
+
   useEffect(() => {
     GarantiasService.getVentas().then(setVentas).catch(() => {})
   }, [])
@@ -127,13 +141,19 @@ export function useGarantias() {
     }
   }
 
+  const changeTab = (t: 'todas' | 'vigente' | 'reclamada' | 'vencida' | 'anulada') => {
+    setBuscar('')
+    setFiltroEstado('')
+    setTab(t)
+  }
+
   return {
     state: {
       garantias, buscar, filtroEstado, showModal, showReclamo, selectedGarantia,
       reclamos, todosReclamos, form, reclamoForm, loading, ventas, tab
     },
     actions: {
-      setBuscar, setFiltroEstado, setShowModal, setShowReclamo, setTab,
+      setBuscar, setFiltroEstado, setShowModal, setShowReclamo, setTab: changeTab,
       setForm, setF, setRF, selVenta,
       saveGarantia, abrirReclamo, saveReclamo, resolverReclamo,
       emptyForm
