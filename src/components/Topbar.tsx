@@ -1,6 +1,7 @@
 'use client'
 import { signOut } from 'next-auth/react'
 import { useEffect, useRef } from 'react'
+import Link from 'next/link'
 
 interface TopbarProps {
   user: { name?: string | null; email?: string | null; role?: string }
@@ -90,15 +91,19 @@ export default function Topbar({ user }: TopbarProps) {
             Sesion expira 30min
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#f4f3ef', border: '1.5px solid #e3e1d8', borderRadius: 20, padding: '3px 10px 3px 4px' }}>
-          <div style={{ width: 26, height: 26, background: '#18181b', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-            {(user.name || 'U')[0].toUpperCase()}
+        <Link href="/perfil" style={{ textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#f4f3ef', border: '1.5px solid #e3e1d8', borderRadius: 20, padding: '3px 10px 3px 4px', cursor: 'pointer', transition: 'background 0.2s' }}
+               onMouseEnter={e => e.currentTarget.style.background = '#e3e1d8'}
+               onMouseLeave={e => e.currentTarget.style.background = '#f4f3ef'}>
+            <div style={{ width: 26, height: 26, background: '#18181b', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+              {(user.name || 'U')[0].toUpperCase()}
+            </div>
+            <div className="topbar-userinfo">
+              <div style={{ fontSize: 12, color: '#18181b', fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+              <div style={{ fontSize: 10, color: '#8a887e', textTransform: 'capitalize' }}>{user.role}</div>
+            </div>
           </div>
-          <div className="topbar-userinfo">
-            <div style={{ fontSize: 12, color: '#18181b', fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-            <div style={{ fontSize: 10, color: '#8a887e', textTransform: 'capitalize' }}>{user.role}</div>
-          </div>
-        </div>
+        </Link>
         <button type="button" onClick={handleSignOut} style={{ background: '#fff', color: '#b13a2e', border: '1.5px solid #e3c3bd', padding: '5px 12px', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
           Salir
         </button>

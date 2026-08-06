@@ -103,12 +103,340 @@ export class CotizacionService {
   }
 
   /**
-   * Update quotation status (e.g. accepted, voided)
+   * Update quotation status with auto-project creation and protection
    */
-  static async updateEstado(id: number, estado: string) {
-    return prisma.cotizacion.update({
+  static async updateEstado(id: number, estado: string, user: any, pin?: string) {
+    const estadosProtegidos = ['aceptada', 'rechazada'];
+    if (estadosProtegidos.includes(estado)) {
+      if (user.role !== 'admin') {
+        if (!pin) throw new Error('PIN_REQUIRED');
+        const admin = await prisma.usuario.findFirst({ where: { rol: 'admin', activo: true } });
+        if (!admin) throw new Error('No hay admin configurado');
+        const bcrypt = await import('bcryptjs');
+        if (!(await bcrypt.compare(pin, admin.password))) throw new Error('PIN_WRONG');
+      }
+    }
+
+    const updated = await prisma.cotizacion.update({
       where: { id },
-      data: { estado },
+      data: {
+        estado,
+        notas: estado === 'aceptada' ? `Autorizada por: ${user.name} el ${new Date().toLocaleString('es-GT')}` : undefined,
+      },
+      include: { items: true },
     });
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          usuarioId: parseInt(user.id),
+          usuarioNombre: user.name,
+          accion: `COTIZACION_${estado.toUpperCase()}`,
+          tabla: 'cotizaciones',
+          registroId: String(id),
+          detalle: `Estado cambiado a: ${estado}`,
+        },
+      });
+    } catch {}
+
+    if (estado === 'aceptada') {
+      try {
+        const tieneInstalacion = updated.items.some((i: any) =>
+          i.descripcion?.toLowerCase().includes('instalacion') ||
+          i.descripcion?.toLowerCase().includes('instalación')
+        );
+        
+        if (tieneInstalacion) {
+          const yaExiste = await prisma.proyecto.findUnique({ where: { cotizacionId: id } });
+          if (!yaExiste) {
+            const count = await prisma.proyecto.count();
+            const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
+            const descItems = updated.items.map((i: any) => i.descripcion).join(', ');
+            const addMonths = (date: Date, months: number) => { const d = new Date(date); d.setMonth(d.getMonth() + months); return d; };
+            
+            await prisma.proyecto.create({
+              data: {
+                numero,
+                nombre: updated.descripcion || `Proyecto ${updated.clienteNombre}`,
+                clienteNombre: updated.clienteNombre,
+                clienteNit: updated.clienteNit || null,
+                clienteTelefono: updated.clienteTelefono || null,
+                clienteDireccion: updated.clienteDireccion || null,
+                descripcion: descItems || updated.descripcion || 'Instalación',
+                cotizacionId: updated.id,
+                cotizacionNumero: updated.numero,
+                fechaInicio: new Date(),
+                usuarioNombre: user.name,
+                mantenimientos: {
+                  create: [1, 2, 3].map(n => ({
+                    numero: n,
+                    fechaProgramada: addMonths(new Date(), n * 4),
+                  })),
+                },
+              },
+            });
+          }
+        }
+      } catch {}
+    }
+    return updated;
+  }
+
+  static async updateFull(id: number, data: any, user: any) {
+    await prisma.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
+    const updated = await prisma.cotizacion.update({
+      where: { id },
+      data: {
+        clienteNombre: data.clienteNombre,
+        clienteDireccion: data.clienteDireccion,
+        clienteTelefono: data.clienteTelefono,
+        clienteNit: data.clienteNit,
+        atencion: data.atencion,
+        formaPago: data.formaPago,
+        descripcion: data.descripcion,
+        notas: data.notas,
+        tiempoInstalacion: data.tiempoInstalacion,
+        subtotal: data.subtotal,
+        descuento: data.descuento,
+        total: data.total,
+        validezDias: data.validezDias || 15,
+        items: {
+          create: (data.items || []).map((it: any) => ({
+            codigo: it.codigo || '',
+            descripcion: it.descripcion,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+            subtotal: it.subtotal,
+            descuento: it.descuento || 0,
+            totalItem: it.totalItem,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          usuarioId: parseInt(user.id),
+          usuarioNombre: user.name,
+          accion: 'UPDATE',
+          tabla: 'cotizaciones',
+          registroId: String(id),
+          detalle: 'Cotizacion editada',
+        },
+      });
+    } catch {}
+
+    return updated;
+  }
+
+  static async delete(id: number, user: any) {
+    if (user.role !== 'admin') throw new Error('No autorizado');
+    await prisma.cotizacion.delete({ where: { id } });
+  }
+
+  static async facturar(cotizacionId: number, data: any, user: any) {
+    const cotizacion = await prisma.cotizacion.findUnique({
+      where: { id: cotizacionId },
+      include: { items: true },
+    });
+    if (!cotizacion) throw new Error('Cotización no encontrada');
+    if (cotizacion.estado === 'facturada') throw new Error('Ya fue facturada');
+
+    return prisma.$transaction(async (tx) => {
+      const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });
+      const num = parseInt(cfg?.valor || '1');
+      const numero = `FAC-${String(num).padStart(6, '0')}`;
+
+      const total = cotizacion.total;
+      const montoRecibido = parseFloat(data.montoRecibido) || total;
+      const cambio = Math.max(0, montoRecibido - total);
+
+      const venta = await tx.venta.create({
+        data: {
+          numero,
+          clienteNombre: data.clienteNombre || cotizacion.clienteNombre,
+          clienteNit: data.clienteNit || cotizacion.clienteNit || 'CF',
+          subtotal: cotizacion.subtotal,
+          descuento: cotizacion.descuento,
+          impuesto: cotizacion.total - (cotizacion.subtotal - cotizacion.descuento),
+          total: cotizacion.total,
+          metodoPago: data.metodoPago || 'efectivo',
+          montoRecibido,
+          cambio,
+          notas: `Facturado desde cotización ${cotizacion.numero}`,
+          usuarioId: parseInt(user.id),
+          usuarioNombre: user.name,
+          items: {
+            create: cotizacion.items.map((item: any) => ({
+              nombre: item.descripcion,
+              codigo: item.codigo || '',
+              cantidad: item.cantidad,
+              precioUnitario: item.precioUnitario,
+              descuento: item.descuento,
+              subtotal: item.totalItem,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      for (const item of cotizacion.items) {
+        if (!item.codigo) continue;
+        const prod = await tx.producto.findFirst({
+          where: {
+            OR: [
+              { codigo: item.codigo },
+              { nombre: { equals: item.descripcion, mode: 'insensitive' } },
+            ],
+            activo: true,
+          },
+        });
+        if (prod && prod.stock >= item.cantidad) {
+          const newStock = prod.stock - item.cantidad;
+          await tx.producto.update({ where: { id: prod.id }, data: { stock: newStock } });
+          await tx.kardex.create({
+            data: {
+              productoId: prod.id, tipo: 'salida', cantidad: item.cantidad,
+              stockAntes: prod.stock, stockDespues: newStock,
+              motivo: `Venta ${numero} (desde cotización ${cotizacion.numero})`,
+              referencia: numero,
+              usuarioId: parseInt(user.id), usuarioNombre: user.name,
+            },
+          });
+        }
+      }
+
+      await tx.cotizacion.update({
+        where: { id: cotizacion.id },
+        data: { estado: 'facturada' },
+      });
+
+      await tx.config.update({
+        where: { clave: 'numero_siguiente' },
+        data: { valor: String(num + 1) },
+      });
+
+      try {
+        await tx.auditLog.create({
+          data: {
+            usuarioId: parseInt(user.id), usuarioNombre: user.name,
+            accion: 'CREATE', tabla: 'ventas', registroId: String(venta.id),
+            detalle: `Venta ${numero} creada desde cotización ${cotizacion.numero}`,
+          }
+        });
+      } catch {}
+
+      return venta;
+    });
+  }
+
+  static async enviarCorreo(id: number, email: string) {
+    const cot = await prisma.cotizacion.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!cot) throw new Error('Cotización no encontrada');
+
+    let apiKey = process.env.RESEND_API_KEY;
+    let from = process.env.EMAIL_FROM || 'WebSoft Solutions <facturacion@websoftsolutions.com.gt>';
+    try {
+      const [keyRow, fromRow] = await Promise.all([
+        prisma.config.findUnique({ where: { clave: 'resend_api_key' } }),
+        prisma.config.findUnique({ where: { clave: 'email_from' } }),
+      ]);
+      if (keyRow?.valor) apiKey = keyRow.valor;
+      if (fromRow?.valor) from = fromRow.valor;
+    } catch {}
+
+    if (!apiKey) throw new Error('RESEND_API_KEY no configurado');
+
+    const rows = cot.items.map(it => `
+      <tr>
+        <td style="padding:8px 12px;font-size:11px;color:#1581E3;font-family:Courier New,monospace;border-bottom:1px solid #e3e1d8">${it.codigo || ''}</td>
+        <td style="padding:8px 12px;font-size:12px;border-bottom:1px solid #e3e1d8">${it.descripcion}</td>
+        <td style="padding:8px 12px;font-size:12px;text-align:center;border-bottom:1px solid #e3e1d8">${it.cantidad}</td>
+        <td style="padding:8px 12px;font-size:12px;text-align:right;border-bottom:1px solid #e3e1d8">Q ${Number(it.precioUnitario).toFixed(2)}</td>
+        <td style="padding:8px 12px;font-size:12px;font-weight:700;text-align:right;border-bottom:1px solid #e3e1d8">Q ${Number(it.totalItem).toFixed(2)}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f3ef;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;padding:16px 0">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1.5px solid #d8d6cd;border-radius:6px;overflow:hidden">
+
+  <tr><td style="background:#fff;padding:20px 24px;border-bottom:2px solid #18181b">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="vertical-align:middle">
+          <div style="font-size:17px;font-weight:700;color:#18181b">WebSoft Solutions</div>
+          <div style="font-size:10px;color:#8a887e;margin-top:2px">NIT: 115471413 · Guastatoya, El Progreso</div>
+        </td>
+        <td style="text-align:right;vertical-align:top">
+          <div style="font-size:9px;font-weight:700;color:#8a887e;text-transform:uppercase;letter-spacing:1px">Cotización</div>
+          <div style="font-size:20px;font-weight:700;color:#18181b;font-family:Courier New,monospace">${cot.numero}</div>
+          <div style="font-size:10px;color:#52524d;margin-top:2px">${new Date(cot.createdAt).toLocaleDateString('es-GT')}</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:16px 24px;background:#f4f3ef;border-bottom:1px solid #d8d6cd">
+    <div style="font-size:9px;font-weight:700;color:#8a887e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cliente</div>
+    <div style="font-size:14px;font-weight:700;color:#18181b">${cot.clienteNombre}</div>
+    <div style="font-size:11px;color:#52524d;margin-top:2px">NIT: ${cot.clienteNit || 'CF'}</div>
+  </td></tr>
+
+  <tr><td style="padding:0">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <thead>
+        <tr style="background:#18181b">
+          <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">Código</th>
+          <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">Descripción</th>
+          <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff">Cant.</th>
+          <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff">Precio</th>
+          <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff">Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:16px 24px;text-align:right;border-top:2px solid #18181b">
+    <table cellpadding="0" cellspacing="0" style="margin-left:auto">
+      <tr><td style="padding:3px 12px 3px 0;font-size:11px;color:#8a887e;text-align:right">Subtotal:</td><td style="font-size:11px;font-family:Courier New,monospace;text-align:right;color:#18181b">Q ${cot.subtotal.toFixed(2)}</td></tr>
+      ${cot.descuento > 0 ? `<tr><td style="padding:3px 12px 3px 0;font-size:11px;color:#b13a2e;text-align:right">Descuento:</td><td style="font-size:11px;font-family:Courier New,monospace;color:#b13a2e;text-align:right">-Q ${cot.descuento.toFixed(2)}</td></tr>` : ''}
+      <tr><td colspan="2" style="padding:4px 0"><div style="border-top:1px solid #d8d6cd;margin:4px 0"></div></td></tr>
+      <tr><td style="padding:3px 12px 3px 0;font-size:15px;font-weight:700;color:#18181b;text-align:right">TOTAL:</td><td style="font-size:18px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;text-align:right">Q ${cot.total.toFixed(2)}</td></tr>
+    </table>
+  </td></tr>
+
+  ${cot.notas ? `<tr><td style="padding:12px 24px;background:#f4f3ef;border-top:1px solid #d8d6cd;font-size:11px;color:#52524d">${cot.notas}</td></tr>` : ''}
+
+  <tr><td style="padding:14px 24px;background:#18181b;text-align:center">
+    <div style="font-size:11px;color:rgba(255,255,255,.7)">WebSoft Solutions · Tel: 3836-1044 | Cel: 3671-4377 · websoftsolutions.com.gt</div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from, to: email,
+        subject: `Cotización ${cot.numero} — WebSoft Solutions`,
+        html,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
   }
 }

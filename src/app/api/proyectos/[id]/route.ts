@@ -1,86 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { ProyectoService } from '@/modules/proyectos/services/proyecto.service';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const proyecto = await prisma.proyecto.findUnique({
-    where: { id: Number(params.id) },
-    include: {
-      mantenimientos: { orderBy: { numero: 'asc' } },
-      garantias: { orderBy: { createdAt: 'desc' } },
-    },
-  })
-  if (!proyecto) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  return NextResponse.json(proyecto)
+    const proyecto = await ProyectoService.findById(Number(params.id));
+    if (!proyecto) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+    return NextResponse.json(proyecto);
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const body = await req.json()
-  const { accion, mantId, fechaRealizada, notas, cobrado, montoCobrado, tecnicoNombre, ...campos } = body
+    const body = await req.json();
+    const { accion, mantId, ...campos } = body;
 
-  // Marcar mantenimiento como realizado
-  if (accion === 'marcar_mantenimiento' && mantId) {
-    const mant = await prisma.mantenimientoProyecto.update({
-      where: { id: Number(mantId) },
-      data: {
-        realizado: true,
-        fechaRealizada: fechaRealizada ? new Date(fechaRealizada) : new Date(),
-        notas: notas || null,
-        cobrado: cobrado ?? false,
-        montoCobrado: montoCobrado ? Number(montoCobrado) : 0,
-        tecnicoNombre: tecnicoNombre || session.user.name,
-      },
-    })
-    return NextResponse.json({ ok: true, mantenimiento: mant })
+    if (accion === 'marcar_mantenimiento' && mantId) {
+      const mant = await ProyectoService.registerMantenimiento(
+        Number(params.id),
+        Number(mantId),
+        campos,
+        parseInt(session.user.id),
+        session.user.name || 'API'
+      );
+      return NextResponse.json({ ok: true, mantenimiento: mant });
+    }
+
+    const proyecto = await ProyectoService.update(
+      Number(params.id),
+      campos,
+      parseInt(session.user.id),
+      session.user.name || 'API'
+    );
+    
+    return NextResponse.json({ ok: true, proyecto });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 });
   }
-
-  // Editar datos del proyecto
-  const data: any = {}
-  if (campos.nombre !== undefined)           data.nombre = campos.nombre
-  if (campos.clienteNombre !== undefined)    data.clienteNombre = campos.clienteNombre
-  if (campos.clienteTelefono !== undefined)  data.clienteTelefono = campos.clienteTelefono
-  if (campos.clienteDireccion !== undefined) data.clienteDireccion = campos.clienteDireccion
-  if (campos.clienteNit !== undefined)       data.clienteNit = campos.clienteNit
-  if (campos.contactoNombre !== undefined)   data.contactoNombre = campos.contactoNombre
-  if (campos.descripcion !== undefined)      data.descripcion = campos.descripcion
-  if (campos.alcance !== undefined)          data.alcance = campos.alcance
-  if (campos.estado !== undefined)           data.estado = campos.estado
-  if (campos.fechaInicio !== undefined)      data.fechaInicio = new Date(campos.fechaInicio)
-  if (campos.fechaFin !== undefined)         data.fechaFin = campos.fechaFin ? new Date(campos.fechaFin) : null
-  if (notas !== undefined)                   data.notas = notas
-
-  const proyecto = await prisma.proyecto.update({
-    where: { id: Number(params.id) },
-    data,
-    include: { mantenimientos: { orderBy: { numero: 'asc' } } },
-  })
-  return NextResponse.json({ ok: true, proyecto })
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  const rol = (session.user as any).role || ''
-  if (rol !== 'admin' && rol !== 'supervisor') {
-    const body = await req.json().catch(() => ({}))
-    const { pin } = body
-    if (!pin) return NextResponse.json({ error: 'Se requiere contraseña de administrador' }, { status: 403 })
-    const bcrypt = await import('bcryptjs')
-    const admins = await prisma.usuario.findMany({ where: { rol: 'admin', activo: true } })
-    let valido = false
-    for (const a of admins) {
-      if (a.password && await bcrypt.compare(pin, a.password)) { valido = true; break }
-    }
-    if (!valido) return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 403 })
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    await ProyectoService.delete(Number(params.id), session.user.role || '', body.pin);
+    
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: e.message.includes('Contraseña') ? 403 : 500 });
   }
-  await prisma.proyecto.delete({ where: { id: Number(params.id) } })
-  return NextResponse.json({ ok: true })
 }

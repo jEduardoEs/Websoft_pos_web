@@ -39,7 +39,7 @@ export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAp
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-            {['No.', 'Fecha', 'Cliente', 'Total', 'Estado', ''].map(h => (
+            {['ID', 'Venta', 'Fecha', 'Cliente', 'Devolución', 'Estado', ''].map(h => (
               <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
             ))}
           </tr>
@@ -50,13 +50,14 @@ export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAp
             const menuOpen = openMenuId === d.id;
             return (
               <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1581E3' }}>{d.numero}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1581E3' }}>DEV-{String(d.id).padStart(5, '0')}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#475569' }}>{d.ventaNumero || '—'}</td>
                 <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>{fmtDate(d.fecha)}</td>
                 <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a', fontWeight: 500 }}>
-                  {d.clienteNombre}
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{d.clienteNit || 'CF'}</div>
+                  {d.venta?.clienteNombre || 'Sin cliente'}
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{d.venta?.clienteNit || 'CF'}</div>
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{fmt(d.total)}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#dc2626' }}>{fmt(d.totalDevuelto)}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, background: st.bg, color: st.color, padding: '4px 8px', borderRadius: 20 }}>
                     {d.estado.toUpperCase()}
@@ -71,9 +72,9 @@ export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAp
                       <button onClick={() => { onView(d); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
                         👀 Ver detalle
                       </button>
-                      <a href={`/api/devoluciones/${d.id}`} target="_blank" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
+                      <button onClick={() => { import('../utils/pdfGenerators').then(m => m.printDevolucion(d)); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
                         🖨️ Imprimir PDF
-                      </a>
+                      </button>
                       {isAdmin && d.estado === 'pendiente' && (
                         <>
                           <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />

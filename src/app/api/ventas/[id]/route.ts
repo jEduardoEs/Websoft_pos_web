@@ -1,61 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { VentaBackendService } from '@/modules/ventas/services/venta.backend.service';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const venta = await prisma.venta.findUnique({
-    where: { id: Number(params.id) },
-    include: { items: true },
-  })
-  if (!venta) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  return NextResponse.json(venta)
+    const venta = await VentaBackendService.getVentaById(Number(params.id));
+    return NextResponse.json(venta);
+  } catch (e: any) {
+    if (e.message === 'No encontrado') return NextResponse.json({ error: e.message }, { status: 404 });
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== 'admin') return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}))
-  const motivo = body.motivo || 'Anulación'
+    const body = await req.json().catch(() => ({}));
+    const motivo = body.motivo || 'Anulación';
 
-  const venta = await prisma.venta.findUnique({ where: { id: Number(params.id) }, include: { items: true } })
-  if (!venta) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  if (venta.estado === 'anulada') return NextResponse.json({ error: 'Ya anulada' }, { status: 400 })
-
-  await prisma.$transaction(async (tx) => {
-    await tx.venta.update({ where: { id: venta.id }, data: { estado: 'anulada', notas: motivo } })
-
-    // Restore stock
-    for (const item of venta.items) {
-      if (!item.productoId) continue
-      const prod = await tx.producto.findUnique({ where: { id: item.productoId } })
-      if (prod) {
-        const newStock = prod.stock + item.cantidad
-        await tx.producto.update({ where: { id: item.productoId }, data: { stock: newStock } })
-        await tx.kardex.create({
-          data: {
-            productoId: item.productoId, tipo: 'entrada', cantidad: item.cantidad,
-            stockAntes: prod.stock, stockDespues: newStock,
-            motivo: `Anulación venta ${venta.numero}`, referencia: venta.numero,
-            usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-          },
-        })
-      }
-    }
-
-    await tx.auditLog.create({
-      data: {
-        usuarioId: parseInt(session.user.id), usuarioNombre: session.user.name,
-        accion: 'ANULAR', tabla: 'ventas', registroId: String(venta.id),
-        detalle: `Anulación venta ${venta.numero}: ${motivo}`,
-      },
-    })
-  })
-
-  return NextResponse.json({ ok: true })
+    await VentaBackendService.anularVenta(Number(params.id), motivo, session.user);
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    if (e.message === 'No encontrado') return NextResponse.json({ error: e.message }, { status: 404 });
+    if (e.message === 'Ya anulada') return NextResponse.json({ error: e.message }, { status: 400 });
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 });
+  }
 }

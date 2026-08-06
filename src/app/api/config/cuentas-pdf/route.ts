@@ -1,44 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { ConfigBackendService } from '@/modules/configuracion/services/config.backend.service';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const keys = [
-      'empresa_nombre', 'empresa_nit', 'empresa_telefono', 'empresa_web', 'empresa_direccion',
-      'banco1_nombre', 'banco1_cuenta', 'banco1_titular',
-      'banco2_nombre', 'banco2_cuenta', 'banco2_titular',
-      'banco3_nombre', 'banco3_cuenta', 'banco3_titular',
-      'banco4_nombre', 'banco4_cuenta', 'banco4_titular',
-      'cuentas_nota',
-    ]
+    const { d, bancos } = await ConfigBackendService.getCuentasPdfData();
 
-    const rows = await prisma.config.findMany({ where: { clave: { in: keys } } })
-    const cfg: Record<string, string> = {}
-    rows.forEach((r: any) => { cfg[r.clave] = r.valor })
-
-    const d = {
-      empresa_nombre:   cfg.empresa_nombre   || 'WebSoft Solutions',
-      empresa_nit:      cfg.empresa_nit      || '',
-      empresa_telefono: cfg.empresa_telefono || '3836-1044 / 3671-4377',
-      empresa_web:      cfg.empresa_web      || 'websoftsolutions.com.gt',
-      empresa_direccion:cfg.empresa_direccion|| 'Guastatoya, El Progreso',
-      cuentas_nota:     cfg.cuentas_nota     || 'Estas son las únicas cuentas bancarias autorizadas para recibir depósitos y transferencias. No procesamos órdenes si el depósito se realiza a otra cuenta.',
-    }
-
-    const bancos = [1,2,3,4].map(i => ({
-      nombre:  cfg[`banco${i}_nombre`]  || '',
-      cuenta:  cfg[`banco${i}_cuenta`]  || '',
-      titular: cfg[`banco${i}_titular`] || '',
-    })).filter(b => b.nombre && b.cuenta)
-
-    const bancosHTML = bancos.map(b => {
-      const nombreUpper = b.nombre.toUpperCase()
+    const bancosHTML = bancos.map((b: any) => {
+      const nombreUpper = b.nombre.toUpperCase();
       const bancoConfig: Record<string, { color: string; bg: string; logo: string | null; abbr: string }> = {
         'BAC':         { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
         'CREDOMATIC':  { color: '#cc0000', bg: '#fde8e8', logo: 'https://websoft-pos-web.vercel.app/bancos/bac.png',        abbr: 'BAC' },
@@ -53,13 +27,13 @@ export async function GET(req: NextRequest) {
         'PROMERICA':   { color: '#e3000f', bg: '#fde8e9', logo: null, abbr: 'PRO' },
         'BANTRAB':     { color: '#003087', bg: '#e6eaf4', logo: null, abbr: 'BT'  },
         'CHN':         { color: '#006633', bg: '#e6f4ee', logo: null, abbr: 'CHN' },
-      }
-      const match = Object.entries(bancoConfig).find(([k]) => nombreUpper.includes(k))
-      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', logo: null, abbr: b.nombre.slice(0, 2).toUpperCase() }
+      };
+      const match = Object.entries(bancoConfig).find(([k]) => nombreUpper.includes(k));
+      const cfg2 = match ? match[1] : { color: '#2B7FD4', bg: '#eff6ff', logo: null, abbr: b.nombre.slice(0, 2).toUpperCase() };
 
       const logoHTML = cfg2.logo
         ? `<img src="${cfg2.logo}" style="height:28px;max-width:80px;object-fit:contain;display:block" alt="${b.nombre}" onerror="this.style.display='none'">`
-        : `<div style="background:${cfg2.color};color:#fff;font-size:11px;font-weight:900;padding:4px 8px;border-radius:6px;letter-spacing:-0.5px">${cfg2.abbr}</div>`
+        : `<div style="background:${cfg2.color};color:#fff;font-size:11px;font-weight:900;padding:4px 8px;border-radius:6px;letter-spacing:-0.5px">${cfg2.abbr}</div>`;
 
       return `
       <div class="banco">
@@ -79,8 +53,8 @@ export async function GET(req: NextRequest) {
             <span class="dato-val">${b.titular}</span>
           </div>
         </div>
-      </div>`
-    }).join('')
+      </div>`;
+    }).join('');
 
     const html = `<!DOCTYPE html>
 <html lang="es">

@@ -1,35 +1,27 @@
-export interface Devolucion {
-  id: number;
-  numero: string;
-  fecha: string | Date;
-  clienteNombre: string;
-  clienteDireccion: string | null;
-  clienteTelefono: string | null;
-  clienteNit: string | null;
-  atencion: string | null;
-  formaPago: string | null;
-  descripcion: string | null;
-  notas: string | null;
-  subtotal: number;
-  descuento: number;
-  total: number;
-  estado: string;
-  validezDias: number;
-  usuarioId: number | null;
-  usuarioNombre: string | null;
-  tiempoInstalacion: string | null;
-  createdAt: string | Date;
-  items?: DevolucionItem[];
-}
-
 export interface DevolucionItem {
   id?: number;
   devolucionId?: number;
   productoId?: number;
-  codigo: string | null;
-  descripcion: string;
+  nombre: string;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
-  totalItem: number;
+}
+
+export interface Devolucion {
+  id: number;
+  fecha: string | Date;
+  ventaId?: number | null;
+  ventaNumero?: string | null;
+  motivo: string;
+  totalDevuelto: number;
+  estado: string; // 'pendiente', 'aprobada', 'anulada', 'completada'
+  usuarioId?: number | null;
+  usuarioNombre?: string | null;
+  items?: DevolucionItem[];
+  // Relacion extra que traemos del backend para mostrar datos del cliente en la tabla
+  venta?: {
+    clienteNombre: string | null;
+    clienteNit: string | null;
+  } | null;
 }
