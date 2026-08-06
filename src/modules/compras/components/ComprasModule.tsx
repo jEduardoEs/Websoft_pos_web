@@ -37,14 +37,14 @@ export function ComprasModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Compras e Ingresos</h1>
-          <p style={{ color: '#64748b', marginTop: 4 }}>Historial de compras a proveedores e ingresos a inventario.</p>
+          <h1>Compras e Ingresos</h1>
+          <p>Historial de compras a proveedores e ingresos a inventario.</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={() => comprasHook.fetchCompras()} className="btn-secondary" disabled={comprasHook.loading}>
-            {comprasHook.loading ? '...' : '↻ Actualizar'}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => comprasHook.fetchCompras()} className="btn-ghost btn-sm" disabled={comprasHook.loading}>
+            {comprasHook.loading ? '...' : 'Actualizar'}
           </button>
           <button onClick={() => setShowModal(true)} className="btn-primary">
             + Registrar Compra

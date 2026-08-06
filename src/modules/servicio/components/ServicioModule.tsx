@@ -24,12 +24,11 @@ export default function ServicioModule() {
   const stats = ESTADOS.map(e => ({ ...e, count: ordenes.filter(o => o.estado === e.value).length }))
 
   return (
-    <div className="page-wrap" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div className="page-wrap">
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#18181b' }}>Servicio Técnico</h1>
-          <p style={{ fontSize: 12, color: '#8a887e', marginTop: 3 }}>Órdenes de trabajo y reparaciones</p>
+          <h1>Servicio Tecnico</h1>
+          <p>Ordenes de trabajo y reparaciones</p>
         </div>
         <button className="btn-primary" onClick={() => { setForm(emptyForm); setRepuestos([]); setShowModal(true) }}>
           + Nueva Orden

@@ -84,10 +84,10 @@ export function CuentasModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Cuentas</h1>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Cuentas por cobrar y por pagar</p>
+          <h1>Cuentas</h1>
+          <p>Cuentas por cobrar y por pagar</p>
         </div>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nueva cuenta</button>
       </div>
@@ -108,20 +108,19 @@ export function CuentasModule() {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 4, width: 'fit-content' }}>
-        {[['cobrar','Cuentas por cobrar'],['pagar','Cuentas por pagar']].map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id as any)} style={{ padding: '8px 18px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', background: tab === id ? '#2563eb' : 'transparent', color: tab === id ? '#fff' : '#64748b', transition: 'all .15s' }}>{label}</button>
+      <div className="tab-bar">
+        {([['cobrar','Cuentas por cobrar'],['pagar','Cuentas por pagar']] as const).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id as any)} className={`tab-btn${tab === id ? ' active' : ''}`}>{label}</button>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-card">
+        <div className="table-card-inner">
+        <table>
           <thead>
             <tr>
               {['#', tab === 'cobrar' ? 'Cliente' : 'Proveedor', 'Concepto', 'Referencia', 'Vencimiento', 'Monto', 'Pagado', 'Saldo', 'Estado', ''].map(h => (
-                <th key={h} style={thS}>{h}</th>
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -162,6 +161,7 @@ export function CuentasModule() {
               })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* MODAL NUEVA CUENTA */}

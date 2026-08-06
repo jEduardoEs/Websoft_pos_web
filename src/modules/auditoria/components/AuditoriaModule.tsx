@@ -25,14 +25,16 @@ export default function AuditoriaModule() {
     load()
   }, [load])
 
-  const thS = { background: '#f8fafc', fontSize: 11, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, padding: '9px 14px', textAlign: 'left' as const, borderBottom: '1px solid #e2e8f0' }
-  const tdS = { padding: '10px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }
+  const thS = { background: '#f8f7f3', fontSize: 11, fontWeight: 700 as const, color: '#8a887e', textTransform: 'uppercase' as const, padding: '10px 14px', textAlign: 'left' as const, borderBottom: '1.5px solid #d8d6cd' }
+  const tdS = { padding: '10px 14px', fontSize: 12, borderBottom: '1px solid #e3e1d8', color: '#18181b' }
 
   return (
     <div className="page-wrap">
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Auditoría</h1>
-        <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Registro de acciones realizadas en el sistema</p>
+      <div className="page-header">
+        <div>
+          <h1>Auditoria</h1>
+          <p>Registro de acciones realizadas en el sistema</p>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 16 }}>

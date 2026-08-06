@@ -79,12 +79,12 @@ export function MantenimientosModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Mantenimientos</h1>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>3 mantenimientos gratuitos por instalación — cada 4 meses durante el primer año</p>
+          <h1>Mantenimientos</h1>
+          <p>3 mantenimientos gratuitos por instalacion — cada 4 meses durante el primer año</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nueva Instalación</button>
+        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nueva Instalacion</button>
       </div>
 
       {/* Alertas */}

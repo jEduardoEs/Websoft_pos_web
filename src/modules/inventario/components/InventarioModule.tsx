@@ -62,10 +62,10 @@ export function InventarioModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Inventario</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{productos.length} productos listados</p>
+          <h1>Inventario</h1>
+          <p>{productos.length} productos listados</p>
         </div>
         <button className="btn-primary" onClick={openNew}>+ Nuevo Producto</button>
       </div>

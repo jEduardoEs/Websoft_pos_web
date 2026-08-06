@@ -64,12 +64,10 @@ export default function RolesModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Roles del Sistema</h1>
-          <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
-            Crea roles 100% personalizados: nombre, color y módulos a los que tienen acceso
-          </p>
+          <h1>Roles del Sistema</h1>
+          <p>Crea roles 100% personalizados: nombre, color y modulos a los que tienen acceso</p>
         </div>
         <button className="btn-primary" onClick={openNew}>+ Nuevo Rol</button>
       </div>

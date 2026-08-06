@@ -61,9 +61,9 @@ export function CajaModule() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             Control de Caja
             {data?.activa ? (
               <span className="badge-green">Abierta</span>
@@ -71,8 +71,8 @@ export function CajaModule() {
               <span className="badge-gray">Cerrada</span>
             )}
           </h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-            {data?.activa 
+          <p>
+            {data?.activa
               ? `Turno actual abierto el ${fmtDateTime(data.activa.fecha)} por ${data.activa.usuarioNombre}`
               : 'No hay turno activo. Abre la caja para iniciar operaciones.'}
           </p>
