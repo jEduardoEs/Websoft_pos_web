@@ -25,12 +25,19 @@ export function validarDescuentoRules(
     return { ok: false, error: 'Código agotado' }
   }
 
-  const porcentaje =
-    descuento.tipo === 'porcentaje' ? descuento.valor : total > 0 ? (descuento.valor / total) * 100 : 0
+  const isPorcentaje = descuento.tipo === 'porcentaje'
+  const montoDescuento = isPorcentaje
+    ? Number((total * (descuento.valor / 100)).toFixed(2))
+    : Math.min(total, descuento.valor)
+
+  const porcentaje = isPorcentaje
+    ? descuento.valor
+    : total > 0 ? Number(((montoDescuento / total) * 100).toFixed(4)) : 0
 
   return {
     ok: true,
-    porcentaje: Number(porcentaje.toFixed(2)),
+    porcentaje,
+    montoDescuento: Number(montoDescuento.toFixed(2)),
     descuento,
   }
 }

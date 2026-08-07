@@ -5,12 +5,16 @@ import { createCotizacionDto } from '@/modules/cotizaciones/dto/create-cotizacio
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const estadoParam = searchParams.get('estado');
+  const estados = estadoParam ? estadoParam.split(',') : undefined;
+
   try {
-    const cotizaciones = await CotizacionService.findAll();
+    const cotizaciones = await CotizacionService.findAll(estados);
     return NextResponse.json(cotizaciones);
   } catch (e: any) {
     console.error('GET cotizaciones error:', e);

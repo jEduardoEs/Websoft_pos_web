@@ -75,7 +75,7 @@ export function KardexModal({ producto, onClose, onSuccess }: KardexModalProps) 
             </div>
             <div>
               <label style={lbl}>Cantidad</label>
-              <input className="input" type="number" min="1" value={ajusteCantidad} onChange={e => setAjusteCantidad(e.target.value)} />
+              <input className="input" type="number" min="1" step="1" value={ajusteCantidad} onChange={e => setAjusteCantidad(e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Motivo</label>

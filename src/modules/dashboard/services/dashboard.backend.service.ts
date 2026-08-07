@@ -25,22 +25,25 @@ export class DashboardBackendService {
     const realMes = ventasMes._sum.total || 0;
     const cumplimientoMes = metaMes > 0 ? Math.round((realMes / metaMes) * 100) : 0;
 
-    // Ventas por día últimos 7 días for chart
-    const ventasDia: any[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const fin = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      const v = await prisma.venta.aggregate({
-        where: { fecha: { gte: inicio, lt: fin }, estado: 'completada' },
-        _sum: { total: true }, _count: true,
-      });
-      ventasDia.push({
-        dia: inicio.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric' }),
-        total: v._sum.total || 0,
-        ventas: v._count,
-      });
-    }
+    // Ventas por día últimos 7 días (Parallel query via Promise.all)
+    const diasArray = Array.from({ length: 7 }, (_, idx) => 6 - idx);
+    const ventasDia = await Promise.all(
+      diasArray.map(async (i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const fin = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+        const v = await prisma.venta.aggregate({
+          where: { fecha: { gte: inicio, lt: fin }, estado: 'completada' },
+          _sum: { total: true }, _count: true,
+        });
+        return {
+          dia: inicio.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric' }),
+          total: v._sum.total || 0,
+          ventas: v._count,
+        };
+      })
+    );
 
     // Admin only: per-user stats
     let usuariosStats: any[] = [];
@@ -54,14 +57,16 @@ export class DashboardBackendService {
         select: { id: true, nombre: true, rol: true, metaMensual: true },
       });
       usuariosStats = await Promise.all(usuarios.map(async (u) => {
-        const ventasU = await prisma.venta.aggregate({
-          where: { usuarioId: u.id, fecha: { gte: startOfMonth }, estado: 'completada' },
-          _sum: { total: true }, _count: true,
-        });
-        const ventasHoyU = await prisma.venta.aggregate({
-          where: { usuarioId: u.id, fecha: { gte: startOfDay }, estado: 'completada' },
-          _sum: { total: true }, _count: true,
-        });
+        const [ventasU, ventasHoyU] = await Promise.all([
+          prisma.venta.aggregate({
+            where: { usuarioId: u.id, fecha: { gte: startOfMonth }, estado: 'completada' },
+            _sum: { total: true }, _count: true,
+          }),
+          prisma.venta.aggregate({
+            where: { usuarioId: u.id, fecha: { gte: startOfDay }, estado: 'completada' },
+            _sum: { total: true }, _count: true,
+          }),
+        ]);
         const real = ventasU._sum.total || 0;
         const meta = u.metaMensual || 0;
         return {
@@ -80,14 +85,16 @@ export class DashboardBackendService {
         where: { id: parseInt(user.id) },
         select: { metaMensual: true },
       });
-      const misVentas = await prisma.venta.aggregate({
-        where: { usuarioId: parseInt(user.id), fecha: { gte: startOfMonth }, estado: 'completada' },
-        _sum: { total: true }, _count: true,
-      });
-      const misVentasHoy = await prisma.venta.aggregate({
-        where: { usuarioId: parseInt(user.id), fecha: { gte: startOfDay }, estado: 'completada' },
-        _sum: { total: true }, _count: true,
-      });
+      const [misVentas, misVentasHoy] = await Promise.all([
+        prisma.venta.aggregate({
+          where: { usuarioId: parseInt(user.id), fecha: { gte: startOfMonth }, estado: 'completada' },
+          _sum: { total: true }, _count: true,
+        }),
+        prisma.venta.aggregate({
+          where: { usuarioId: parseInt(user.id), fecha: { gte: startOfDay }, estado: 'completada' },
+          _sum: { total: true }, _count: true,
+        }),
+      ]);
       const meta = usuario?.metaMensual || 0;
       const real = misVentas._sum.total || 0;
       miMeta = {

@@ -1,8 +1,11 @@
 import { Garantia, Reclamo } from '../services/garantias.service'
 
 export function printGarantia(g: any) {
-  const w = window.open('', '_blank', 'width=700,height=500')
-  if (!w) return
+  const w = window.open('', '_blank', 'width=750,height=600')
+  if (!w) {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+    return;
+  }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:24px;color:#0f172a}
@@ -40,12 +43,17 @@ export function printGarantia(g: any) {
 </div>
 <div class="footer">WebSoft Solutions · ${g.numero}</div>
 </body></html>`)
-  w.document.close(); setTimeout(() => w.print(), 500)
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
 }
 
 export function printReclamo(r: any, g: Garantia) {
-  const w = window.open('', '_blank', 'width=700,height=500')
-  if (!w) return
+  const w = window.open('', '_blank', 'width=750,height=600')
+  if (!w) {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+    return;
+  }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:24px;color:#0f172a}
@@ -59,19 +67,17 @@ export function printReclamo(r: any, g: Garantia) {
 <div class="header"><div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b">Guastatoya · Tel: 3836-1044</div></div>
 <div style="text-align:right;font-size:10px"><b style="color:#dc2626;font-size:14px">${r.numero}</b><br>${new Date(r.fecha).toLocaleDateString('es-GT')}</div></div>
 <div class="banner">RECLAMO DE GARANTÍA</div>
-<div class="row"><span class="lbl">Garantía:</span><span class="val">${g.numero}</span></div>
-<div class="row"><span class="lbl">Cliente:</span><span class="val">${g.clienteNombre}</span></div>
-<div class="row"><span class="lbl">NIT:</span><span class="val">${r.clienteNit || 'CF'}</span></div>
-<div class="row"><span class="lbl">DPI:</span><span class="val">${r.clienteDpi || '___________________'}</span></div>
-<div class="row"><span class="lbl">Teléfono:</span><span class="val">${r.clienteTelefono || ''}</span></div>
-<div class="row"><span class="lbl">Producto:</span><span class="val">${g.productoNombre}</span></div>
-<div class="row"><span class="lbl">No. Serie:</span><span class="val">${g.productoSerie || ''}</span></div>
-<div class="row"><span class="lbl">Tiene factura:</span><span class="val">${r.tieneFactura ? 'SÍ — ' + (r.numeroFactura || '') : 'NO'}</span></div>
-<div class="falla"><b>Motivo del reclamo:</b> ${r.motivoReclamo}<br><br><b>Descripción del defecto:</b><br>${r.descripcionFalla}</div>
+<div class="row"><span class="lbl">Cliente:</span><span class="val">${r.clienteNombre} (${r.clienteNit || 'CF'})</span></div>
+<div class="row"><span class="lbl">Producto:</span><span class="val"><b>${r.productoNombre}</b> ${r.productoSerie ? `(Serie: ${r.productoSerie})` : ''}</span></div>
+<div class="row"><span class="lbl">Garantía Ref:</span><span class="val">${r.garantiaNumero}</span></div>
+<div class="falla"><b>Motivo del reclamo:</b> ${r.motivoReclamo}<br><br><b>Falla reportada:</b> ${r.descripcionFalla}</div>
+${r.resolucion ? `<div style="font-size:10px;margin-bottom:10px"><b>Resolución:</b> ${r.resolucion}</div>` : ''}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
   <div><div class="sign">Firma del cliente: ___________________</div></div>
-  <div><div class="sign">Recibido por WebSoft: ___________________</div></div>
+  <div><div class="sign">Recibido por: ___________________</div></div>
 </div>
 </body></html>`)
-  w.document.close(); setTimeout(() => w.print(), 500)
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
 }

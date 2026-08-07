@@ -97,7 +97,7 @@ export default function ServicioModule() {
       {/* ─── MODAL NUEVA ORDEN ─── */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 800, margin: 'auto',  }}>
+          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 800, margin: 'auto', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1.5px solid #d8d6cd' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b' }}>Nueva Orden de Servicio</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
@@ -108,7 +108,7 @@ export default function ServicioModule() {
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#1581E3', textTransform: 'uppercase', marginBottom: 10 }}>Cliente</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} /></div>
-                  <div><label style={lbl}>Teléfono</label><input className="input" value={form.clienteTelefono} onChange={e => setF('clienteTelefono', e.target.value)} /></div>
+                  <div><label style={lbl}>Teléfono (8 dígitos)</label><input className="input" type="tel" maxLength={8} value={form.clienteTelefono || ''} onChange={e => setF('clienteTelefono', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Ej: 55554444" /></div>
                   <div><label style={lbl}>NIT</label><input className="input" value={form.clienteNit} onChange={e => setF('clienteNit', e.target.value)} /></div>
                   <div><label style={lbl}>Prioridad</label>
                     <select className="input" value={form.prioridad} onChange={e => setF('prioridad', e.target.value)}>

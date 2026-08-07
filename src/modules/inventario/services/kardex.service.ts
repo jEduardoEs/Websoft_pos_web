@@ -8,8 +8,8 @@ import { Kardex } from '../types/kardex';
 export class KardexService {
   private repo = new KardexRepository();
 
-  async getKardexByProductoId(productoId: number): Promise<Kardex[]> {
-    return this.repo.findByProductoId(productoId);
+  async getKardexByProductoId(productoId: number, limit = 100): Promise<Kardex[]> {
+    return this.repo.findByProductoId(productoId, limit);
   }
 
   async aplicarAjuste(dto: AjusteStockDto, usuarioId: number, usuarioNombre: string): Promise<{ ok: boolean; newStock: number }> {

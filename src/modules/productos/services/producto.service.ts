@@ -1,6 +1,6 @@
 // src/modules/productos/services/producto.service.ts
 
-import { ProductoRepository } from '../repositories/producto.repository';
+import { ProductoRepository, FindProductosParams } from '../repositories/producto.repository';
 import { Producto } from '../types/producto';
 import { CreateProductoDto } from '../dto/create-producto.dto';
 import { UpdateProductoDto } from '../dto/update-producto.dto';
@@ -8,8 +8,8 @@ import { UpdateProductoDto } from '../dto/update-producto.dto';
 export class ProductoService {
   private repo = new ProductoRepository();
 
-  async getAll(): Promise<Producto[]> {
-    return this.repo.findAll();
+  async getAll(params?: FindProductosParams): Promise<Producto[]> {
+    return this.repo.findAll(params);
   }
 
   async getById(id: number): Promise<Producto | null> {
@@ -103,7 +103,7 @@ export class ProductoService {
       updates.push({ id: prod.id, codigo, nombre: prod.nombre });
     }
 
-    // Apply all updates in one transaction
+    // Apply updates in batch transaction
     await prisma.$transaction(
       updates.map(u => prisma.producto.update({
         where: { id: u.id },

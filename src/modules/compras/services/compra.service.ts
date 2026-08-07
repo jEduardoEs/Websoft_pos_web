@@ -4,10 +4,10 @@ import { Compra } from '../types/compra';
 
 export class CompraService {
   
-  async getAll(): Promise<Compra[]> {
+  async getAll(limit = 100): Promise<Compra[]> {
     const compras = await prisma.compra.findMany({
       orderBy: { id: 'desc' },
-      take: 100,
+      take: limit,
       include: {
         items: true,
         proveedor: { select: { nombre: true } },
@@ -31,10 +31,10 @@ export class CompraService {
 
     const total = dto.items.reduce((sum, item) => sum + (Number(item.cantidad) * Number(item.precioUnitario)), 0);
 
-    const count = await prisma.compra.count();
-    const numero = `CMP-${String(count + 1).padStart(6, '0')}`;
-
     const compra = await prisma.$transaction(async (tx) => {
+      const count = await tx.compra.count();
+      const numero = `CMP-${String(count + 1).padStart(6, '0')}`;
+
       // 1. Create the purchase (Compra)
       const c = await tx.compra.create({
         data: {
@@ -91,7 +91,7 @@ export class CompraService {
       }
 
       return c;
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     return compra as unknown as Compra;
   }

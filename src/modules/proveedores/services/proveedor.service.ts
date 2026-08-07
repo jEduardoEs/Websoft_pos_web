@@ -4,7 +4,7 @@ import { Proveedor } from '../types/proveedor';
 import { prisma } from '@/lib/prisma';
 
 export class ProveedorService {
-  async getAll(buscar: string = ''): Promise<Proveedor[]> {
+  async getAll(buscar: string = '', limit: number = 100): Promise<Proveedor[]> {
     const where: any = { activo: true };
     if (buscar) {
       where.OR = [
@@ -13,7 +13,11 @@ export class ProveedorService {
         { telefono: { contains: buscar, mode: 'insensitive' } },
       ];
     }
-    const result = await prisma.proveedor.findMany({ where, orderBy: { nombre: 'asc' } });
+    const result = await prisma.proveedor.findMany({
+      where,
+      orderBy: { nombre: 'asc' },
+      take: limit,
+    });
     return result.map(p => ({
       id: p.id,
       nombre: p.nombre,

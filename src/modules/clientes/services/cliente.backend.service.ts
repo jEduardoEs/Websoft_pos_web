@@ -3,10 +3,17 @@ import { prisma } from '@/lib/prisma';
 export class ClienteBackendService {
   static async buscarPorNit(nit: string) {
     if (!nit) return null;
-    const cliente = await prisma.cliente.findFirst({
-      where: { nit: { equals: nit, mode: 'insensitive' }, activo: true }
+    return prisma.cliente.findFirst({
+      where: { nit: { equals: nit, mode: 'insensitive' }, activo: true },
+      select: {
+        id: true,
+        nombre: true,
+        nit: true,
+        telefono: true,
+        email: true,
+        direccion: true,
+      },
     });
-    return cliente;
   }
 
   static async getHistorial(nit: string, nombre: string) {
@@ -39,7 +46,6 @@ export class ClienteBackendService {
       numCompras: ventas.length,
       garantias,
       ordenes,
-      cliente: ventas[0] ? { nombre: ventas[0].clienteNombre, nit: ventas[0].clienteNit } : null,
     };
   }
 }

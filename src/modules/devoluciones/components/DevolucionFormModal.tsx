@@ -149,6 +149,7 @@ export function DevolucionFormModal({ open, onClose, onSuccess }) {
                   <input
                     type="number"
                     min="0"
+                    step="1"
                     max={item.cantidad}
                     className="w-16 border rounded-md p-1 text-center"
                     value={selectedItems[i] || 0}

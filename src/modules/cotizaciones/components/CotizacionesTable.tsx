@@ -7,12 +7,16 @@ interface CotizacionesTableProps {
   loading: boolean;
   isAdmin: boolean;
   onView: (c: Cotizacion) => void;
+  onEdit?: (c: Cotizacion) => void;
+  onDuplicate?: (c: Cotizacion) => void;
   onAnular: (c: Cotizacion) => void;
   onEnviar: (c: Cotizacion) => void;
   onFacturar: (c: Cotizacion) => void;
 }
 
-export function CotizacionesTable({ cotizaciones, loading, isAdmin, onView, onAnular, onEnviar, onFacturar }: CotizacionesTableProps) {
+export function CotizacionesTable({ 
+  cotizaciones, loading, isAdmin, onView, onEdit, onDuplicate, onAnular, onEnviar, onFacturar 
+}: CotizacionesTableProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -25,48 +29,54 @@ export function CotizacionesTable({ cotizaciones, loading, isAdmin, onView, onAn
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  const estadoStyle = (est: string) => {
-    switch (est) {
-      case 'pendiente': return { bg: '#fffbeb', color: '#b45309' };
-      case 'aceptada': return { bg: '#f0fdf4', color: '#16a34a' };
-      case 'anulada': return { bg: '#fef2f2', color: '#dc2626' };
-      case 'facturada': return { bg: '#eff6ff', color: '#2563eb' };
-      default: return { bg: '#f1f5f9', color: '#64748b' };
-    }
-  };
+  if (loading) {
+    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando cotizaciones...</div>;
+  }
+
+  if (cotizaciones.length === 0) {
+    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b', background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', marginTop: 16 }}>No se encontraron cotizaciones</div>;
+  }
 
   return (
-    <div className="card" style={{ overflow: 'visible' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', marginTop: 16, overflow: 'visible' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
-          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-            {['No.', 'Fecha', 'Cliente', 'Total', 'Estado', 'Vence en', ''].map(h => (
-              <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
-            ))}
+          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 11, color: '#64748b', textTransform: 'uppercase' }}>
+            <th style={{ padding: '12px 16px' }}>Número</th>
+            <th style={{ padding: '12px 16px' }}>Cliente</th>
+            <th style={{ padding: '12px 16px' }}>Fecha</th>
+            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Total</th>
+            <th style={{ padding: '12px 16px', textAlign: 'center' }}>Estado</th>
+            <th style={{ padding: '12px 16px' }}>Vencimiento</th>
+            <th style={{ padding: '12px 16px', width: 40 }}></th>
           </tr>
         </thead>
         <tbody>
-          {cotizaciones.map(c => {
-            const st = estadoStyle(c.estado);
+          {cotizaciones.map((c) => {
             const menuOpen = openMenuId === c.id;
-            
-            // Check days left
-            const f = new Date(c.createdAt || c.fecha);
-            const exp = new Date(f.getTime() + c.validezDias * 24 * 60 * 60 * 1000);
-            const hoy = new Date();
-            const vencida = c.estado === 'pendiente' && hoy > exp;
+            const vencida = new Date(c.createdAt).getTime() + (c.validezDias * 86400000) < Date.now();
 
             return (
-              <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1581E3' }}>{c.numero}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: '#475569' }}>{fmtDate(c.fecha)}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: '#0f172a', fontWeight: 500 }}>
-                  {c.clienteNombre}
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{c.clienteNit || 'CF'}</div>
+              <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: 13 }}>
+                <td style={{ padding: '12px 16px', fontWeight: 700, color: '#1581E3', fontFamily: 'Courier New, monospace' }}>
+                  {c.numero}
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{fmt(c.total)}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, background: st.bg, color: st.color, padding: '4px 8px', borderRadius: 20 }}>
+                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{c.clienteNombre}</div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>NIT: {c.clienteNit || 'CF'}</div>
+                </td>
+                <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                  {fmtDate(c.createdAt)}
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                  {fmt(c.total)}
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                  <span style={{ 
+                    fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 12,
+                    background: c.estado === 'facturada' ? '#dcfce7' : c.estado === 'aceptada' ? '#dbeafe' : c.estado === 'anulada' ? '#fee2e2' : '#fef3c7',
+                    color: c.estado === 'facturada' ? '#15803d' : c.estado === 'aceptada' ? '#1d4ed8' : c.estado === 'anulada' ? '#b91c1c' : '#b45309'
+                  }}>
                     {c.estado.toUpperCase()}
                   </span>
                 </td>
@@ -79,14 +89,27 @@ export function CotizacionesTable({ cotizaciones, loading, isAdmin, onView, onAn
                   </button>
 
                   {menuOpen && (
-                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 160, padding: 6 }}>
+                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)', zIndex: 50, minWidth: 170, padding: 6 }}>
                       <button onClick={() => { onView(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
                          Ver detalles
                       </button>
+                      
+                      {c.estado === 'pendiente' && onEdit && (
+                        <button onClick={() => { onEdit(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0284c7', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
+                           Editar cotización
+                        </button>
+                      )}
+
+                      {onDuplicate && (
+                        <button onClick={() => { onDuplicate(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#2563eb', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
+                           Duplicar (Copiar)
+                        </button>
+                      )}
+
                       <button onClick={() => { onEnviar(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
                         ️ Enviar por correo
                       </button>
-                      <a href={`/api/cotizaciones/${c.id}`} target="_blank" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
+                      <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
                         ️ Imprimir PDF
                       </a>
                       
@@ -109,11 +132,6 @@ export function CotizacionesTable({ cotizaciones, loading, isAdmin, onView, onAn
               </tr>
             );
           })}
-          {cotizaciones.length === 0 && !loading && (
-            <tr>
-              <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No hay cotizaciones registradas</td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

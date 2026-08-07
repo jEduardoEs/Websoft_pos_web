@@ -15,7 +15,24 @@ export class ReporteBackendService {
 
     const ventas = await prisma.venta.findMany({
       where,
-      include: { items: true },
+      select: {
+        id: true,
+        numero: true,
+        fecha: true,
+        clienteNombre: true,
+        total: true,
+        descuento: true,
+        impuesto: true,
+        metodoPago: true,
+        usuarioNombre: true,
+        items: {
+          select: {
+            nombre: true,
+            cantidad: true,
+            subtotal: true,
+          },
+        },
+      },
       orderBy: { fecha: 'asc' },
     });
 
@@ -66,7 +83,7 @@ export class ReporteBackendService {
       porMetodo,
       topProductos,
       porCajero,
-      detalle: ventas.map(v => ({
+      detalle: ventas.slice(-500).map(v => ({
         id: v.id,
         numero: v.numero,
         fecha: v.fecha,

@@ -28,9 +28,9 @@ export class SessionBackendService {
 
   static async closeSession(usuarioId: number) {
     try {
-      await prisma.activeSession.delete({ where: { usuarioId } });
+      await prisma.activeSession.deleteMany({ where: { usuarioId } });
     } catch {
-      // Already deleted
+      // Ignore
     }
   }
 }

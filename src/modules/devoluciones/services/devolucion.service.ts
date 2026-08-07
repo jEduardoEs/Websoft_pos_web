@@ -3,9 +3,10 @@ import { CreateDevolucionDto } from '../dto/create-devolucion.dto';
 
 export class DevolucionService {
   /** List all devoluciones */
-  static async findAll() {
+  static async findAll(limit = 50) {
     return prisma.devolucion.findMany({
       orderBy: { id: 'desc' },
+      take: limit,
       include: { 
         items: true,
         venta: {
@@ -44,7 +45,7 @@ export class DevolucionService {
       });
 
       return devolucion;
-    });
+    }, { maxWait: 10000, timeout: 30000 });
   }
 
   /** Approve a devolucion (change estado) */

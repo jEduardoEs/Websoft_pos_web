@@ -337,6 +337,10 @@ export async function GET(req: NextRequest) {
   // Auto-print when opened for printing
   window.onload = function() {
     document.title = 'Cuentas Bancarias — ${d.empresa_nombre}';
+    window.focus();
+    setTimeout(function() {
+      window.print();
+    }, 300);
   }
 </script>
 </body>

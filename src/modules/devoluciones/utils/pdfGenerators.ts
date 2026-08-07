@@ -1,15 +1,17 @@
 export function printDevolucion(devolucion: any) {
-  const w = window.open('', '_blank', 'width=700,height=800')
-  if (!w) return
+  const w = window.open('', '_blank', 'width=750,height=700')
+  if (!w) {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+    return;
+  }
 
-  const fmt = (n: number) => `Q${Number(n).toFixed(2)}`
+  const fmt = (n: number) => `Q ${Number(n).toFixed(2)}`
   
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante de Devolución</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante de Devolución DEV-${String(devolucion.id).padStart(5, '0')}</title>
 <style>
-/* Oculta el encabezado y pie de página de Chrome (about:blank) */
-@page { size: auto; margin: 0mm; }
+@page { size: auto; margin: 5mm; }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#0f172a;margin:20px}
+body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#0f172a}
 .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #2563eb}
 .logo{font-size:18px;font-weight:800}.logo span{color:#2563eb}
 .title{background:#2563eb;color:#fff;text-align:center;padding:8px;font-size:14px;font-weight:700;letter-spacing:3px;border-radius:5px;margin-bottom:14px}
@@ -86,5 +88,6 @@ th { background: #f1f5f9; font-weight: 700; color: #475569; }
 
   w.document.write(html)
   w.document.close()
-  setTimeout(() => w.print(), 500)
+  w.focus()
+  setTimeout(() => w.print(), 300)
 }

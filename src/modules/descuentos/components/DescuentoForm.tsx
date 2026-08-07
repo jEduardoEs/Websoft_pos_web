@@ -51,6 +51,8 @@ export function DescuentoForm({ form, onChange }: DescuentoFormProps) {
       <FormField label="Valor *" required>
         <Input
           type="number"
+          step="0.01"
+          min="0"
           value={form.valor}
           onChange={e => onChange('valor', e.target.value)}
         />
@@ -59,6 +61,8 @@ export function DescuentoForm({ form, onChange }: DescuentoFormProps) {
       <FormField label="Mínimo de compra">
         <Input
           type="number"
+          step="0.01"
+          min="0"
           value={form.minimoCompra}
           onChange={e => onChange('minimoCompra', e.target.value)}
         />
@@ -67,6 +71,8 @@ export function DescuentoForm({ form, onChange }: DescuentoFormProps) {
       <FormField label="Máx. usos (0=ilimitado)">
         <Input
           type="number"
+          step="1"
+          min="0"
           value={form.usosMaximos}
           onChange={e => onChange('usosMaximos', e.target.value)}
         />

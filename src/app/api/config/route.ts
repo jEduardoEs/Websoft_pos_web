@@ -10,7 +10,11 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     
     const cfg = await ConfigBackendService.getConfig();
-    return NextResponse.json(cfg);
+    return NextResponse.json(cfg, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Error interno' }, { status: 500 });
   }

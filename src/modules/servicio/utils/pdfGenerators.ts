@@ -1,6 +1,9 @@
 export function printOrden(orden: any) {
-  const w = window.open('', '_blank', 'width=700,height=600')
-  if (!w) return
+  const w = window.open('', '_blank', 'width=750,height=700')
+  if (!w) {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+    return;
+  }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Orden de Servicio ${orden.numero}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -42,6 +45,7 @@ ${orden.observaciones ? `<div style="font-size:10px;margin-bottom:12px;color:#47
 </div>
 <div class="footer">WebSoft Solutions · Sistema POS · ${orden.numero}</div>
 </body></html>`)
-  w.document.close()
-  setTimeout(() => w.print(), 500)
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
 }

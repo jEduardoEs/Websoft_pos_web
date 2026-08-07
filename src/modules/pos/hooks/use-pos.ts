@@ -81,15 +81,33 @@ export function usePos() {
   
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const fetchProductos = useCallback(async (query: string) => {
+    try {
+      const res = await fetch(`/api/productos?buscar=${encodeURIComponent(query)}&limit=60`);
+      if (res.ok) {
+        setProductos(await res.json());
+      }
+    } catch {
+      // Ignore abort/network errors on typing
+    }
+  }, []);
+
+  // Debounce product search by 200ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProductos(buscar);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [buscar, fetchProductos]);
+
   const loadProductos = useCallback(async () => {
-    const res = await fetch(`/api/productos?buscar=${encodeURIComponent(buscar)}`);
-    setProductos(await res.json());
-  }, [buscar]);
+    fetchProductos(buscar);
+  }, [buscar, fetchProductos]);
 
   const loadCotizaciones = useCallback(async () => {
-    const res = await fetch(`/api/cotizaciones`);
+    const res = await fetch(`/api/cotizaciones?estado=aceptada,pendiente`);
     const data = await res.json();
-    setCotizaciones(Array.isArray(data) ? data.filter((c: any) => ['aceptada', 'pendiente'].includes(c.estado)) : []);
+    setCotizaciones(Array.isArray(data) ? data : []);
   }, []);
 
   const loadConfig = useCallback(async () => {

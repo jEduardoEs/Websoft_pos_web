@@ -26,6 +26,7 @@ export class ProyectoService {
 
     const proyectos = await prisma.proyecto.findMany({
       where,
+      take: 50,
       include: {
         mantenimientos: { orderBy: { numero: 'asc' } },
         garantias: { select: { id: true, numero: true, fechaVencimiento: true, estado: true } },
@@ -59,51 +60,54 @@ export class ProyectoService {
       if (existe) throw new Error('Ya existe un proyecto para esta cotización');
     }
 
-    const count = await prisma.proyecto.count();
-    const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
     const inicio = data.fechaInicio ? new Date(data.fechaInicio) : new Date();
 
-    const proyecto = await prisma.proyecto.create({
-      data: {
-        numero,
-        nombre: data.nombre,
-        clienteNombre: data.clienteNombre,
-        clienteTelefono: data.clienteTelefono,
-        clienteDireccion: data.clienteDireccion,
-        clienteNit: data.clienteNit,
-        contactoNombre: data.contactoNombre,
-        descripcion: data.descripcion,
-        alcance: data.alcance,
-        cotizacionId: data.cotizacionId ? Number(data.cotizacionId) : null,
-        cotizacionNumero: data.cotizacionNumero,
-        fechaInicio: inicio,
-        fechaFin: data.fechaFin ? new Date(data.fechaFin) : null,
-        notas: data.notas,
-        usuarioNombre: userName,
-        mantenimientos: {
-          create: [1, 2, 3].map(n => ({
-            numero: n,
-            fechaProgramada: addMonths(inicio, n * 4),
-          })),
-        },
-      },
-      include: { mantenimientos: true },
-    });
+    return prisma.$transaction(async (tx) => {
+      const count = await tx.proyecto.count();
+      const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
 
-    try {
-      await prisma.auditLog.create({
+      const proyecto = await tx.proyecto.create({
         data: {
-          usuarioId: userId,
+          numero,
+          nombre: data.nombre,
+          clienteNombre: data.clienteNombre,
+          clienteTelefono: data.clienteTelefono,
+          clienteDireccion: data.clienteDireccion,
+          clienteNit: data.clienteNit,
+          contactoNombre: data.contactoNombre,
+          descripcion: data.descripcion,
+          alcance: data.alcance,
+          cotizacionId: data.cotizacionId ? Number(data.cotizacionId) : null,
+          cotizacionNumero: data.cotizacionNumero,
+          fechaInicio: inicio,
+          fechaFin: data.fechaFin ? new Date(data.fechaFin) : null,
+          notas: data.notas,
           usuarioNombre: userName,
-          accion: 'CREATE',
-          tabla: 'proyectos',
-          registroId: String(proyecto.id),
-          detalle: `Proyecto ${numero} creado`,
-        }
+          mantenimientos: {
+            create: [1, 2, 3].map(n => ({
+              numero: n,
+              fechaProgramada: addMonths(inicio, n * 4),
+            })),
+          },
+        },
+        include: { mantenimientos: true },
       });
-    } catch {}
 
-    return proyecto;
+      try {
+        await tx.auditLog.create({
+          data: {
+            usuarioId: userId,
+            usuarioNombre: userName,
+            accion: 'CREATE',
+            tabla: 'proyectos',
+            registroId: String(proyecto.id),
+            detalle: `Proyecto ${numero} creado`,
+          }
+        });
+      } catch {}
+
+      return proyecto;
+    });
   }
 
   static async update(id: number, data: Partial<CreateProyectoDto>, userId: number, userName: string) {

@@ -12,19 +12,29 @@ export class CajaBackendService {
 
     const ventas = await prisma.venta.findMany({
       where: { fecha: { gte: start, lte: end }, estado: 'completada' },
+      select: { total: true, metodoPago: true },
     });
     
-    const byMethod = (m: string) => ventas.filter(v => v.metodoPago === m).reduce((s, v) => s + v.total, 0);
+    const totals = ventas.reduce(
+      (acc, v) => {
+        acc.granTotal += v.total;
+        if (v.metodoPago === 'efectivo') acc.efectivo += v.total;
+        else if (v.metodoPago === 'tarjeta') acc.tarjeta += v.total;
+        else if (v.metodoPago === 'transferencia') acc.transferencia += v.total;
+        return acc;
+      },
+      { efectivo: 0, tarjeta: 0, transferencia: 0, granTotal: 0 }
+    );
 
     return prisma.cierre.create({
       data: {
         fechaInicio: start,
         fechaFin: end,
         totalVentas: ventas.length,
-        totalEfectivo: byMethod('efectivo'),
-        totalTarjeta: byMethod('tarjeta'),
-        totalTransferencia: byMethod('transferencia'),
-        granTotal: ventas.reduce((s, v) => s + v.total, 0),
+        totalEfectivo: totals.efectivo,
+        totalTarjeta: totals.tarjeta,
+        totalTransferencia: totals.transferencia,
+        granTotal: totals.granTotal,
         usuarioId: parseInt(user.id),
         usuarioNombre: user.name,
         notas,
@@ -61,7 +71,8 @@ export class CajaBackendService {
       where: { id: activa.id },
       data: {
         estado: 'cerrada',
-        notas: notas || 'Cierre manual',
+        fechaCierre: new Date(),
+        notas: notas ? `${activa.notas || ''} | Cierre: ${notas}` : activa.notas,
       },
     });
   }

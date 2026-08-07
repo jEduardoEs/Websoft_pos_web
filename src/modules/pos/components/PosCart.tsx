@@ -41,9 +41,9 @@ export function PosCart({
   const lbl: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: '#f8fafc' }}>
       {/* HEADER CLIENTE */}
-      <div style={{ padding: '14px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+      <div style={{ padding: '14px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={lbl}>NIT Cliente</label>
@@ -59,7 +59,7 @@ export function PosCart({
                 }} 
                 onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} 
               />
-              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 12px' }}></button>
+              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 12px' }}>Buscar</button>
             </div>
           </div>
         </div>
@@ -83,17 +83,17 @@ export function PosCart({
               </button>
             )}
             {nitStatus === 'found' && clienteTieneCorreo && (
-              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
+              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}>✓</span>
             )}
             {nitStatus === 'found' && !clienteTieneCorreo && (
-              <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}></span>
+              <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}>!</span>
             )}
           </div>
         </div>
       </div>
 
       {/* CART ITEMS */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 10 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 10, minHeight: 0 }}>
         {cart.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 14 }}>
             El carrito está vacío
@@ -137,7 +137,7 @@ export function PosCart({
       </div>
 
       {/* TOTALES */}
-      <div style={{ background: '#fff', borderTop: '1px solid #e2e8f0', padding: 16 }}>
+      <div style={{ background: '#fff', borderTop: '1px solid #e2e8f0', padding: 16, flexShrink: 0 }}>
         {/* Descuentos Globales */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <input className="input" placeholder="Cupón..." style={{ flex: 1, padding: '6px 10px', fontSize: 12 }} value={codigoDesc} onChange={e => setCodigoDesc(e.target.value)} />

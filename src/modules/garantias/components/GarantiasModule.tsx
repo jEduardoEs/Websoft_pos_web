@@ -72,7 +72,7 @@ export default function GarantiasModule() {
           } else if (tab === 'anulada') {
             matchTab = estadoLow === 'anulada'
           } else {
-            matchTab = estadoLow === tab.toLowerCase()
+            matchTab = estadoLow === tab
           }
           return matchBuscar && matchTab
         })

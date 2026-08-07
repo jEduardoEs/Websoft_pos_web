@@ -22,7 +22,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { estado, pin } = await req.json();
+    const body = await req.json();
+    const estado = body.estado;
+    const pin = body.pin || body.pinAdmin;
     const updated = await CotizacionService.updateEstado(Number(params.id), estado, session.user, pin);
 
     return NextResponse.json({ ok: true, cotizacion: updated });

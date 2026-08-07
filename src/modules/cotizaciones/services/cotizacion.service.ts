@@ -1,15 +1,36 @@
 import { prisma } from '@/lib/prisma';
 import { CreateCotizacionDto } from '../dto/create-cotizacion.dto';
+import { syncProyectoDesdeCotizacion } from '@/modules/proyectos/utils/proyecto-sync.helper';
 
 export class CotizacionService {
   /**
-   * List all quotations
+   * List all quotations, optionally filtered by status array
    */
-  static async findAll() {
+  static async findAll(estados?: string[]) {
+    const where = estados && estados.length > 0 ? { estado: { in: estados } } : {};
     return prisma.cotizacion.findMany({
+      where,
       orderBy: { id: 'desc' },
-      take: 100,
-      include: { items: true },
+      take: 50,
+      select: {
+        id: true,
+        numero: true,
+        clienteNombre: true,
+        clienteNit: true,
+        clienteTelefono: true,
+        clienteDireccion: true,
+        atencion: true,
+        formaPago: true,
+        descripcion: true,
+        notas: true,
+        subtotal: true,
+        descuento: true,
+        total: true,
+        estado: true,
+        validezDias: true,
+        tiempoInstalacion: true,
+        createdAt: true,
+      },
     });
   }
 
@@ -106,7 +127,7 @@ export class CotizacionService {
    * Update quotation status with auto-project creation and protection
    */
   static async updateEstado(id: number, estado: string, user: any, pin?: string) {
-    const estadosProtegidos = ['aceptada', 'rechazada'];
+    const estadosProtegidos = ['aceptada', 'rechazada', 'anulada'];
     if (estadosProtegidos.includes(estado)) {
       if (user.role !== 'admin') {
         if (!pin) throw new Error('PIN_REQUIRED');
@@ -139,80 +160,50 @@ export class CotizacionService {
       });
     } catch {}
 
+    // Synchronize automatic project creation on quotation acceptance
     if (estado === 'aceptada') {
       try {
-        const tieneInstalacion = updated.items.some((i: any) =>
-          i.descripcion?.toLowerCase().includes('instalacion') ||
-          i.descripcion?.toLowerCase().includes('instalación')
-        );
-        
-        if (tieneInstalacion) {
-          const yaExiste = await prisma.proyecto.findUnique({ where: { cotizacionId: id } });
-          if (!yaExiste) {
-            const count = await prisma.proyecto.count();
-            const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
-            const descItems = updated.items.map((i: any) => i.descripcion).join(', ');
-            const addMonths = (date: Date, months: number) => { const d = new Date(date); d.setMonth(d.getMonth() + months); return d; };
-            
-            await prisma.proyecto.create({
-              data: {
-                numero,
-                nombre: updated.descripcion || `Proyecto ${updated.clienteNombre}`,
-                clienteNombre: updated.clienteNombre,
-                clienteNit: updated.clienteNit || null,
-                clienteTelefono: updated.clienteTelefono || null,
-                clienteDireccion: updated.clienteDireccion || null,
-                descripcion: descItems || updated.descripcion || 'Instalación',
-                cotizacionId: updated.id,
-                cotizacionNumero: updated.numero,
-                fechaInicio: new Date(),
-                usuarioNombre: user.name,
-                mantenimientos: {
-                  create: [1, 2, 3].map(n => ({
-                    numero: n,
-                    fechaProgramada: addMonths(new Date(), n * 4),
-                  })),
-                },
-              },
-            });
-          }
-        }
-      } catch {}
+        await syncProyectoDesdeCotizacion(prisma, id, 'planificado', user.name);
+      } catch (err) {
+        console.error('[CotizacionService] Error auto-syncing proyecto:', err);
+      }
     }
     return updated;
   }
 
   static async updateFull(id: number, data: any, user: any) {
-    await prisma.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
-    const updated = await prisma.cotizacion.update({
-      where: { id },
-      data: {
-        clienteNombre: data.clienteNombre,
-        clienteDireccion: data.clienteDireccion,
-        clienteTelefono: data.clienteTelefono,
-        clienteNit: data.clienteNit,
-        atencion: data.atencion,
-        formaPago: data.formaPago,
-        descripcion: data.descripcion,
-        notas: data.notas,
-        tiempoInstalacion: data.tiempoInstalacion,
-        subtotal: data.subtotal,
-        descuento: data.descuento,
-        total: data.total,
-        validezDias: data.validezDias || 15,
-        items: {
-          create: (data.items || []).map((it: any) => ({
-            codigo: it.codigo || '',
-            descripcion: it.descripcion,
-            cantidad: it.cantidad,
-            precioUnitario: it.precioUnitario,
-            subtotal: it.subtotal,
-            descuento: it.descuento || 0,
-            totalItem: it.totalItem,
-          })),
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
+      return tx.cotizacion.update({
+        where: { id },
+        data: {
+          clienteNombre: data.clienteNombre,
+          clienteDireccion: data.clienteDireccion,
+          clienteTelefono: data.clienteTelefono,
+          clienteNit: data.clienteNit,
+          atencion: data.atencion,
+          formaPago: data.formaPago,
+          descripcion: data.descripcion,
+          notas: data.notas,
+          tiempoInstalacion: data.tiempoInstalacion,
+          subtotal: data.subtotal,
+          descuento: data.descuento,
+          total: data.total,
+          validezDias: data.validezDias || 15,
+          items: {
+            create: (data.items || []).map((it: any) => ({
+              codigo: it.codigo || '',
+              descripcion: it.descripcion,
+              cantidad: it.cantidad,
+              precioUnitario: it.precioUnitario,
+              subtotal: it.subtotal,
+              descuento: it.descuento || 0,
+              totalItem: it.totalItem,
+            })),
+          },
         },
-      },
-      include: { items: true },
+        include: { items: true },
+      });
     });
 
     try {
@@ -312,6 +303,13 @@ export class CotizacionService {
         where: { id: cotizacion.id },
         data: { estado: 'facturada' },
       });
+
+      // Synchronize project to 'en_proceso' upon billing
+      try {
+        await syncProyectoDesdeCotizacion(tx, cotizacion.id, 'en_proceso', user.name, numero);
+      } catch (err) {
+        console.error('[CotizacionService.facturar] Error syncing proyecto:', err);
+      }
 
       await tx.config.update({
         where: { clave: 'numero_siguiente' },

@@ -13,24 +13,26 @@ export class CuentasBackendService {
         where: { codigo: { in: partidas.map(p => p.codigo) } }
       });
       const codigoMap = Object.fromEntries(cuentas.map((c: any) => [c.codigo, c.id]));
-      const count = await prisma.asientoContable.count();
       
-      await prisma.asientoContable.create({
-        data: {
-          numero: `ASI-${String(count + 1).padStart(6, '0')}`,
-          concepto,
-          tipo,
-          referenciaNum,
-          usuarioNombre,
-          partidas: {
-            create: partidas.map((p: any) => ({
-              cuentaId: codigoMap[p.codigo] || 0,
-              debe: p.debe,
-              haber: p.haber,
-              descripcion: p.desc
-            }))
+      await prisma.$transaction(async (tx) => {
+        const count = await tx.asientoContable.count();
+        await tx.asientoContable.create({
+          data: {
+            numero: `ASI-${String(count + 1).padStart(6, '0')}`,
+            concepto,
+            tipo,
+            referenciaNum,
+            usuarioNombre,
+            partidas: {
+              create: partidas.map((p: any) => ({
+                cuentaId: codigoMap[p.codigo] || 0,
+                debe: p.debe,
+                haber: p.haber,
+                descripcion: p.desc
+              }))
+            },
           },
-        },
+        });
       });
     } catch {
       // sin catálogo contable, no falla
@@ -40,14 +42,10 @@ export class CuentasBackendService {
   // --- Cuentas por Pagar ---
   
   static async getCuentasPagar(estado?: string) {
-    await prisma.cuentaPagar.updateMany({
-      where: { estado: 'pendiente', fechaVencimiento: { lt: new Date() } },
-      data: { estado: 'vencido' }
-    });
-    
     const cuentas = await prisma.cuentaPagar.findMany({
       where: estado ? { estado } : {},
-      orderBy: { fechaVencimiento: 'asc' }
+      orderBy: { fechaVencimiento: 'asc' },
+      take: 100,
     });
     const resumen = await prisma.cuentaPagar.aggregate({ _sum: { monto: true, montoPagado: true } });
     
@@ -58,17 +56,19 @@ export class CuentasBackendService {
     const { proveedorNombre, compraNumero, concepto, monto, fechaVencimiento, notas } = data;
     if (!proveedorNombre || !monto || !fechaVencimiento) throw new Error('Datos incompletos');
     
-    const count = await prisma.cuentaPagar.count();
-    const numero = `CP-${String(count + 1).padStart(6, '0')}`;
-    
-    const cuenta = await prisma.cuentaPagar.create({
-      data: {
-        numero, proveedorNombre, compraNumero, concepto, monto: +monto,
-        fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: user.name
-      },
+    const cuenta = await prisma.$transaction(async (tx) => {
+      const count = await tx.cuentaPagar.count();
+      const numero = `CP-${String(count + 1).padStart(6, '0')}`;
+      
+      return tx.cuentaPagar.create({
+        data: {
+          numero, proveedorNombre, compraNumero, concepto, monto: +monto,
+          fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: user.name
+        },
+      });
     });
 
-    await this.crearAsiento(`C×P ${numero} — ${proveedorNombre}`, 'pago', numero, [
+    await this.crearAsiento(`C×P ${cuenta.numero} — ${proveedorNombre}`, 'pago', cuenta.numero, [
       { codigo: '1120', debe: +monto, haber: 0, desc: `Compra — ${concepto}` },
       { codigo: '2101', debe: 0, haber: +monto, desc: `Deuda ${proveedorNombre}` }
     ], user.name);
@@ -101,14 +101,10 @@ export class CuentasBackendService {
   // --- Cuentas por Cobrar ---
   
   static async getCuentasCobrar(estado?: string) {
-    await prisma.cuentaCobrar.updateMany({
-      where: { estado: 'pendiente', fechaVencimiento: { lt: new Date() } },
-      data: { estado: 'vencido' }
-    });
-    
     const cuentas = await prisma.cuentaCobrar.findMany({
       where: estado ? { estado } : {},
-      orderBy: { fechaVencimiento: 'asc' }
+      orderBy: { fechaVencimiento: 'asc' },
+      take: 100,
     });
     const resumen = await prisma.cuentaCobrar.aggregate({ _sum: { monto: true, montoPagado: true } });
     
@@ -119,19 +115,21 @@ export class CuentasBackendService {
     const { clienteNombre, clienteNit, clienteTelefono, ventaNumero, concepto, monto, fechaVencimiento, notas } = data;
     if (!clienteNombre || !monto || !fechaVencimiento) throw new Error('Datos incompletos');
     
-    const count = await prisma.cuentaCobrar.count();
-    const numero = `CC-${String(count + 1).padStart(6, '0')}`;
-    
-    const cuenta = await prisma.cuentaCobrar.create({
-      data: {
-        numero, clienteNombre, clienteNit, clienteTelefono, ventaNumero, concepto, monto: +monto,
-        fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: user.name
-      },
+    const cuenta = await prisma.$transaction(async (tx) => {
+      const count = await tx.cuentaCobrar.count();
+      const numero = `CC-${String(count + 1).padStart(6, '0')}`;
+      
+      return tx.cuentaCobrar.create({
+        data: {
+          numero, clienteNombre, clienteNit, clienteTelefono, ventaNumero, concepto, monto: +monto,
+          fechaVencimiento: new Date(fechaVencimiento), notas, usuarioNombre: user.name
+        },
+      });
     });
 
-    await this.crearAsiento(`C×C ${numero} — ${clienteNombre}`, 'cobro', numero, [
+    await this.crearAsiento(`C×C ${cuenta.numero} — ${clienteNombre}`, 'cobro', cuenta.numero, [
       { codigo: '1110', debe: +monto, haber: 0, desc: `${concepto} — ${clienteNombre}` },
-      { codigo: '4100', debe: 0, haber: +monto, desc: `Ingreso ${numero}` }
+      { codigo: '4100', debe: 0, haber: +monto, desc: `Ingreso ${cuenta.numero}` }
     ], user.name);
 
     return cuenta;

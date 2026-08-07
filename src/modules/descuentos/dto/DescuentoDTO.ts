@@ -49,6 +49,7 @@ export interface ValidateDescuentoDTO {
 export interface ValidarDescuentoResponseDTO {
   ok: boolean
   porcentaje?: number
+  montoDescuento?: number
   descuento?: DescuentoResponseDTO
   error?: string
 }

@@ -2,8 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { LineItem } from '../types/cotizacion';
 
-const IVA = 0.05;
-
 function newItem(tipo: LineItem['tipo']): LineItem {
   const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, cargoAdicional: 0, notaAdicional: '' };
   if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' };
@@ -26,25 +24,77 @@ function recalc(item: LineItem): LineItem {
     precio = calcInstalacion(item);
     item = { ...item, precioVenta: precio };
   }
-  const sub = precio * item.cantidad;
-  const total = sub - (item.descuento || 0);
+  const sub = Math.round(precio * item.cantidad * 100) / 100;
+  const total = Math.round((sub - (item.descuento || 0)) * 100) / 100;
   return { ...item, subtotal: sub, total };
 }
 
 export const emptyForm = {
+  id: null as number | null,
   clienteNombre: '', clienteDireccion: '', clienteTelefono: '',
   clienteNit: 'CF', clienteCorreo: '', atencion: '',
   formaPago: 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
   descripcion: '', notas: '', validezDias: '15', tiempoInstalacion: '',
+  tipoIva: 'incluido' as 'incluido' | '12' | '5',
 };
 
-export function useCotizacionForm(onSuccess: () => void) {
+export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any, isDuplicate: boolean = false) {
   const [form, setForm] = useState(emptyForm);
   const [items, setItems] = useState<LineItem[]>([newItem('producto')]);
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState<any[]>([]);
   const [zonas, setZonas] = useState<any[]>([]);
   const [buscarProd, setBuscarProd] = useState('');
+
+  useEffect(() => {
+    if (cotizacionInitial) {
+      // Determine initial tipoIva if present
+      let initialTipoIva: 'incluido' | '12' | '5' = 'incluido';
+      if (cotizacionInitial.tipoIva) {
+        initialTipoIva = cotizacionInitial.tipoIva;
+      }
+
+      setForm({
+        id: isDuplicate ? null : cotizacionInitial.id,
+        clienteNombre: cotizacionInitial.clienteNombre || '',
+        clienteDireccion: cotizacionInitial.clienteDireccion || '',
+        clienteTelefono: cotizacionInitial.clienteTelefono || '',
+        clienteNit: cotizacionInitial.clienteNit || 'CF',
+        clienteCorreo: cotizacionInitial.clienteCorreo || '',
+        atencion: cotizacionInitial.atencion || '',
+        formaPago: cotizacionInitial.formaPago || 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
+        descripcion: cotizacionInitial.descripcion || '',
+        notas: cotizacionInitial.notas || '',
+        validezDias: String(cotizacionInitial.validezDias || '15'),
+        tiempoInstalacion: cotizacionInitial.tiempoInstalacion || '',
+        tipoIva: initialTipoIva,
+      });
+
+      if (Array.isArray(cotizacionInitial.items) && cotizacionInitial.items.length > 0) {
+        setItems(cotizacionInitial.items.map((it: any) => recalc({
+          tipo: 'producto',
+          productoId: it.productoId || null,
+          codigo: it.codigo || '',
+          descripcion: it.descripcion || '',
+          costoCompra: 0,
+          precioVenta: Number(it.precioUnitario) || 0,
+          cantidad: Number(it.cantidad) || 1,
+          descuento: Number(it.descuento) || 0,
+          subtotal: Number(it.subtotal) || 0,
+          total: Number(it.totalItem) || 0,
+          zonaId: null,
+          zonaNombre: '',
+          zonaTarifa: 0,
+          cargoAdicional: 0,
+          notaAdicional: '',
+        })));
+      }
+
+      if (isDuplicate) {
+        toast.info(`Duplicando cotización ${cotizacionInitial.numero}`);
+      }
+    }
+  }, [cotizacionInitial, isDuplicate]);
 
   const loadProductos = useCallback(async () => {
     try {
@@ -64,7 +114,7 @@ export function useCotizacionForm(onSuccess: () => void) {
   useEffect(() => { loadProductos(); }, [loadProductos]);
   useEffect(() => { loadZonas(); }, [loadZonas]);
 
-  const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const setF = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
   const buscarNitCliente = async (nit: string) => {
     setF('clienteNit', nit);
@@ -93,11 +143,43 @@ export function useCotizacionForm(onSuccess: () => void) {
         productoId: prod.id,
         codigo: prod.codigo || '',
         descripcion: prod.nombre,
-        costoCompra: prod.costo,
-        precioVenta: prod.precio > 0 ? prod.precio : prod.costo * 1.30,
+        costoCompra: prod.costo || 0,
+        precioVenta: prod.precio > 0 ? prod.precio : (prod.costo || 0) * 1.30,
       };
       return recalc(updated);
     }));
+  };
+
+  const addProductoToCotizacion = (prod: any) => {
+    const newRow: LineItem = {
+      tipo: 'producto',
+      productoId: prod.id,
+      codigo: prod.codigo || '',
+      descripcion: prod.nombre,
+      costoCompra: prod.costo || 0,
+      precioVenta: prod.precio > 0 ? prod.precio : (prod.costo || 0) * 1.30,
+      cantidad: 1,
+      descuento: 0,
+      subtotal: 0,
+      total: 0,
+      zonaId: null,
+      zonaNombre: '',
+      zonaTarifa: 0,
+      cargoAdicional: 0,
+      notaAdicional: ''
+    };
+    const recalculated = recalc(newRow);
+
+    setItems(prev => {
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        if (last.tipo === 'producto' && !last.productoId && !last.descripcion.trim()) {
+          return [...prev.slice(0, -1), recalculated];
+        }
+      }
+      return [...prev, recalculated];
+    });
+    toast.success(`Producto agregado: ${prod.nombre}`);
   };
 
   const updItem = (i: number, k: keyof LineItem, v: number | string) => {
@@ -111,9 +193,23 @@ export function useCotizacionForm(onSuccess: () => void) {
   const addItem = (tipo: LineItem['tipo']) => setItems(p => [...p, newItem(tipo)]);
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i));
 
-  const baseTotal = items.reduce((s, i) => s + i.total, 0);
-  const iva = baseTotal * IVA;
-  const grandTotal = baseTotal + iva;
+  const baseTotal = Math.round(items.reduce((s, i) => s + i.total, 0) * 100) / 100;
+
+  // Calculate IVA and grand total based on tipoIva mode
+  let ivaCalculado = 0;
+  let grandTotal = baseTotal;
+
+  if (form.tipoIva === '12') {
+    ivaCalculado = baseTotal * 0.12;
+    grandTotal = baseTotal + ivaCalculado;
+  } else if (form.tipoIva === '5') {
+    ivaCalculado = baseTotal * 0.05;
+    grandTotal = baseTotal + ivaCalculado;
+  } else {
+    // 'incluido': Prices already include IVA (informative breakdown)
+    ivaCalculado = baseTotal - (baseTotal / 1.12);
+    grandTotal = baseTotal;
+  }
 
   const reset = () => {
     setForm(emptyForm);
@@ -121,22 +217,28 @@ export function useCotizacionForm(onSuccess: () => void) {
   };
 
   const guardar = async () => {
-    if (!form.clienteNombre.trim()) return toast.error('Falta nombre del cliente');
-    if (items.length === 0) return toast.error('Agrega al menos un item');
-
-    const validItems = items.filter(i => i.descripcion.trim().length > 0 && i.total >= 0);
-    if (validItems.length === 0) return toast.error('Items inválidos o vacíos');
+    if (!form.clienteNombre.trim()) { toast.error('Nombre de cliente requerido'); return; }
+    if (items.length === 0) { toast.error('Agrega al menos un item'); return; }
 
     setLoading(true);
     try {
-      const payload = {
-        ...form,
+      const dto = {
+        clienteNombre: form.clienteNombre,
+        clienteDireccion: form.clienteDireccion,
+        clienteTelefono: form.clienteTelefono,
+        clienteNit: form.clienteNit,
+        atencion: form.atencion,
+        formaPago: form.formaPago,
+        descripcion: form.descripcion,
+        notas: form.notas,
         subtotal: baseTotal,
         descuento: 0,
         total: grandTotal,
-        items: validItems.map(i => ({
+        validezDias: parseInt(form.validezDias) || 15,
+        tiempoInstalacion: form.tiempoInstalacion,
+        items: items.map(i => ({
           codigo: i.codigo,
-          descripcion: i.tipo === 'instalacion' && i.zonaNombre ? `Instalación ${i.zonaNombre} - ${i.notaAdicional}`.trim() : i.descripcion,
+          descripcion: i.descripcion,
           cantidad: i.cantidad,
           precioUnitario: i.precioVenta,
           subtotal: i.subtotal,
@@ -145,15 +247,22 @@ export function useCotizacionForm(onSuccess: () => void) {
         })),
       };
 
-      const res = await fetch('/api/cotizaciones', {
-        method: 'POST',
+      const isEdit = !!form.id;
+      const url = isEdit ? `/api/cotizaciones/${form.id}` : '/api/cotizaciones';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(dto),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      
-      toast.success('Cotización guardada');
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al guardar');
+      }
+
+      toast.success(isEdit ? 'Cotización actualizada' : 'Cotización creada exitosamente');
       reset();
       onSuccess();
     } catch (e: any) {
@@ -164,8 +273,8 @@ export function useCotizacionForm(onSuccess: () => void) {
   };
 
   return {
-    state: { form, items, loading, productos, zonas, buscarProd, baseTotal, iva, grandTotal },
+    state: { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id },
     setters: { setForm, setItems, setBuscarProd, setF },
-    actions: { buscarNitCliente, selProducto, updItem, addItem, removeItem, guardar, reset }
+    actions: { buscarNitCliente, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
   };
 }

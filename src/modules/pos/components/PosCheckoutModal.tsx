@@ -25,8 +25,8 @@ export function PosCheckoutModal({
   if (!showCobro) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-      <div style={{ background: '#fff', padding: 24, borderRadius: 16, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20, overflowY: 'auto' }}>
+      <div style={{ background: '#fff', padding: 24, borderRadius: 16, width: 400, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
         {lastVenta ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}></div>

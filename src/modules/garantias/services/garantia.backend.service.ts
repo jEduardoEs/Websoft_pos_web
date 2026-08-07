@@ -15,12 +15,6 @@ export class GarantiaBackendService {
       ];
     }
 
-    // Auto-update expired
-    await prisma.garantia.updateMany({
-      where: { estado: 'vigente', fechaVencimiento: { lt: new Date() } },
-      data: { estado: 'vencida' },
-    });
-
     return prisma.garantia.findMany({ where, orderBy: { id: 'desc' }, take: 100 });
   }
 
@@ -29,8 +23,6 @@ export class GarantiaBackendService {
       throw new Error('Cliente y producto son requeridos');
     }
 
-    const count = await prisma.garantia.count();
-    const numero = `GAR-${String(count + 1).padStart(6, '0')}`;
     const fVenta = data.fechaVenta ? new Date(data.fechaVenta) : new Date();
     const dias = +data.diasGarantia || 365;
     const fVencimiento = new Date(fVenta.getTime() + dias * 24 * 60 * 60 * 1000);
@@ -50,24 +42,29 @@ export class GarantiaBackendService {
       if (proyecto) resolvedProyectoId = proyecto.id;
     }
 
-    return prisma.garantia.create({
-      data: {
-        numero,
-        clienteNombre: data.clienteNombre,
-        clienteTelefono: data.clienteTelefono,
-        clienteNit: data.clienteNit,
-        productoNombre: data.productoNombre,
-        productoSerie: data.productoSerie,
-        ventaNumero: data.ventaNumero,
-        ventaId: data.ventaId ? Number(data.ventaId) : null,
-        proyectoId: resolvedProyectoId,
-        diasGarantia: dias,
-        fechaVenta: fVenta,
-        fechaVencimiento: fVencimiento,
-        condiciones: data.condiciones,
-        notas: data.notas,
-        usuarioNombre: userName,
-      },
+    return prisma.$transaction(async (tx) => {
+      const count = await tx.garantia.count();
+      const numero = `GAR-${String(count + 1).padStart(6, '0')}`;
+
+      return tx.garantia.create({
+        data: {
+          numero,
+          clienteNombre: data.clienteNombre,
+          clienteTelefono: data.clienteTelefono,
+          clienteNit: data.clienteNit,
+          productoNombre: data.productoNombre,
+          productoSerie: data.productoSerie,
+          ventaNumero: data.ventaNumero,
+          ventaId: data.ventaId ? Number(data.ventaId) : null,
+          proyectoId: resolvedProyectoId,
+          diasGarantia: dias,
+          fechaVenta: fVenta,
+          fechaVencimiento: fVencimiento,
+          condiciones: data.condiciones,
+          notas: data.notas,
+          usuarioNombre: userName,
+        },
+      });
     });
   }
 

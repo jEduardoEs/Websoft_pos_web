@@ -14,12 +14,13 @@ export async function GET(req: NextRequest)  {
     
     const { searchParams } = new URL(req.url)
     const productoId = searchParams.get('producto_id')
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100
     
     if (!productoId) {
       return NextResponse.json({ error: 'ID de producto requerido' }, { status: 400 })
     }
 
-    const data = await kardexService.getKardexByProductoId(Number(productoId));
+    const data = await kardexService.getKardexByProductoId(Number(productoId), limit);
     return NextResponse.json(data);
   } catch (e: any) {
     console.error('kardex/route.ts error:', e?.message)

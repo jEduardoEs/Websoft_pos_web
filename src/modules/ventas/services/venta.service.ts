@@ -3,6 +3,7 @@ import { emitirFEL, FELResponse } from '@/lib/fel';
 import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura';
 import { CreateVentaDto } from '../dto/create-venta.dto';
 import { Venta } from '../types/venta';
+import { syncProyectoDesdeCotizacion } from '@/modules/proyectos/utils/proyecto-sync.helper';
 
 export class VentaService {
   static async findAll(params: {
@@ -53,15 +54,23 @@ export class VentaService {
       throw new Error('Sin items');
     }
 
-    // Get next number outside of transaction to avoid blocking, though it could be inside.
-    // It's safer to read and lock, but Prisma doesn't have explicit row locks easily. We do it in the TX.
+    // Verify stock in batch to avoid N sequential queries
+    const productIds = dto.items.map(it => it.productoId).filter(Boolean) as number[];
+    const prodMap = new Map<number, { id: number; stock: number; nombre: string }>();
     
-    // Verify stock first
-    for (const item of dto.items) {
-      if (!item.productoId) continue;
-      const prod = await prisma.producto.findUnique({ where: { id: item.productoId } });
-      if (!prod || prod.stock < item.cantidad) {
-        throw new Error(`Stock insuficiente: ${item.nombre}`);
+    if (productIds.length > 0) {
+      const prods = await prisma.producto.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, stock: true, nombre: true },
+      });
+      prods.forEach(p => prodMap.set(p.id, p));
+
+      for (const item of dto.items) {
+        if (!item.productoId) continue;
+        const prod = prodMap.get(item.productoId);
+        if (!prod || prod.stock < item.cantidad) {
+          throw new Error(`Stock insuficiente: ${item.nombre}`);
+        }
       }
     }
 
@@ -106,37 +115,39 @@ export class VentaService {
       // Update stock & kardex
       for (const item of dto.items) {
         if (!item.productoId) continue;
-        const prod = await tx.producto.findUnique({ where: { id: item.productoId } });
-        if (prod) {
-          const newStock = prod.stock - item.cantidad;
-          await tx.producto.update({ where: { id: item.productoId }, data: { stock: newStock } });
-          await tx.kardex.create({
-            data: {
-              productoId: item.productoId,
-              tipo: 'salida',
-              cantidad: item.cantidad,
-              stockAntes: prod.stock,
-              stockDespues: newStock,
-              motivo: `Venta ${numeroVenta}`,
-              referencia: numeroVenta,
-              usuarioId: parseInt(userId),
-              usuarioNombre: userName,
-            },
-          });
-        }
+        const prod = prodMap.get(item.productoId);
+        const stockAntes = prod?.stock ?? 0;
+        const newStock = stockAntes - item.cantidad;
+
+        await tx.producto.update({ where: { id: item.productoId }, data: { stock: newStock } });
+        await tx.kardex.create({
+          data: {
+            productoId: item.productoId,
+            tipo: 'salida',
+            cantidad: item.cantidad,
+            stockAntes,
+            stockDespues: newStock,
+            motivo: `Venta ${numeroVenta}`,
+            referencia: numeroVenta,
+            usuarioId: parseInt(userId),
+            usuarioNombre: userName,
+          },
+        });
       }
 
-      // Marcar cotización como facturada
+      // Marcar cotización como facturada y sincronizar avance a Proyecto en ejecucion
       if (dto.cotizacionId) {
         try {
           await tx.cotizacion.update({ where: { id: dto.cotizacionId }, data: { estado: 'facturada' } });
-        } catch { /* ignorar si no existe */ }
+          await syncProyectoDesdeCotizacion(tx, dto.cotizacionId, 'en_proceso', userName, numeroVenta);
+        } catch (err) {
+          console.error('[VentaService] Error sync cotizacion/proyecto:', err);
+        }
       }
 
       // Auto-upgrade cliente: prospecto -> cliente
       if (dto.clienteNit && dto.clienteNit !== 'CF') {
         try {
-          // Necesita cast de "any" porque tipo no está en todo schema, pero se mantiene la lógica original
           await (tx as any).cliente.updateMany({
             where: {
               OR: [
@@ -166,6 +177,9 @@ export class VentaService {
       });
 
       return v;
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     });
 
     // POST-Transaction side effects (FEL & Email)
@@ -257,8 +271,6 @@ export class VentaService {
     const venta = await prisma.venta.findUnique({ where: { id } });
     if (!venta) throw new Error('Venta no encontrada');
 
-    // Aquí idealmente se anularía en FEL si existe felUuid, pero
-    // por ahora solo actualizamos DB como estaba en la v1
     await prisma.venta.update({
       where: { id },
       data: { estado: 'anulada' },

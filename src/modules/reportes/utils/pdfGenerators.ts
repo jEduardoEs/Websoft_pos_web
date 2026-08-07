@@ -42,9 +42,16 @@ export function exportarInventarioPDF(invReporte: any) {
   </table>
   <div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e"><strong>Alertas:</strong> ${resumen.productosStockBajo} productos con stock bajo · ${resumen.productosAgotados} productos agotados</div>
   <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Este reporte es confidencial</span></div>
-  <script>window.onload=function(){window.print()}</script></body></html>`
+  </body></html>`
   const w = window.open('', '_blank')
-  if (w) { w.document.write(html); w.document.close() }
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  } else {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+  }
 }
 
 export function exportarPatrimonioPDF(d: any) {
@@ -60,138 +67,168 @@ export function exportarPatrimonioPDF(d: any) {
       <td>${a.descripcion || '—'}</td>
       <td class="center">${fmtFecha(a.fechaAdquisicion)}</td>
       <td class="right">${fmtQ(a.costoOriginal)}</td>
-      <td class="right dep">${fmtQ(a.depreciacionAcum)}</td>
+      <td class="center">${a.vidaUtilAnios} años</td>
+      <td class="right" style="color:#d97706">${fmtQ(a.depreciacionAcum)}</td>
       <td class="right bold blue">${fmtQ(a.valorNeto)}</td>
-    </tr>`).join('')
+    </tr>
+  `).join('')
 
-  const rowsCategorias = d.porCategoria.map((c: any, i: number) => `
+  const rowsProductos = (d.inventarioProductos || []).map((p: any, i: number) => `
     <tr style="background:${i % 2 === 0 ? '#fff' : '#f8faff'}">
-      <td class="bold">${c.categoria}</td>
-      <td class="center">${c.items}</td>
-      <td class="center">${c.unidades.toLocaleString('es-GT')}</td>
-      <td class="right dep">${fmtQ(c.valorVenta)}</td>
-      <td class="right bold blue">${fmtQ(c.valorCosto)}</td>
-    </tr>`).join('')
-
-  const rowsProductos = d.productos.map((p: any, i: number) => `
-    <tr style="background:${i % 2 === 0 ? '#fff' : '#f8faff'}">
-      <td class="code">${p.codigo || '—'}</td>
+      <td class="code">${p.codigo}</td>
       <td>${p.nombre}</td>
       <td class="center">${p.categoria}</td>
       <td class="center">${p.stock}</td>
       <td class="right">${fmtQ(p.costo)}</td>
-      <td class="right bold blue">${fmtQ(p.stock * p.costo)}</td>
-    </tr>`).join('')
+      <td class="right bold">${fmtQ(p.valorCostoTotal)}</td>
+    </tr>
+  `).join('')
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',Arial,sans-serif;font-size:11px;color:#0f172a;padding:24px 28px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
-  .logo-wrap{display:flex;align-items:center;gap:12px}
-  .logo-img{width:52px;height:52px;border-radius:10px;object-fit:contain}
-  .brand-name{font-size:19px;font-weight:700;color:#0f172a;line-height:1}
-  .brand-name span{color:#2563eb}
-  .brand-sub{font-size:8px;letter-spacing:2px;color:#64748b;font-weight:600;margin-top:3px;text-transform:uppercase}
-  .co-info{text-align:right;font-size:9.5px;color:#475569;line-height:1.7}
-  .co-info strong{font-size:13px;font-weight:700;color:#0f172a;display:block;margin-bottom:2px}
-  .banner{background:#2563eb;color:#fff;text-align:center;padding:8px;font-size:14px;font-weight:700;letter-spacing:5px;border-radius:6px;margin-bottom:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .hr-blue{height:2px;background:#2563eb;margin:8px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .hr-light{height:1px;background:#e2e8f0;margin:7px 0}
-  .meta{display:flex;justify-content:space-between;font-size:9.5px;margin-bottom:8px}
-  .confidencial{font-size:9px;font-weight:700;color:#2563eb;letter-spacing:2px}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-  .kpi{border:1px solid #e2e8f0;border-radius:6px;padding:9px 11px;border-top:3px solid #2563eb;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .kpi.g{border-top-color:#16a34a}.kpi.a{border-top-color:#d97706}.kpi.p{border-top-color:#7c3aed}
-  .kpi-label{font-size:8px;color:#64748b;text-transform:uppercase;font-weight:600;margin-bottom:4px}
-  .kpi-value{font-size:14px;font-weight:700;color:#2563eb}
-  .kpi.g .kpi-value{color:#16a34a}.kpi.a .kpi-value{color:#d97706}.kpi.p .kpi-value{color:#7c3aed}
-  .kpi-sub{font-size:7.5px;color:#94a3b8;margin-top:2px}
-  .total-res{display:flex;justify-content:space-between;align-items:center;background:#f0f9ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .total-res-label{font-size:11px;font-weight:700;color:#1e40af}
-  .total-res-sub{font-size:8.5px;color:#64748b;margin-top:2px}
-  .total-res-value{font-size:20px;font-weight:800;color:#2563eb}
-  .sec-title{font-size:10px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;padding-bottom:4px;border-bottom:2px solid #bfdbfe;display:flex;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .sec-title span{color:#2563eb}
-  table{width:100%;border-collapse:collapse;margin-bottom:10px}
-  thead tr{background:#eff6ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  thead th{padding:6px 8px;font-size:9px;font-weight:700;text-align:left;color:#1e40af;border-bottom:2px solid #bfdbfe}
-  tbody tr:nth-child(even){background:#f8fafc}
-  tbody td{padding:5px 8px;border-bottom:1px solid #f1f5f9;font-size:9.5px}
-  .tr-total td{font-weight:700;background:#eff6ff;border-top:2px solid #bfdbfe;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .code{font-family:monospace;font-size:8.5px;color:#2563eb;font-weight:700}
-  .right{text-align:right}.center{text-align:center}.bold{font-weight:700}.dep{color:#94a3b8}.blue{color:#2563eb;font-weight:700}
-  .nota{font-size:8.5px;color:#64748b;line-height:1.6;background:#f0f9ff;border-left:3px solid #2563eb;padding:7px 12px;border-radius:0 6px 6px 0;margin-bottom:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .nota strong{color:#374151}
-  .signs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:18px}
-  .sign-line{border-top:1.5px solid #0f172a;padding-top:4px;font-size:9px;font-weight:700;text-align:center}
-  .sign-sub{font-size:8px;color:#64748b;text-align:center;margin-top:2px}
-  .footer{margin-top:14px;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5px;color:#94a3b8}
-  @media print{body{padding:12px}@page{margin:8mm;size:A4}}
-</style>
-</head><body>
-<div class="header">
-  <div class="logo-wrap">
-    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'">
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Estado de Patrimonio y Valoración de Activos — ${d.empresa.nombre}</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm 12mm 12mm 12mm; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; font-size: 10px; color: #0f172a; background: #fff; padding: 14px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #003087; padding-bottom: 12px; margin-bottom: 14px; }
+    .company { font-size: 18px; font-weight: 800; color: #003087; letter-spacing: -0.5px; }
+    .company span { color: #2563eb; }
+    .sub { font-size: 9px; color: #64748b; margin-top: 2px; }
+    .badge { font-size: 9px; font-weight: 800; background: #003087; color: #fff; padding: 4px 12px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-box { background: #f0f4ff; border: 1.5px solid #003087; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 9.5px; color: #1e3a8a; line-height: 1.4; }
+    .cert-title { font-weight: 800; text-transform: uppercase; font-size: 10px; color: #003087; margin-bottom: 3px; }
+    .grid-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .card-sum { border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #f8fafc; }
+    .card-sum.main { border-color: #003087; background: #e6eaf4; }
+    .card-lbl { font-size: 8.5px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .card-val { font-size: 16px; font-weight: 900; color: #0f172a; }
+    .card-val.blue { color: #003087; }
+    .sec-title { font-size: 11px; font-weight: 800; color: #003087; text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9.5px; }
+    th { background: #003087; color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 6px 8px; text-align: left; }
+    td { padding: 5.5px 8px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+    .right { text-align: right; } .center { text-align: center; } .bold { font-weight: 700; } .blue { color: #003087; } .code { font-family: monospace; font-weight: 700; color: #2563eb; }
+    .tr-total { background: #e6eaf4 !important; font-weight: 800; border-top: 2px solid #003087; }
+    .tr-total td { font-size: 10px; padding: 7px 8px; color: #003087; }
+    .nota { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 6px; padding: 8px 12px; font-size: 8.5px; color: #78350f; margin-top: 14px; line-height: 1.4; }
+    .signs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; text-align: center; }
+    .sign-line { border-top: 1.5px solid #003087; padding-top: 4px; font-size: 9px; font-weight: 800; color: #003087; }
+    .sign-sub { font-size: 8px; color: #64748b; margin-top: 2px; }
+    .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; font-size: 8px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="header">
     <div>
-      <div class="brand-name">Web<span>Soft</span> Solutions</div>
-      <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
+      <div class="company">${d.empresa.nombre}</div>
+      <div class="sub">NIT: ${d.empresa.nit} · ${d.empresa.direccion}</div>
+      <div class="sub">Teléfono: ${d.empresa.telefono} · Web: ${d.empresa.web}</div>
+    </div>
+    <div style="text-align: right">
+      <div class="badge">ESTADO DE PATRIMONIO OFICIAL</div>
+      <div class="sub" style="margin-top: 4px; font-weight: 700">Fecha de Corte: ${hoy}</div>
     </div>
   </div>
-  <div class="co-info">
-    <strong>WEBSOFT SOLUTIONS</strong>
-    NIT: ${d.empresa.nit}<br>
-    ${d.empresa.direccion}<br>
-    TEL: ${d.empresa.telefono} · ${d.empresa.web}
+
+  <div class="cert-box">
+    <div class="cert-title"> CERTIFICACIÓN DE PATRIMONIO DE LA EMPRESA</div>
+    El presente documento certifica el valor total del patrimonio activo de <strong>${d.empresa.nombre}</strong> (NIT ${d.empresa.nit}) a la fecha de corte <strong>${hoy}</strong>. El total consolidado incluye los activos fijos tangibles a valor neto contable y el inventario de mercancía valorado al costo de adquisición.
   </div>
-</div>
-<div class="banner">E S T A D O &nbsp; D E &nbsp; P A T R I M O N I O</div>
-<div class="hr-blue"></div>
-<div class="meta">
-  <span><strong>Fecha de corte:</strong> ${hoy}</span>
-  <span class="confidencial">CONFIDENCIAL</span>
-  <span><strong>Generado:</strong> ${new Date().toLocaleString('es-GT')}</span>
-</div>
-<div class="hr-blue"></div>
-<div class="kpis">
-  <div class="kpi"><div class="kpi-label">Activos fijos — valor neto</div><div class="kpi-value">${fmtQ(d.resumenActivos.valorNeto)}</div><div class="kpi-sub">Bruto: ${fmtQ(d.resumenActivos.valorBruto)}</div></div>
-  <div class="kpi g"><div class="kpi-label">Inventario — valor de costo</div><div class="kpi-value">${fmtQ(d.resumenInventario.valorCosto)}</div><div class="kpi-sub">${d.resumenInventario.totalProductos} productos · ${d.resumenInventario.totalUnidades.toLocaleString('es-GT')} uds.</div></div>
-  <div class="kpi a"><div class="kpi-label">Inventario — valor de venta</div><div class="kpi-value">${fmtQ(d.resumenInventario.valorVenta)}</div><div class="kpi-sub">Precio de mercado al ${hoy}</div></div>
-  <div class="kpi p"><div class="kpi-label">Activos fijos registrados</div><div class="kpi-value">${d.resumenActivos.cantidad}</div><div class="kpi-sub">En operación activa</div></div>
-</div>
-<div class="total-res">
-  <div><div class="total-res-label">Patrimonio total estimado</div><div class="total-res-sub">Activos fijos (valor neto) + Inventario (valor de costo)</div></div>
-  <div class="total-res-value">${fmtQ(d.totalPatrimonio)}</div>
-</div>
-<div class="hr-light"></div>
-<div class="sec-title">1. Activos Fijos <span>Valor neto: ${fmtQ(d.resumenActivos.valorNeto)}</span></div>
-<table>
-  <thead><tr><th style="width:65px">Código</th><th>Descripción</th><th>Observaciones</th><th style="width:80px;text-align:center">Fecha adq.</th><th style="width:88px;text-align:right">Costo original</th><th style="width:80px;text-align:right">Dep. acum.</th><th style="width:82px;text-align:right">Valor neto</th></tr></thead>
-  <tbody>${rowsActivos}<tr class="tr-total"><td colspan="4">TOTAL ACTIVOS FIJOS</td><td class="right">${fmtQ(d.resumenActivos.valorBruto)}</td><td class="right dep">${fmtQ(d.resumenActivos.depreciacionAcum)}</td><td class="right blue">${fmtQ(d.resumenActivos.valorNeto)}</td></tr></tbody>
-</table>
-<div class="sec-title">2. Inventario — Resumen por Categoría <span>Valor costo: ${fmtQ(d.resumenInventario.valorCosto)}</span></div>
-<table>
-  <thead><tr><th>Categoría</th><th style="width:70px;text-align:center">Productos</th><th style="width:70px;text-align:center">Unidades</th><th style="width:95px;text-align:right">Valor de venta</th><th style="width:95px;text-align:right">Valor de costo</th></tr></thead>
-  <tbody>${rowsCategorias}<tr class="tr-total"><td>TOTAL INVENTARIO</td><td class="center">${d.resumenInventario.totalProductos}</td><td class="center">${d.resumenInventario.totalUnidades.toLocaleString('es-GT')}</td><td class="right dep">${fmtQ(d.resumenInventario.valorVenta)}</td><td class="right blue">${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
-</table>
-<div class="sec-title">3. Inventario — Detalle por Producto <span>${d.resumenInventario.totalProductos} productos</span></div>
-<table>
-  <thead><tr><th style="width:80px">Código</th><th>Producto</th><th style="width:100px;text-align:center">Categoría</th><th style="width:55px;text-align:center">Stock</th><th style="width:88px;text-align:right">Costo unit.</th><th style="width:88px;text-align:right">Valor total</th></tr></thead>
-  <tbody>${rowsProductos}<tr class="tr-total"><td colspan="5">TOTAL INVENTARIO (valor de costo)</td><td class="right blue">${fmtQ(d.resumenInventario.valorCosto)}</td></tr></tbody>
-</table>
-<div class="nota"><strong>Nota metodológica:</strong> Los activos fijos se presentan a valor neto (costo de adquisición menos depreciación acumulada por línea recta). El inventario se valora al costo promedio de adquisición. Reporte generado automáticamente al ${hoy}. Para efectos bancarios debe ser certificado por contador público y auditor autorizado.</div>
-<div class="signs">
-  <div><div style="height:32px"></div><div class="sign-line">REPRESENTANTE LEGAL</div><div class="sign-sub">Nombre y firma</div></div>
-  <div><div style="height:32px"></div><div class="sign-line">CONTADOR / AUDITOR</div><div class="sign-sub">Colegiado No. ___________</div></div>
-  <div><div style="height:32px"></div><div class="sign-line">SELLO DE LA EMPRESA</div><div class="sign-sub">&nbsp;</div></div>
-</div>
-<div class="footer"><span>WebSoft Solutions · ${d.empresa.web} · NIT: ${d.empresa.nit}</span><span>Sistema POS WebSoft v0.07 · ${hoy}</span></div>
-</body></html>`
+
+  <div class="grid-summary">
+    <div class="card-sum">
+      <div class="card-lbl">Activos Fijos Netos</div>
+      <div class="card-val">${fmtQ(d.resumenActivos.valorNeto)}</div>
+      <div style="font-size:8px;color:#64748b;margin-top:2px">${d.resumenActivos.totalActivos} activos fijos registrados</div>
+    </div>
+    <div class="card-sum">
+      <div class="card-lbl">Inventario al Costo</div>
+      <div class="card-val">${fmtQ(d.resumenInventario.valorCosto)}</div>
+      <div style="font-size:8px;color:#64748b;margin-top:2px">${d.resumenInventario.totalProductos} productos / ${d.resumenInventario.totalUnidades} uds</div>
+    </div>
+    <div class="card-sum main">
+      <div class="card-lbl" style="color:#003087">PATRIMONIO TOTAL CONSOLIDADO</div>
+      <div class="card-val blue" style="font-size:18px">${fmtQ(d.patrimonioTotal)}</div>
+      <div style="font-size:8px;color:#003087;font-weight:700;margin-top:2px">Base para evaluación bancaria/crediticia</div>
+    </div>
+  </div>
+
+  <div class="sec-title">1. Detalle de Activos Fijos Tangibles</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:70px">Código</th>
+        <th>Nombre del Activo</th>
+        <th>Descripción / Especificaciones</th>
+        <th style="width:75px;text-align:center">Fecha Adq.</th>
+        <th style="width:80px;text-align:right">Costo Orig.</th>
+        <th style="width:60px;text-align:center">Vida Útil</th>
+        <th style="width:80px;text-align:right">Dep. Acum.</th>
+        <th style="width:85px;text-align:right">Valor Neto</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsActivos}
+      <tr class="tr-total">
+        <td colspan="4">TOTAL ACTIVOS FIJOS (${d.resumenActivos.totalActivos} ítems)</td>
+        <td class="right">${fmtQ(d.resumenActivos.costoOriginal)}</td>
+        <td></td>
+        <td class="right" style="color:#d97706">${fmtQ(d.resumenActivos.depreciacionAcum)}</td>
+        <td class="right blue">${fmtQ(d.resumenActivos.valorNeto)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sec-title">2. Resumen de Inventario de Mercancía</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:80px">Código</th>
+        <th>Producto</th>
+        <th style="width:100px;text-align:center">Categoría</th>
+        <th style="width:55px;text-align:center">Stock</th>
+        <th style="width:88px;text-align:right">Costo unit.</th>
+        <th style="width:88px;text-align:right">Valor total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsProductos}
+      <tr class="tr-total">
+        <td colspan="5">TOTAL INVENTARIO (valor de costo)</td>
+        <td class="right blue">${fmtQ(d.resumenInventario.valorCosto)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="nota">
+    <strong>Nota metodológica:</strong> Los activos fijos se presentan a valor neto (costo de adquisición menos depreciación acumulada por línea recta). El inventario se valora al costo promedio de adquisición. Reporte generado automáticamente al ${hoy}. Para efectos bancarios debe ser certificado por contador público y auditor autorizado.
+  </div>
+
+  <div class="signs">
+    <div><div style="height:32px"></div><div class="sign-line">REPRESENTANTE LEGAL</div><div class="sign-sub">Nombre y firma</div></div>
+    <div><div style="height:32px"></div><div class="sign-line">CONTADOR / AUDITOR</div><div class="sign-sub">Colegiado No. ___________</div></div>
+    <div><div style="height:32px"></div><div class="sign-line">SELLO DE LA EMPRESA</div><div class="sign-sub">&nbsp;</div></div>
+  </div>
+
+  <div class="footer">
+    <span>WebSoft Solutions · ${d.empresa.web} · NIT: ${d.empresa.nit}</span>
+    <span>Sistema POS WebSoft v0.07 · ${hoy}</span>
+  </div>
+</body>
+</html>`
 
   const w = window.open('', '_blank', 'width=1000,height=700')
-  if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 800) }
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  } else {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+  }
 }
 
 export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
@@ -234,7 +271,14 @@ export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
   <div class="section-title">Productos mas vendidos</div>
   <table><thead><tr><th>Producto</th><th class="center">Cantidad</th><th class="right">Total</th><th class="center">% ingresos</th></tr></thead><tbody>${prodRows}</tbody></table>
   <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Generado el ${new Date().toLocaleDateString('es-GT')}</span></div>
-  <script>window.onload=function(){window.print()}</script></body></html>`
+  </body></html>`
   const w = window.open('', '_blank')
-  if (w) { w.document.write(html); w.document.close() }
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
+  } else {
+    alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
+  }
 }
