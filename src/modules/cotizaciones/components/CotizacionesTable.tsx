@@ -89,39 +89,60 @@ export function CotizacionesTable({
                   </button>
 
                   {menuOpen && (
-                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)', zIndex: 50, minWidth: 170, padding: 6 }}>
-                      <button onClick={() => { onView(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                         Ver detalles
+                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)', zIndex: 100, minWidth: 175, padding: 6 }}>
+                      <button onClick={() => { onView(c); setOpenMenuId(null); }}
+                        style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Ver detalles
                       </button>
                       
                       {c.estado === 'pendiente' && onEdit && (
-                        <button onClick={() => { onEdit(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0284c7', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
-                           Editar cotización
+                        <button onClick={() => { onEdit(c); setOpenMenuId(null); }}
+                          style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0284c7', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#e0f2fe')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          Editar cotización
                         </button>
                       )}
 
                       {onDuplicate && (
-                        <button onClick={() => { onDuplicate(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#2563eb', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
-                           Duplicar (Copiar)
+                        <button onClick={() => { onDuplicate(c); setOpenMenuId(null); }}
+                          style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#2563eb', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#eff6ff')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          Duplicar (Copiar)
                         </button>
                       )}
 
-                      <button onClick={() => { onEnviar(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                        ️ Enviar por correo
+                      <button onClick={() => { onEnviar(c); setOpenMenuId(null); }}
+                        style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Enviar por correo
                       </button>
-                      <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none' }}>
-                        ️ Imprimir PDF
+                      <a href={`/api/cotizaciones/${c.id}/pdf`} target="_blank"
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, textDecoration: 'none', transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Imprimir PDF
                       </a>
                       
                       {c.estado === 'pendiente' && (
                         <>
                           <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
-                          <button onClick={() => { onFacturar(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600 }}>
-                             Convertir a Venta
+                          <button onClick={() => { onFacturar(c); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Convertir a Venta
                           </button>
                           {isAdmin && (
-                            <button onClick={() => { onAnular(c); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#dc2626', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                               Anular
+                            <button onClick={() => { onAnular(c); setOpenMenuId(null); }}
+                              style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#b13a2e', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#f8eeec')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                              Anular
                             </button>
                           )}
                         </>

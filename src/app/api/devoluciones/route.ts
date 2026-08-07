@@ -53,6 +53,8 @@ export async function PATCH(req: NextRequest) {
       result = await DevolucionService.aprobar(Number(id));
     } else if (action === 'anular') {
       result = await DevolucionService.anular(Number(id));
+    } else if (action === 'activar' || action === 'reactivar') {
+      result = await DevolucionService.reactivar(Number(id));
     } else {
       return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });
     }

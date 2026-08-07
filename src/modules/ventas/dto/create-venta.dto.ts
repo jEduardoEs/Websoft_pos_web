@@ -6,6 +6,10 @@ export interface CreateVentaItemDto {
   precioUnitario: number;
   descuento: number;
   subtotal: number;
+  costo?: number;
+  margin?: number;
+  iva?: number;
+  ganancia?: number;
 }
 
 export interface CreateVentaDto {

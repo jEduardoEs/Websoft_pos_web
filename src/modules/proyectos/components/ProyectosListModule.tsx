@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useProyectos } from '../hooks/use-proyectos'
 
 const ESTADOS = ['planificado', 'en_ejecucion', 'completado', 'cancelado'] as const
-const ESTADO_LABEL: Record<string, string> = { planificado: 'Planificado', en_ejecucion: 'En ejecución', completado: 'Completado', cancelado: 'Cancelado' }
+const ESTADO_LABEL: Record<string, string> = { planificado: 'Planificación', en_ejecucion: 'En ejecución', completado: 'Completado', cancelado: 'Cancelado' }
 const ESTADO_COLOR: Record<string, string> = { planificado: '#1581E3', en_ejecucion: '#d97706', completado: '#16a34a', cancelado: '#94a3b8' }
 const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
@@ -52,8 +52,8 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
       </div>
 
       {/* Tabla */}
-      <div className="card">
-        <div style={{ overflowX: 'auto' }}>
+      <div className="card" style={{ overflow: 'visible' }}>
+        <div style={{ overflowX: 'visible' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>{['#', 'Proyecto / Cliente', 'Descripción', 'Cotización', 'Estado', 'Inicio', 'Mantenimientos', ''].map(h => <th key={h} style={thS}>{h}</th>)}</tr>

@@ -23,6 +23,10 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
     descripcion: '',
     precio: '',
     costo: '',
+    ivaAmount: '',
+    iva: 0.05,
+    margin: 0.30,
+
     stock: '',
     stockMinimo: '5',
     categoria: 'General',
@@ -45,14 +49,33 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
         stockMinimo: String(producto.stockMinimo),
         categoria: producto.categoria || 'General',
         unidad: producto.unidad || 'unidad',
-        imagenUrl: producto.imagenUrl || ''
+        imagenUrl: producto.imagenUrl || '',
+        ivaAmount: (producto as any).ivaAmount ? String((producto as any).ivaAmount) : '',
+        iva: (producto as any).iva || 0.05,
+        margin: (producto as any).margin || 0.30
       });
     }
   }, [producto]);
 
+
+    // Auto-calculate price including margin and IVA
+    useEffect(() => {
+      const costNum = parseFloat(form.costo);
+      const marginNum = typeof form.margin === 'number' ? form.margin : parseFloat(form.margin as any);
+      const ivaNum = 0.05;
+      if (!isNaN(costNum) && !isNaN(marginNum)) {
+        const base = costNum * (1 + marginNum);
+        const ivaAmount = (base * ivaNum).toFixed(2);
+        const total = (base + parseFloat(ivaAmount)).toFixed(2);
+        if (total !== form.precio || ivaAmount !== form.ivaAmount) {
+          setForm(prev => ({ ...prev, precio: total, ivaAmount }));
+        }
+      }
+    }, [form.costo, form.margin]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombre || !form.precio) {
+    if (!form.nombre || !form.costo) {
       toast.error('Nombre y precio son requeridos');
       return;
     }
@@ -132,16 +155,31 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div>
-              <label style={lbl}>Precio Venta (Q) *</label>
-              <input type="number" step="0.01" className="input" value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} placeholder="0.00" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={lbl}>Precio Venta (con IVA)</label>
+                <input type="number" step="0.01" className="input" value={form.precio} readOnly disabled placeholder="0.00" />
+              </div>
+              <div>
+                <label style={lbl}>Costo Compra (Q)</label>
+                <input type="number" step="0.01" className="input" value={form.costo} onChange={e => setForm({ ...form, costo: e.target.value })} placeholder="0.00" />
+              </div>
             </div>
-            <div>
-              <label style={lbl}>Costo Compra (Q)</label>
-              <input type="number" step="0.01" className="input" value={form.costo} onChange={e => setForm({ ...form, costo: e.target.value })} placeholder="0.00" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={lbl}>IVA (5%)</label>
+                <input type="number" step="0.01" className="input" value={form.ivaAmount} readOnly disabled placeholder="0.00" />
+              </div>
             </div>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={lbl}>Margen de Ganancia</label>
+                <select className="input" value={form.margin} onChange={e => setForm({ ...form, margin: parseFloat(e.target.value) })}>
+                  <option value={0.25}>25%</option>
+                  <option value={0.30}>30%</option>
+                </select>
+              </div>
+            </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>

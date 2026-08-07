@@ -57,8 +57,9 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
               <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
                 <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#475569' }}>PRODUCTO</th>
                 <th style={{ padding: '8px 12px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#475569' }}>CANTIDAD</th>
-                <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#475569' }}>PRECIO</th>
-                <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#475569' }}>SUBTOTAL</th>
+                <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#475569' }}>PRECIO BASE</th>
+                <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#475569' }}>IVA</th>
+                <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#475569' }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>

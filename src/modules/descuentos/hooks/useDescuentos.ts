@@ -86,6 +86,19 @@ export function useDescuentos() {
     [load]
   )
 
+  const activar = useCallback(
+    async (d: DescuentoResponseDTO) => {
+      const success = await descuentosService.toggleActivo(d.id, true)
+      if (success) {
+        toast.success('Código reactivado')
+        load()
+      } else {
+        toast.error('Error al reactivar')
+      }
+    },
+    [load]
+  )
+
   return {
     descuentos,
     showModal,
@@ -96,6 +109,7 @@ export function useDescuentos() {
     closeModal,
     save,
     del,
+    activar,
     refresh: load,
   }
 }

@@ -9,7 +9,7 @@ function addMonths(date: Date, months: number): Date {
 export async function syncProyectoDesdeCotizacion(
   tx: any,
   cotizacionId: number,
-  nuevoEstado: 'planificado' | 'en_proceso' = 'planificado',
+  nuevoEstado: 'planificado' | 'en_ejecucion' | 'completado' = 'planificado',
   usuarioNombre: string = 'Sistema',
   ventaNumero?: string
 ) {

@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
+import { initializeEventBus } from '@/core/events'
+
+// Initialize the global EventBus and register all listeners
+initializeEventBus();
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://websoftsolutions.com.gt'),

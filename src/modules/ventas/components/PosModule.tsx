@@ -210,6 +210,36 @@ export function PosModule() {
     printTicketWindow(html);
   };
 
+  // Search client by NIT and set related state
+  const buscarClienteNit = async () => {
+    if (!clienteNit || clienteNit.trim() === '' || clienteNit === 'CF') {
+      setNitStatus('idle');
+      setClienteNombre('Consumidor Final');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(clienteNit)}`);
+      const data = await res.json();
+      if (data.encontrado && data.cliente) {
+        setClienteNombre(data.cliente.nombre);
+        setClienteId(data.cliente.id);
+        setClienteTieneCorreo(!!data.cliente.email);
+        setNitStatus('found');
+        toast.success('Cliente encontrado');
+      } else {
+        setNitStatus('notfound');
+        setClienteNombre('');
+        toast.error('NIT no encontrado');
+      }
+    } catch (e) {
+      setNitStatus('notfound');
+      toast.error('Error al buscar cliente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const felActivo = config?.fel_activo === 'true';
 
   return (
@@ -229,7 +259,7 @@ export function PosModule() {
         clienteNit={clienteNit} setClienteNit={setClienteNit}
         clienteNombre={clienteNombre} setClienteNombre={setClienteNombre}
         nitStatus={nitStatus}
-        ejecutarBusquedaNit={() => {}}
+        ejecutarBusquedaNit={buscarClienteNit}
         setShowRegCliente={setShowRegCliente}
         clienteTieneCorreo={clienteTieneCorreo}
         subtotal={subtotalCart}

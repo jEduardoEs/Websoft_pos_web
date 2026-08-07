@@ -10,9 +10,10 @@ interface DevolucionesTableProps {
   onView: (d: Devolucion) => void;
   onAprobar: (id: number) => void;
   onAnular: (id: number) => void;
+  onReactivar: (id: number) => void;
 }
 
-export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAprobar, onAnular }: DevolucionesTableProps) {
+export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAprobar, onAnular, onReactivar }: DevolucionesTableProps) {
   const [openMenuId, setOpenMenuId] = React.useState<number | null>(null);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -68,21 +69,44 @@ export function DevolucionesTable({ devoluciones, loading, isAdmin, onView, onAp
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                   </button>
                   {menuOpen && (
-                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 160, padding: 6 }}>
-                      <button onClick={() => { onView(d); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                         Ver detalle
+                    <div ref={menuRef} style={{ position: 'absolute', right: 20, top: 40, background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)', zIndex: 100, minWidth: 170, padding: 6 }}>
+                      <button onClick={() => { onView(d); setOpenMenuId(null); }}
+                        style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Ver detalle
                       </button>
-                      <button onClick={() => { import('../utils/pdfGenerators').then(m => m.printDevolucion(d)); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                        ️ Imprimir PDF
+                      <button onClick={() => { import('../utils/pdfGenerators').then(m => m.printDevolucion(d)); setOpenMenuId(null); }}
+                        style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#0f172a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        Imprimir PDF
                       </button>
                       {isAdmin && d.estado === 'pendiente' && (
                         <>
                           <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
-                          <button onClick={() => { onAprobar(d.id); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                             Aprobar
+                          <button onClick={() => { onAprobar(d.id); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Aprobar
                           </button>
-                          <button onClick={() => { onAnular(d.id); setOpenMenuId(null); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#dc2626', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4 }}>
-                             Anular
+                          <button onClick={() => { onAnular(d.id); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#b13a2e', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f8eeec')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Anular
+                          </button>
+                        </>
+                      )}
+                      {isAdmin && d.estado === 'anulada' && (
+                        <>
+                          <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                          <button onClick={() => { onReactivar(d.id); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#16a34a', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Activar / Reactivar
                           </button>
                         </>
                       )}

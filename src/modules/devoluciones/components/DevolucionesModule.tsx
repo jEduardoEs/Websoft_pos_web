@@ -11,7 +11,7 @@ export function DevolucionesModule() {
   const {
     state: { devoluciones, loading, showFormModal, selected, detailModal },
     setters: { setShowFormModal, setSelected, setDetailModal },
-    actions: { loadDevoluciones, aprobar, anular },
+    actions: { loadDevoluciones, aprobar, anular, reactivar },
   } = useDevoluciones();
 
   const isAdmin = true; // TODO: derive from session/role
@@ -26,6 +26,10 @@ export function DevolucionesModule() {
 
   const handleAnular = async (id) => {
     await anular(id);
+  };
+
+  const handleReactivar = async (id) => {
+    await reactivar(id);
   };
 
   return (
@@ -51,6 +55,7 @@ export function DevolucionesModule() {
         onView={handleView}
         onAprobar={handleAprobar}
         onAnular={handleAnular}
+        onReactivar={handleReactivar}
       />
 
       {showFormModal && (

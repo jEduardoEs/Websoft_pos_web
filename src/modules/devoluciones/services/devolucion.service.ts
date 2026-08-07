@@ -63,4 +63,12 @@ export class DevolucionService {
       data: { estado: 'anulada' },
     });
   }
+
+  /** Reactivar una devolucion anulada */
+  static async reactivar(id: number) {
+    return prisma.devolucion.update({
+      where: { id },
+      data: { estado: 'pendiente' },
+    });
+  }
 }

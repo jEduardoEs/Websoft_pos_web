@@ -31,18 +31,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const totalNum = Number(cot.total) || 0;
     const subtotalBase = totalNum / 1.05;
     const ivaMonto = totalNum - subtotalBase;
+    const descuentoNum = Number(cot.descuento) || 0;
 
     const rows = (cot.items || []).map((it: any) => `
       <tr>
-        <td style="padding:8px 10px;font-size:11px;color:#2563eb;font-weight:600;border-bottom:1px solid #e2e8f0;vertical-align:top">${it.codigo || '—'}</td>
-        <td style="padding:8px 10px;font-size:11px;color:#0f172a;border-bottom:1px solid #e2e8f0;vertical-align:top">
-          <div style="font-weight:600">${it.descripcion}</div>
-        </td>
-        <td style="padding:8px 10px;font-size:11px;text-align:center;color:#0f172a;border-bottom:1px solid #e2e8f0;vertical-align:top">${it.cantidad}</td>
-        <td style="padding:8px 10px;font-size:11px;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;vertical-align:top">Q ${Number(it.precioUnitario).toFixed(2)}</td>
-        <td style="padding:8px 10px;font-size:11px;font-weight:700;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;vertical-align:top">Q ${Number(it.totalItem).toFixed(2)}</td>
+        <td class="code">${it.codigo || ''}</td>
+        <td>${it.descripcion}</td>
+        <td class="center">${it.cantidad}</td>
+        <td class="right">Q ${Number(it.precioUnitario).toFixed(2)}</td>
+        <td class="right">Q ${Number(it.subtotal || (it.cantidad * it.precioUnitario)).toFixed(2)}</td>
+        <td class="right">${Number(it.descuento) > 0 ? `Q ${Number(it.descuento).toFixed(2)}` : 'Q 0.00'}</td>
+        <td class="right bold">Q ${Number(it.totalItem).toFixed(2)}</td>
       </tr>
     `).join('');
+
+    const fechaFormateada = cot.createdAt
+      ? new Date(cot.createdAt).toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : new Date().toLocaleDateString('es-GT');
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -50,145 +55,141 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   <meta charset="UTF-8">
   <title>Cotización ${cot.numero} — ${configData.empresa_nombre || 'WebSoft Solutions'}</title>
   <style>
-    @page { size: auto; margin: 8mm; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @page { size: A4; margin: 8mm; }
     @media print {
-      @page { margin: 8mm; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { margin: 8mm; size: A4; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 12px; }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #0f172a; background: #fff; padding: 16px; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #1e293b; padding-bottom: 14px; margin-bottom: 16px; }
-    .company-title { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
-    .company-title span { color: #2563eb; }
-    .company-sub { font-size: 10px; color: #64748b; margin-top: 3px; }
-    .doc-type { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; text-align: right; }
-    .doc-number { font-size: 22px; font-weight: 900; color: #2563eb; font-family: 'Courier New', monospace; text-align: right; }
-    .doc-date { font-size: 10px; color: #64748b; text-align: right; margin-top: 2px; }
-    
-    .client-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
-    .client-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
-    .client-val { font-size: 13px; font-weight: 700; color: #0f172a; }
-    .client-detail { font-size: 11px; color: #334155; margin-top: 2px; }
-
-    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-    th { background: #0f172a; color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 8px 10px; text-align: left; }
-    
-    .totals-box { margin-left: auto; width: 340px; margin-bottom: 20px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; }
-    .totals-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #475569; }
-    .totals-row.grand { border-top: 2px solid #0f172a; padding-top: 8px; margin-top: 4px; font-size: 16px; font-weight: 800; color: #2563eb; }
-
-    .terms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 10px; color: #334155; }
-    .notes-box { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; font-size: 11px; color: #1e3a8a; line-height: 1.4; }
-    .notes-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #1e40af; margin-bottom: 4px; }
-    
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding: 0 30px; }
-    .sign-line { border-top: 1px solid #0f172a; text-align: center; padding-top: 4px; font-size: 10px; font-weight: 700; color: #334155; }
-    .footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+    body { font-family: 'Inter', sans-serif; font-size: 11px; color: #0f172a; padding: 24px 28px; background: #fff; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+    .logo-wrap { display: flex; align-items: center; gap: 12px; }
+    .logo-img { width: 56px; height: 56px; border-radius: 10px; object-fit: contain; }
+    .brand-name { font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1; }
+    .brand-name span { color: #2563eb; }
+    .brand-sub { font-size: 8px; letter-spacing: 2px; color: #64748b; font-weight: 600; margin-top: 2px; text-transform: uppercase; }
+    .co-info { text-align: right; font-size: 10px; color: #475569; line-height: 1.7; }
+    .co-info strong { font-size: 14px; font-weight: 700; color: #0f172a; display: block; margin-bottom: 2px; }
+    .banner { background: #2563eb; color: #fff; text-align: center; padding: 9px; font-size: 16px; font-weight: 700; letter-spacing: 5px; border-radius: 6px; margin-bottom: 14px; }
+    hr.blue { border: none; border-top: 2px solid #2563eb; margin: 10px 0; }
+    hr.light { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; font-size: 10px; }
+    .row { display: flex; gap: 6px; margin-bottom: 3px; }
+    .lbl { font-weight: 700; color: #374151; min-width: 75px; flex-shrink: 0; }
+    .val { color: #475569; }
+    .fp { font-size: 10px; margin-bottom: 10px; }
+    .fp strong { color: #2563eb; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    thead tr { background: #eff6ff; }
+    thead th { padding: 7px 9px; font-size: 10px; font-weight: 700; text-align: left; color: #1e40af; border-bottom: 2px solid #bfdbfe; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody td { padding: 6px 9px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
+    .code { font-family: monospace; font-size: 9px; color: #2563eb; font-weight: 700; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .bold { font-weight: 700; }
+    .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .totals { background: #f8fafc; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 11px 16px; min-width: 250px; }
+    .t-row { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; color: #475569; }
+    .t-iva { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; color: #d97706; font-weight: 600; }
+    .t-final { font-size: 15px; font-weight: 800; color: #2563eb; border-top: 2px solid #bfdbfe; padding-top: 7px; margin-top: 5px; display: flex; justify-content: space-between; }
+    .notice { font-size: 9px; font-weight: 700; color: #dc2626; margin-bottom: 7px; line-height: 1.6; }
+    .conds { font-size: 8.5px; color: #64748b; line-height: 1.6; margin-bottom: 10px; }
+    .conds strong { color: #374151; }
+    .highlight-block { font-size: 10px; font-weight: 700; color: #0f172a; background: #f0f9ff; border-left: 3px solid #2563eb; padding: 7px 12px; margin-bottom: 7px; border-radius: 0 6px 6px 0; line-height: 1.6; }
+    .highlight-block strong { color: #1e40af; font-size: 11px; }
+    .signs { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+    .sign-line { border-top: 1.5px solid #0f172a; padding-top: 4px; font-size: 10px; font-weight: 700; }
+    .footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- HEADER -->
-    <div class="header">
+  <div class="header">
+    <div class="logo-wrap">
+      <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
       <div>
-        <div class="company-title">${configData.empresa_nombre || 'WebSoft Solutions'}</div>
-        <div class="company-sub">NIT: ${configData.empresa_nit || '115471413'} · ${configData.empresa_direccion || 'Guastatoya, El Progreso'}</div>
-        <div class="company-sub">Teléfono / WhatsApp: ${configData.empresa_telefono || '3836-1044'}</div>
-      </div>
-      <div>
-        <div class="doc-type">Cotización Comercial</div>
-        <div class="doc-number">${cot.numero}</div>
-        <div class="doc-date">Fecha: ${new Date(cot.createdAt).toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        <div class="brand-name">${configData.empresa_nombre ? configData.empresa_nombre.replace('WebSoft', 'Web<span>Soft</span>') : 'Web<span>Soft</span> Solutions'}</div>
+        <div class="brand-sub">${configData.empresa_direccion || 'Guastatoya · El Progreso · Guatemala'}</div>
       </div>
     </div>
-
-    <!-- CLIENTE -->
-    <div class="client-box">
-      <div>
-        <div class="client-label">Cliente / Razón Social</div>
-        <div class="client-val">${cot.clienteNombre}</div>
-        <div class="client-detail">NIT: ${cot.clienteNit || 'CF'}${cot.clienteTelefono ? ` · Tel: ${cot.clienteTelefono}` : ''}</div>
-        ${cot.clienteDireccion ? `<div class="client-detail">Dirección: ${cot.clienteDireccion}</div>` : ''}
-      </div>
-      <div>
-        ${cot.atencion ? `<div><div class="client-label">Atención A</div><div class="client-detail" style="font-weight:600">${cot.atencion}</div></div>` : ''}
-        <div style="margin-top:6px"><div class="client-label">Validez</div><div class="client-detail">${cot.validezDias || 15} Días Hábiles</div></div>
-      </div>
+    <div class="co-info">
+      <strong>${configData.empresa_nombre || 'WEBSOFT SOLUTIONS'}</strong>
+      ${configData.empresa_direccion || 'Barrio el Calvario, Guastatoya, El Progreso'}<br>
+      TEL: ${configData.empresa_telefono || '(502) 3836-1044 / 3671-4377'}<br>
+      ${configData.empresa_nit ? `NIT: ${configData.empresa_nit}` : 'www.websoftsolutions.com.gt'}
     </div>
+  </div>
 
-    ${cot.descripcion ? `<div style="margin-bottom:12px;font-size:11px;color:#334155"><strong>Asunto / Descripción General:</strong> ${cot.descripcion}</div>` : ''}
+  <div class="banner">C O T I Z A C I O N</div>
+  <hr class="blue">
 
-    <!-- TABLA DE ITEMS -->
-    <table>
-      <thead>
-        <tr>
-          <th style="width:12%">Código</th>
-          <th>Descripción del Producto / Servicio</th>
-          <th style="text-align:center;width:10%">Cant.</th>
-          <th style="text-align:right;width:15%">Precio U.</th>
-          <th style="text-align:right;width:15%">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-
-    <!-- TOTALES -->
-    <div class="totals-box">
-      <div class="totals-row">
-        <span>Base Imponible (Subtotal sin IVA):</span>
-        <span>Q ${subtotalBase.toFixed(2)}</span>
-      </div>
-      <div class="totals-row" style="color:#2563eb">
-        <span>IVA Incluido (5%):</span>
-        <span>Q ${ivaMonto.toFixed(2)}</span>
-      </div>
-      ${cot.descuento > 0 ? `
-        <div class="totals-row" style="color:#dc2626">
-          <span>Descuento Aplicado:</span>
-          <span>-Q ${Number(cot.descuento).toFixed(2)}</span>
-        </div>
-      ` : ''}
-      <div class="totals-row grand">
-        <span>TOTAL FINAL COTIZADO:</span>
-        <span>Q ${totalNum.toFixed(2)}</span>
-      </div>
-      <div style="font-size:9px;color:#1e40af;text-align:center;margin-top:8px;font-weight:700;background:#eff6ff;padding:6px 8px;border-radius:6px;border:1px solid #bfdbfe;line-height:1.3">
-        ACLARACIÓN FISCAL: Todos los precios expresados en este documento incluyen el Impuesto al Valor Agregado (IVA - 5% Pequeño Contribuyente). Factura Electrónica FEL emitida al confirmar la compra.
-      </div>
+  <div class="grid2">
+    <div>
+      <div class="row"><span class="lbl">Nombre:</span><span class="val">${cot.clienteNombre}</span></div>
+      <div class="row"><span class="lbl">Dirección:</span><span class="val">${cot.clienteDireccion || '—'}</span></div>
+      <div class="row"><span class="lbl">Teléfono:</span><span class="val">${cot.clienteTelefono || '—'}</span></div>
+      <div class="row"><span class="lbl">NIT:</span><span class="val">${cot.clienteNit || 'CF'}</span></div>
     </div>
-
-    <!-- CONDICIONES Y FORMA DE PAGO -->
-    <div class="terms-grid">
-      <div>
-        <strong>Formas de Pago Aceptadas:</strong><br/>
-        ${cot.formaPago || 'Efectivo, Transferencia Bancaria, Depósito, Cheque Preautorizado'}
-      </div>
-      <div>
-        <strong>Tiempo de Entrega / Instalación:</strong><br/>
-        ${cot.tiempoInstalacion || 'Según disponibilidad de agenda / 3 a 5 días hábiles'}
-      </div>
+    <div>
+      <div class="row"><span class="lbl">Fecha:</span><span class="val">${fechaFormateada}</span></div>
+      <div class="row"><span class="lbl">No. Cotización:</span><span class="val"><b>${cot.numero}</b></span></div>
+      <div class="row"><span class="lbl">Validez:</span><span class="val">${cot.validezDias || 15} días</span></div>
     </div>
+  </div>
+  <hr class="blue">
 
-    <!-- ANOTACIONES Y ACLARACIONES PARA EL CLIENTE -->
-    ${cot.notas ? `
-      <div class="notes-box">
-        <div class="notes-title">Anotaciones / Aclaraciones Importantes para el Cliente:</div>
-        <div>${cot.notas.replace(/\n/g, '<br/>')}</div>
-      </div>
-    ` : ''}
+  <div class="fp"><strong>Forma de Pago:</strong> ${cot.formaPago || 'Efectivo, Transferencia, Depósito, Cheque Preautorizado'}</div>
+  ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8px;color:#1e40af">${cot.descripcion}</div>` : ''}
 
-    <!-- FIRMAS -->
-    <div class="sign-row">
-      <div class="sign-line">Atentamente,<br/>WebSoft Solutions</div>
-      <div class="sign-line">Aceptado por el Cliente<br/>Firma / Sello</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:72px">Código</th>
+        <th>Descripción</th>
+        <th style="width:48px;text-align:center">Cant.</th>
+        <th style="width:78px;text-align:right">P/Unit.</th>
+        <th style="width:78px;text-align:right">Subtotal</th>
+        <th style="width:72px;text-align:right">Descuento</th>
+        <th style="width:82px;text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+
+  <div class="totals-wrap">
+    <div class="totals">
+      <div class="t-row"><span>Base (sin IVA)</span><span>Q ${subtotalBase.toFixed(2)}</span></div>
+      ${descuentoNum > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${descuentoNum.toFixed(2)}</span></div>` : ''}
+      <div class="t-iva"><span>IVA Incluido (5%)</span><span>Q ${ivaMonto.toFixed(2)}</span></div>
+      <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${totalNum.toFixed(2)}</span></div>
     </div>
+  </div>
 
-    <div class="footer">
-      ${configData.empresa_nombre || 'WebSoft Solutions'} · Sistema POS · Documento de Cotización ${cot.numero}
+  <div class="notice">SUJETO A DISPONIBILIDAD. CONSULTAR EXISTENCIAS ANTES DE GENERAR PAGO.</div>
+  <div class="conds">
+    <strong>CONDICIONES:</strong>
+    1. <strong>PAGO:</strong> Anticipado, contra entrega, financiado o tarjeta. Cheques a nombre de WebSoft Solutions.
+    2. <strong>ENTREGA:</strong> Inmediata a 3 días según pago. Sin existencia puede variar hasta 3 semanas.
+    3. <strong>GARANTÍA:</strong> Se atiende en instalaciones de WebSoft. Daños físicos anulan garantía.
+    4. <strong>SERVICIO:</strong> Departamento técnico calificado para soporte durante garantía.
+  </div>
+  ${cot.tiempoInstalacion ? `<div class="highlight-block"><strong>TIEMPO DE INSTALACIÓN:</strong> ${cot.tiempoInstalacion}</div>` : ''}
+  ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> ${cot.notas.replace(/\n/g, '<br/>')}</div>` : ''}
+
+  <div class="signs">
+    <div>
+      <div class="sign-line">Aceptado (Cliente): _________________________</div>
+      <div style="font-size:9px;color:#94a3b8;margin-top:4px">Fecha: _____ / _____ / ______</div>
     </div>
+    <div style="text-align:right;font-size:9px;color:#94a3b8">${cot.numero} · Válida ${cot.validezDias || 15} días</div>
+  </div>
+
+  <div class="footer">
+    <span>WebSoft Solutions · Sistema POS</span>
+    <span>Tel: 3836-1044 / 3671-4377 · Guastatoya, El Progreso</span>
   </div>
 
   <script>

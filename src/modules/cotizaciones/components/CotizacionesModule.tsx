@@ -117,7 +117,6 @@ export function CotizacionesModule() {
               <div><strong>Cliente:</strong> {selected.clienteNombre}</div>
               <div><strong>NIT:</strong> {selected.clienteNit || 'CF'}</div>
               <div><strong>Teléfono:</strong> {selected.clienteTelefono || '—'}</div>
-              <div><strong>Atención A:</strong> {selected.atencion || '—'}</div>
               <div style={{ gridColumn: '1 / -1' }}><strong>Forma de Pago:</strong> {selected.formaPago || '—'}</div>
               <div style={{ gridColumn: '1 / -1' }}><strong>Descripción / Asunto:</strong> {selected.descripcion || '—'}</div>
               {selected.notas && (

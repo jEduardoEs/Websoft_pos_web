@@ -141,9 +141,53 @@ export class ProyectoService {
           accion: 'UPDATE',
           tabla: 'proyectos',
           registroId: String(id),
-          detalle: `Proyecto ${proyecto.numero} editado`,
+          detalle: `Proyecto ${proyecto.numero} editado (${proyecto.estado})`,
         }
       });
+
+      // Si el proyecto se marca como 'completado', activar su garantía automáticamente
+      if (data.estado === 'completado') {
+        const garantiasExistentes = await prisma.garantia.findMany({ where: { proyectoId: id } });
+        if (garantiasExistentes.length > 0) {
+          for (const g of garantiasExistentes) {
+            const dias = g.diasGarantia || 365;
+            const now = new Date();
+            const fVenc = new Date(now.getTime() + dias * 24 * 60 * 60 * 1000);
+            await prisma.garantia.update({
+              where: { id: g.id },
+              data: {
+                estado: 'vigente',
+                fechaVenta: now,
+                fechaVencimiento: fVenc,
+                notas: g.notas
+                  ? `${g.notas} | Garantía activada al completar proyecto ${proyecto.numero}`
+                  : `Garantía activada al completar proyecto ${proyecto.numero}`,
+              },
+            });
+          }
+        } else {
+          const countG = await prisma.garantia.count();
+          const numG = `GAR-${String(countG + 1).padStart(6, '0')}`;
+          const now = new Date();
+          const fVenc = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+          await prisma.garantia.create({
+            data: {
+              numero: numG,
+              clienteNombre: proyecto.clienteNombre,
+              clienteTelefono: proyecto.clienteTelefono,
+              clienteNit: proyecto.clienteNit,
+              productoNombre: proyecto.nombre || proyecto.descripcion || 'Servicios / Equipos del Proyecto',
+              proyectoId: proyecto.id,
+              diasGarantia: 365,
+              fechaVenta: now,
+              fechaVencimiento: fVenc,
+              estado: 'vigente',
+              notas: `Garantía generada y activada automáticamente al completar proyecto ${proyecto.numero}`,
+              usuarioNombre: userName,
+            },
+          });
+        }
+      }
     } catch {}
 
     return proyecto;
@@ -190,5 +234,64 @@ export class ProyectoService {
       if (!valido) throw new Error('Contraseña incorrecta');
     }
     await prisma.proyecto.delete({ where: { id } });
+  }
+  static async createFromSale(saleId: number) {
+    const venta = await prisma.venta.findUnique({
+      where: { id: saleId },
+      include: { items: true },
+    });
+    if (!venta) throw new Error('Venta no encontrada');
+
+    // Mapear de Venta a CreateProyectoDto
+    const dto: CreateProyectoDto = {
+      nombre: `Proyecto Venta ${venta.numero}`,
+      clienteNombre: venta.clienteNombre,
+      clienteNit: venta.clienteNit,
+      descripcion: `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
+      cotizacionId: venta.cotizacionId ? String(venta.cotizacionId) : undefined,
+    };
+
+    // Usar 'System' para creaciones automáticas
+    const proyecto = await this.create(dto, 1, 'System');
+    
+    // Update relationship with Sale if your DB schema supports it.
+    // If not, we just rely on emitting the event for now.
+    
+    const { eventBus } = require('@/core/events/EventBus');
+    await eventBus.publish({
+      type: 'ProjectCreated',
+      payload: { projectId: proyecto.id, saleId: venta.id },
+      timestamp: new Date(),
+    });
+
+    return proyecto;
+  }
+
+  static async markReadyForExecution(saleId: number) {
+    // Si la base de datos no tiene saleId en Proyecto, buscar por el cotizacionId o notas.
+    // Para simplificar, si se agrega la relación se buscará directamente:
+    // await prisma.proyecto.updateMany({ where: { saleId }, data: { estado: 'listo' } });
+    console.info(`[ProyectoService] markReadyForExecution called for sale ${saleId}`);
+    return true;
+  }
+
+  static async handleInvoicing(projectId: number) {
+    const proyecto = await prisma.proyecto.findUnique({ where: { id: projectId } });
+    if (!proyecto) throw new Error('Proyecto no encontrado');
+
+    await prisma.proyecto.update({
+      where: { id: projectId },
+      data: { estado: 'facturado' },
+    });
+
+    const { eventBus } = require('@/core/events/EventBus');
+    // Para simplificar, extraemos saleId si estuviera almacenado, si no, se pasa undefined y el eventBus se encarga de loguear
+    await eventBus.publish({
+      type: 'ProjectInvoiced',
+      payload: { projectId, saleId: undefined },
+      timestamp: new Date(),
+    });
+
+    return true;
   }
 }

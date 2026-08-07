@@ -58,3 +58,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    const { id, activo } = await req.json()
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+
+    await descuentosRepository.toggleActivo(Number(id), Boolean(activo))
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    console.error('PATCH descuentos error:', e?.message)
+    return NextResponse.json({ error: e?.message || 'Error interno' }, { status: 500 })
+  }
+}

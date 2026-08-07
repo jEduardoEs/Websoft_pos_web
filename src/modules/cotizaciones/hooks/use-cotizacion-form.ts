@@ -32,10 +32,9 @@ function recalc(item: LineItem): LineItem {
 export const emptyForm = {
   id: null as number | null,
   clienteNombre: '', clienteDireccion: '', clienteTelefono: '',
-  clienteNit: 'CF', clienteCorreo: '', atencion: '',
+  clienteNit: 'CF', clienteCorreo: '',
   formaPago: 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
   descripcion: '', notas: '', validezDias: '15', tiempoInstalacion: '',
-  tipoIva: 'incluido' as 'incluido' | '12' | '5',
 };
 
 export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any, isDuplicate: boolean = false) {
@@ -61,13 +60,12 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         clienteTelefono: cotizacionInitial.clienteTelefono || '',
         clienteNit: cotizacionInitial.clienteNit || 'CF',
         clienteCorreo: cotizacionInitial.clienteCorreo || '',
-        atencion: cotizacionInitial.atencion || '',
+
         formaPago: cotizacionInitial.formaPago || 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
         descripcion: cotizacionInitial.descripcion || '',
         notas: cotizacionInitial.notas || '',
         validezDias: String(cotizacionInitial.validezDias || '15'),
         tiempoInstalacion: cotizacionInitial.tiempoInstalacion || '',
-        tipoIva: initialTipoIva,
       });
 
       if (Array.isArray(cotizacionInitial.items) && cotizacionInitial.items.length > 0) {
@@ -151,6 +149,11 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   };
 
   const addProductoToCotizacion = (prod: any) => {
+    // Validate stock before adding
+    if (prod.stock !== undefined && prod.stock <= 0) {
+      toast.error(`Stock insuficiente para el producto ${prod.nombre}`);
+      return;
+    }
     const newRow: LineItem = {
       tipo: 'producto',
       productoId: prod.id,
@@ -185,8 +188,16 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   const updItem = (i: number, k: keyof LineItem, v: number | string) => {
     setItems(prev => prev.map((item, idx) => {
       if (idx !== i) return item;
-      const updated = { ...item, [k]: v };
-      return recalc(updated as LineItem);
+      const updated = { ...item, [k]: v } as LineItem;
+      // Stock validation for product items when quantity changes
+      if (updated.tipo === 'producto' && updated.productoId && k === 'cantidad') {
+        const prod = productos.find(p => p.id === updated.productoId);
+        if (prod && prod.stock !== undefined && Number(v) > prod.stock) {
+          toast.error(`Cantidad excede el stock disponible (${prod.stock})`);
+          return item; // keep previous quantity
+        }
+      }
+      return recalc(updated);
     }));
   };
 
@@ -195,21 +206,10 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
 
   const baseTotal = Math.round(items.reduce((s, i) => s + i.total, 0) * 100) / 100;
 
-  // Calculate IVA and grand total based on tipoIva mode
-  let ivaCalculado = 0;
-  let grandTotal = baseTotal;
-
-  if (form.tipoIva === '12') {
-    ivaCalculado = baseTotal * 0.12;
-    grandTotal = baseTotal + ivaCalculado;
-  } else if (form.tipoIva === '5') {
-    ivaCalculado = baseTotal * 0.05;
-    grandTotal = baseTotal + ivaCalculado;
-  } else {
-    // 'incluido': Prices already include IVA (informative breakdown)
-    ivaCalculado = baseTotal - (baseTotal / 1.12);
-    grandTotal = baseTotal;
-  }
+  // Fixed 5% IVA extracted from total (prices include IVA)
+  const ivaRate = 0.05;
+  const ivaCalculado = Math.round((baseTotal - baseTotal / (1 + ivaRate)) * 100) / 100;
+  const grandTotal = baseTotal; // baseTotal already includes IVA
 
   const reset = () => {
     setForm(emptyForm);
@@ -227,7 +227,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         clienteDireccion: form.clienteDireccion,
         clienteTelefono: form.clienteTelefono,
         clienteNit: form.clienteNit,
-        atencion: form.atencion,
+
         formaPago: form.formaPago,
         descripcion: form.descripcion,
         notas: form.notas,

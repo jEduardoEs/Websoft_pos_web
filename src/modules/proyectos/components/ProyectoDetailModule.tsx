@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { useProyectoDetail } from '../hooks/use-proyecto-detail'
 
 const ESTADO_COLOR: Record<string, string> = { planificado: '#1581E3', en_ejecucion: '#d97706', completado: '#16a34a', cancelado: '#94a3b8' }
-const ESTADO_LABEL: Record<string, string> = { planificado: 'Planificado', en_ejecucion: 'En ejecución', completado: 'Completado', cancelado: 'Cancelado' }
+const ESTADO_LABEL: Record<string, string> = { planificado: 'Planificación', en_ejecucion: 'En ejecución', completado: 'Completado', cancelado: 'Cancelado' }
 const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 export default function ProyectoDetailModule({ id }: { id: string }) {

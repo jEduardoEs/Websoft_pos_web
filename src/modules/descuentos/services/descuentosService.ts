@@ -20,6 +20,20 @@ export class DescuentosService {
     return Boolean(res.ok && res.data?.ok)
   }
 
+  async toggleActivo(id: number, activo: boolean): Promise<boolean> {
+    try {
+      const res = await fetch('/api/descuentos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo }),
+      })
+      const data = await res.json()
+      return Boolean(res.ok && data.ok)
+    } catch {
+      return false
+    }
+  }
+
   async validarCodigo(codigo: string, total: number): Promise<ValidarDescuentoResultDTO> {
     const res = await fetchClient.post<ValidarDescuentoResultDTO>('/api/descuentos/validar', {
       codigo,

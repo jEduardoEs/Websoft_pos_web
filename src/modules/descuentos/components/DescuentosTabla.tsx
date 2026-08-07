@@ -8,9 +8,10 @@ import { DescuentoResponseDTO } from '../dto/DescuentoDTO'
 export interface DescuentosTablaProps {
   descuentos: DescuentoResponseDTO[]
   onDesactivar: (d: DescuentoResponseDTO) => void
+  onActivar?: (d: DescuentoResponseDTO) => void
 }
 
-export function DescuentosTabla({ descuentos, onDesactivar }: DescuentosTablaProps) {
+export function DescuentosTabla({ descuentos, onDesactivar, onActivar }: DescuentosTablaProps) {
   const columns: TableColumn<DescuentoResponseDTO>[] = [
     {
       key: 'codigo',
@@ -61,9 +62,15 @@ export function DescuentosTabla({ descuentos, onDesactivar }: DescuentosTablaPro
       label: '',
       align: 'right',
       render: d => (
-        <Button variant="danger" size="sm" onClick={() => onDesactivar(d)}>
-          Desactivar
-        </Button>
+        d.activo ? (
+          <Button variant="danger" size="sm" onClick={() => onDesactivar(d)}>
+            Desactivar
+          </Button>
+        ) : (
+          <Button variant="primary" size="sm" onClick={() => onActivar?.(d)}>
+            Activar
+          </Button>
+        )
       ),
     },
   ]

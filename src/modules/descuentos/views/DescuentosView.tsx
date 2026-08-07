@@ -17,6 +17,7 @@ export function DescuentosView() {
     closeModal,
     save,
     del,
+    activar,
   } = useDescuentos()
 
   const handleFormChange = (field: string, value: any) => {
@@ -28,7 +29,7 @@ export function DescuentosView() {
       <DescuentoToolbar onNuevoCodigo={openNew} />
 
       <Card>
-        <DescuentosTabla descuentos={descuentos} onDesactivar={del} />
+        <DescuentosTabla descuentos={descuentos} onDesactivar={del} onActivar={activar} />
       </Card>
 
       <DescuentoFormModal

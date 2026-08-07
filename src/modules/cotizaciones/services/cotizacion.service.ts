@@ -304,9 +304,9 @@ export class CotizacionService {
         data: { estado: 'facturada' },
       });
 
-      // Synchronize project to 'en_proceso' upon billing
+      // Synchronize project to 'planificado' upon billing
       try {
-        await syncProyectoDesdeCotizacion(tx, cotizacion.id, 'en_proceso', user.name, numero);
+        await syncProyectoDesdeCotizacion(tx, cotizacion.id, 'planificado', user.name, numero);
       } catch (err) {
         console.error('[CotizacionService.facturar] Error syncing proyecto:', err);
       }

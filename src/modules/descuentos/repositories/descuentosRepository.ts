@@ -56,6 +56,14 @@ export class DescuentosRepository {
     })
     return true
   }
+
+  async toggleActivo(id: number, activo: boolean): Promise<boolean> {
+    await prisma.descuento.update({
+      where: { id: Number(id) },
+      data: { activo },
+    })
+    return true
+  }
 }
 
 export const descuentosRepository = new DescuentosRepository()

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { dashboardService } from '../services/dashboard.service';
+import { DashboardService } from '../services/dashboard.service';
 
 export function useDashboard() {
   const [data, setData] = useState<any>(null);
@@ -10,7 +10,8 @@ export function useDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const result = await dashboardService.getDashboardData();
+      // Pass a mock user context; adjust as needed for real authentication
+      const result = await DashboardService.getDashboardData({ role: 'admin', id: '0' } as any);
       setData(result);
     } catch (err: any) {
       setError(err.message || 'Error al obtener dashboard');

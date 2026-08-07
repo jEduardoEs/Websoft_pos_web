@@ -1,35 +1,49 @@
-import { IDomainEvent } from './DomainEvent'
-import { IEventHandler } from './EventHandler'
+import { DomainEvent } from './types/DomainEvent';
+import { IEventHandler } from './EventHandler';
+
+type HandlerMap = Map<string, Set<IEventHandler<any>>>;
 
 export class EventBus {
-  private static instance: EventBus
-  private handlers = new Map<string, IEventHandler[]>()
+  private handlers: HandlerMap = new Map();
+  private maxRetries = 3;
 
-  private constructor() {}
-
-  public static getInstance(): EventBus {
-    if (!EventBus.instance) {
-      EventBus.instance = new EventBus()
-    }
-    return EventBus.instance
-  }
-
-  public subscribe<T extends IDomainEvent>(eventName: string, handler: IEventHandler<T>): void {
-    const list = this.handlers.get(eventName) || []
-    list.push(handler as IEventHandler)
-    this.handlers.set(eventName, list)
-  }
-
-  public async publish<T extends IDomainEvent>(event: T): Promise<void> {
-    const list = this.handlers.get(event.eventName) || []
-    for (const handler of list) {
-      try {
-        await handler.handle(event)
-      } catch (err) {
-        console.error(`[EventBus] Error procesando evento ${event.eventName}:`, err)
+  async publish<E extends DomainEvent>(event: E): Promise<void> {
+    const handlers = this.handlers.get(event.type);
+    if (!handlers || handlers.size === 0) return;
+    const promises = Array.from(handlers).map(async (handler) => {
+      let attempts = 0;
+      while (attempts < this.maxRetries) {
+        try {
+          await Promise.resolve(handler(event));
+          return;
+        } catch (err) {
+          attempts++;
+          console.error(`[EventBus] Handler error for ${event.type} (attempt ${attempts}):`, err);
+          if (attempts >= this.maxRetries) {
+            console.error(`[EventBus] Giving up on handler for ${event.type}`);
+          }
+        }
       }
+    });
+    await Promise.allSettled(promises);
+    console.info('[EventBus] Published', event.type, event);
+  }
+
+  subscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandler<E>): void {
+    if (!this.handlers.has(eventName)) {
+      this.handlers.set(eventName, new Set());
+    }
+    this.handlers.get(eventName)!.add(handler as EventHandler<any>);
+    console.info(`[EventBus] Subscribed to ${eventName}`);
+  }
+
+  unsubscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandler<E>): void {
+    const set = this.handlers.get(eventName);
+    if (set) {
+      set.delete(handler as EventHandler<any>);
+      console.info(`[EventBus] Unsubscribed from ${eventName}`);
     }
   }
 }
 
-export const eventBus = EventBus.getInstance()
+export const eventBus = new EventBus();

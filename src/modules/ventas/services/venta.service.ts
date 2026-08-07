@@ -5,6 +5,16 @@ import { CreateVentaDto } from '../dto/create-venta.dto';
 import { Venta } from '../types/venta';
 import { syncProyectoDesdeCotizacion } from '@/modules/proyectos/utils/proyecto-sync.helper';
 
+// Helper functions for calculations (IVA 5% and profit 30%)
+const IVA_RATE = 0.05;
+const PROFIT_RATE = 0.30;
+function calculateIVA(subtotal: number): number {
+  return Number((subtotal * IVA_RATE).toFixed(2));
+}
+function calculateProfit(subtotal: number): number {
+  return Number((subtotal * PROFIT_RATE).toFixed(2));
+}
+
 export class VentaService {
   static async findAll(params: {
     fechaIni?: string | null;
@@ -81,16 +91,43 @@ export class VentaService {
       const num = parseInt(cfg?.valor || '1');
       numeroVenta = `FAC-${String(num).padStart(6, '0')}`;
 
+      // Compute each item's price, profit, and IVA based on purchase cost and selected margin
+      const processedItems = dto.items.map(item => {
+        const cost = item.costo ?? 0;
+        const margin = item.margin ?? PROFIT_RATE; // default to 30% if not provided
+        const profit = Number((cost * margin).toFixed(2));
+        const basePrice = Number((cost + profit).toFixed(2)); // price before IVA
+        const iva = calculateIVA(basePrice);
+        return {
+          productoId: item.productoId,
+          codigo: item.codigo || '',
+          nombre: item.nombre,
+          cantidad: item.cantidad,
+          precioUnitario: basePrice,
+          descuento: item.descuento || 0,
+          subtotal: basePrice,
+          costo: cost,
+          margin: margin,
+          iva: iva,
+          ganancia: profit,
+        };
+      });
+
+      // Recalculate totals from processed items to ensure consistency
+      const saleSubtotal = processedItems.reduce((sum, i) => sum + i.subtotal, 0);
+      const saleIVA = processedItems.reduce((sum, i) => sum + (i.iva ?? 0), 0);
+      const saleTotal = Number((saleSubtotal + saleIVA).toFixed(2));
+
       const v = await tx.venta.create({
         data: {
           numero: numeroVenta,
           fecha: new Date(),
           clienteNombre: dto.clienteNombre || 'Consumidor Final',
           clienteNit: dto.clienteNit || 'CF',
-          subtotal: dto.subtotal,
+          subtotal: saleSubtotal,
           descuento: dto.descuento,
-          impuesto: dto.impuesto,
-          total: dto.total,
+          impuesto: saleIVA,
+          total: saleTotal,
           metodoPago: dto.metodoPago,
           montoRecibido: dto.montoRecibido,
           cambio: dto.cambio,
@@ -98,14 +135,14 @@ export class VentaService {
           usuarioId: parseInt(userId),
           usuarioNombre: userName,
           items: {
-            create: dto.items.map(item => ({
-              productoId: item.productoId,
-              codigo: item.codigo || '',
-              nombre: item.nombre,
-              cantidad: item.cantidad,
-              precioUnitario: item.precioUnitario,
-              descuento: item.descuento || 0,
-              subtotal: item.subtotal,
+            create: processedItems.map(i => ({
+              productoId: i.productoId ? Number(i.productoId) : null,
+              codigo: i.codigo || '',
+              nombre: i.nombre,
+              cantidad: i.cantidad,
+              precioUnitario: i.precioUnitario,
+              descuento: i.descuento || 0,
+              subtotal: i.subtotal,
             })),
           },
         },
@@ -139,7 +176,7 @@ export class VentaService {
       if (dto.cotizacionId) {
         try {
           await tx.cotizacion.update({ where: { id: dto.cotizacionId }, data: { estado: 'facturada' } });
-          await syncProyectoDesdeCotizacion(tx, dto.cotizacionId, 'en_proceso', userName, numeroVenta);
+          await syncProyectoDesdeCotizacion(tx, dto.cotizacionId, 'planificado', userName, numeroVenta);
         } catch (err) {
           console.error('[VentaService] Error sync cotizacion/proyecto:', err);
         }
@@ -176,7 +213,16 @@ export class VentaService {
         },
       });
 
-      return v;
+      // Añadir campos calculados al objeto de respuesta (sin persistir)
+      const itemsConCalculos = v.items.map((it, idx) => {
+        const original = dto.items[idx];
+        const iva = calculateIVA(it.subtotal);
+        const ganancia = calculateProfit(it.subtotal);
+        return { ...it, iva, ganancia };
+      });
+      // Devolver venta con items enriquecidos
+      return { ...v, items: itemsConCalculos };
+
     }, {
       maxWait: 10000,
       timeout: 30000,
@@ -276,6 +322,75 @@ export class VentaService {
       data: { estado: 'anulada' },
     });
 
+    return true;
+  }
+  static async createFromQuotation(quotationId: number) {
+    const cotizacion = await prisma.cotizacion.findUnique({
+      where: { id: quotationId },
+      include: { items: true },
+    });
+    if (!cotizacion) throw new Error('Cotización no encontrada');
+    
+    // Call existing create method. In a real system, you might map the quotation to a CreateVentaDto first.
+    // Assuming for now that the caller (listener) just needs to trigger the creation.
+    // Note: since create expects userId and userName, we might need a system user here.
+    const dto: CreateVentaDto = {
+      cotizacionId: cotizacion.id,
+      clienteNombre: cotizacion.clienteNombre,
+      clienteNit: cotizacion.clienteNit,
+      clienteCorreo: cotizacion.clienteCorreo,
+      subtotal: cotizacion.subtotal,
+      descuento: cotizacion.descuento,
+      impuesto: cotizacion.impuesto,
+      total: cotizacion.total,
+      metodoPago: 'efectivo', // default
+      montoRecibido: cotizacion.total,
+      cambio: 0,
+      notas: `Creado desde cotización ${cotizacion.numero}`,
+      items: cotizacion.items.map(item => ({
+        productoId: item.productoId,
+        codigo: item.codigo,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        descuento: item.descuento,
+        subtotal: item.subtotal,
+      })),
+    };
+    
+    // Using a system user for automated creation
+    const ventaResult = await this.create(dto, '1', 'System');
+    
+    // Import dynamically or ensure eventBus is available to avoid circular dependencies
+    const { eventBus } = require('@/core/events/EventBus');
+    await eventBus.publish({
+      type: 'SaleCreated',
+      payload: {
+        saleId: ventaResult.venta.id,
+        quotationId: cotizacion.id,
+      },
+      timestamp: new Date(),
+    });
+    
+    return ventaResult;
+  }
+
+  static async markInvoiced(saleId: number) {
+    const venta = await prisma.venta.findUnique({ where: { id: saleId } });
+    if (!venta) throw new Error('Venta no encontrada');
+    
+    await prisma.venta.update({
+      where: { id: saleId },
+      data: { estado: 'facturada' },
+    });
+    
+    const { eventBus } = require('@/core/events/EventBus');
+    await eventBus.publish({
+      type: 'SaleCompleted',
+      payload: { saleId },
+      timestamp: new Date(),
+    });
+    
     return true;
   }
 }

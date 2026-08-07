@@ -67,9 +67,28 @@ export function useDevoluciones() {
     }
   };
 
+  const reactivar = async (id: number) => {
+    try {
+      const res = await fetch('/api/devoluciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'activar' }),
+      });
+      if (res.ok) {
+        toast.success('Devolución reactivada');
+        loadDevoluciones();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Error al reactivar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    }
+  };
+
   return {
     state: { devoluciones, loading, showFormModal, selected, detailModal },
     setters: { setShowFormModal, setSelected, setDetailModal },
-    actions: { loadDevoluciones, aprobar, anular },
+    actions: { loadDevoluciones, aprobar, anular, reactivar },
   };
 }
