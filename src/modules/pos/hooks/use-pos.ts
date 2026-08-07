@@ -151,6 +151,8 @@ export function usePos() {
     return { ...item, precioUnitario: p, subtotal: item.cantidad * p - item.descuento };
   }));
 
+  const clearCart = () => setCart([]);
+
   const resetPos = () => {
     setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF'); setClienteCorreo('');
     setMetodoPago('efectivo'); setMontoRecibido(''); setDescPct(0); setCodigoDesc('');
@@ -175,7 +177,7 @@ export function usePos() {
     },
     actions: {
       loadProductos, loadCotizaciones, loadConfig,
-      addInventario, addLibre, removeItem, changeQty, changePrice, resetPos
+      addInventario, addLibre, removeItem, changeQty, changePrice, resetPos, clearCart
     }
   };
 }

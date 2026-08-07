@@ -25,7 +25,7 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
     costo: '',
     ivaAmount: '',
     iva: 0.05,
-    margin: 0.30,
+    margin: 0.20,
 
     stock: '',
     stockMinimo: '5',
@@ -52,7 +52,7 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
         imagenUrl: producto.imagenUrl || '',
         ivaAmount: (producto as any).ivaAmount ? String((producto as any).ivaAmount) : '',
         iva: (producto as any).iva || 0.05,
-        margin: (producto as any).margin || 0.30
+        margin: (producto as any).margin || 0.20
       });
     }
   }, [producto]);
@@ -175,8 +175,11 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
               <div>
                 <label style={lbl}>Margen de Ganancia</label>
                 <select className="input" value={form.margin} onChange={e => setForm({ ...form, margin: parseFloat(e.target.value) })}>
+                  <option value={0.20}>20%</option>
                   <option value={0.25}>25%</option>
                   <option value={0.30}>30%</option>
+                  <option value={0.35}>35%</option>
+                  <option value={0.40}>40%</option>
                 </select>
               </div>
             </div>

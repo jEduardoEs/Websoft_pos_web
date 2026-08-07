@@ -30,7 +30,7 @@ export function PosModule() {
 
   const {
     loadProductos, loadCotizaciones, loadConfig,
-    addInventario, addLibre, removeItem, changeQty, changePrice, resetPos
+    addInventario, addLibre, removeItem, changeQty, changePrice, resetPos, clearCart
   } = actions;
 
   // Carga inicial
@@ -38,15 +38,35 @@ export function PosModule() {
   useEffect(() => { loadConfig(); }, [loadConfig]);
   useEffect(() => { if (tab === 'cotizacion') loadCotizaciones(); }, [tab, loadCotizaciones]);
 
-  const cargarCotizacion = (cot: any) => {
-    if (!cot || !cot.items || cot.items.length === 0) { toast.error('Cotización sin items'); return; }
-    const nuevos: any[] = cot.items.map((it: any) => ({
-      tipo: 'libre' as const, productoId: null, codigo: it.codigo || '', nombre: it.descripcion,
+  const cargarCotizacion = async (cot: any) => {
+    if (!cot) return;
+    let items = cot.items;
+    if ((!items || items.length === 0) && cot.id) {
+      try {
+        const fullCot = await fetch(`/api/cotizaciones/${cot.id}`).then(r => r.json());
+        if (fullCot && fullCot.items) {
+          items = fullCot.items;
+        }
+      } catch (err) {
+        console.error('Error al obtener items de cotizacion:', err);
+      }
+    }
+
+    if (!items || items.length === 0) {
+      toast.error('Cotización sin items');
+      return;
+    }
+
+    const nuevos: any[] = items.map((it: any) => ({
+      tipo: 'libre' as const,
+      productoId: it.productoId || null,
+      codigo: it.codigo || '',
+      nombre: it.descripcion || it.nombre || 'Item sin nombre',
       cantidad: Math.max(1, Math.round(Number(it.cantidad) || 1)),
       precioUnitario: Number(it.precioUnitario) || 0,
       stock: 99999,
       descuento: Number(it.descuento) || 0,
-      subtotal: Number(it.totalItem) || 0,
+      subtotal: Number(it.totalItem || it.subtotal || (Number(it.precioUnitario || 0) * Number(it.cantidad || 1))) || 0,
     }));
     setCart(nuevos);
     setClienteNombre(cot.clienteNombre || 'Consumidor Final');
@@ -255,7 +275,7 @@ export function PosModule() {
       />
 
       <PosCart 
-        cart={cart} changeQty={changeQty} changePrice={changePrice} removeItem={removeItem}
+        cart={cart} changeQty={changeQty} changePrice={changePrice} removeItem={removeItem} clearCart={clearCart}
         clienteNit={clienteNit} setClienteNit={setClienteNit}
         clienteNombre={clienteNombre} setClienteNombre={setClienteNombre}
         nitStatus={nitStatus}

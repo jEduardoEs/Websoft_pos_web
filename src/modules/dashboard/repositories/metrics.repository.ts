@@ -12,9 +12,9 @@ export class MetricsRepository {
   static async getBaseSalesAggregates(startOfDay: Date, startOfWeek: Date, startOfMonth: Date) {
     return logPerformance('getBaseSalesAggregates', async () => {
       const [ventasHoy, ventasMes, ventasSemana, productosbajostock, totalClientes] = await Promise.all([
-        prisma.venta.aggregate({ where: { fecha: { gte: startOfDay }, estado: 'completada' }, _sum: { total: true }, _count: true }),
-        prisma.venta.aggregate({ where: { fecha: { gte: startOfMonth }, estado: 'completada' }, _sum: { total: true }, _count: true }),
-        prisma.venta.aggregate({ where: { fecha: { gte: startOfWeek }, estado: 'completada' }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { fecha: { gte: startOfDay }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { fecha: { gte: startOfMonth }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { fecha: { gte: startOfWeek }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
         prisma.producto.count({ where: { activo: true, stock: { lte: 5 } } }),
         prisma.cliente.count({ where: { activo: true } }),
       ]);
@@ -38,7 +38,7 @@ export class MetricsRepository {
           const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
           const fin = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
           const v = await prisma.venta.aggregate({
-            where: { fecha: { gte: inicio, lt: fin }, estado: 'completada' },
+            where: { fecha: { gte: inicio, lt: fin }, estado: { not: 'anulada' } },
             _sum: { total: true },
             _count: true,
           });
@@ -55,8 +55,8 @@ export class MetricsRepository {
         select: { id: true, nombre: true, rol: true, metaMensual: true },
       });
       const [mesGroup, diaGroup] = await Promise.all([
-        prisma.venta.groupBy({ by: ['usuarioId'], where: { fecha: { gte: startOfMonth }, estado: 'completada' }, _sum: { total: true }, _count: true }),
-        prisma.venta.groupBy({ by: ['usuarioId'], where: { fecha: { gte: startOfDay }, estado: 'completada' }, _sum: { total: true }, _count: true }),
+        prisma.venta.groupBy({ by: ['usuarioId'], where: { fecha: { gte: startOfMonth }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
+        prisma.venta.groupBy({ by: ['usuarioId'], where: { fecha: { gte: startOfDay }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
       ]);
       const mesMap = new Map<number, any>();
       const diaMap = new Map<number, any>();
@@ -76,8 +76,8 @@ export class MetricsRepository {
     return logPerformance('getMiMeta', async () => {
       const [usuario, ventasMes, ventasDia] = await Promise.all([
         prisma.usuario.findUnique({ where: { id: userId }, select: { metaMensual: true } }),
-        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfMonth }, estado: 'completada' }, _sum: { total: true }, _count: true }),
-        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfDay }, estado: 'completada' }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfMonth }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfDay }, estado: { not: 'anulada' } }, _sum: { total: true }, _count: true }),
       ]);
       const meta = usuario?.metaMensual || 0;
       const real = ventasMes._sum.total || 0;

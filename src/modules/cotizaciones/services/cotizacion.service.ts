@@ -11,25 +11,9 @@ export class CotizacionService {
     return prisma.cotizacion.findMany({
       where,
       orderBy: { id: 'desc' },
-      take: 50,
-      select: {
-        id: true,
-        numero: true,
-        clienteNombre: true,
-        clienteNit: true,
-        clienteTelefono: true,
-        clienteDireccion: true,
-        atencion: true,
-        formaPago: true,
-        descripcion: true,
-        notas: true,
-        subtotal: true,
-        descuento: true,
-        total: true,
-        estado: true,
-        validezDias: true,
-        tiempoInstalacion: true,
-        createdAt: true,
+      take: 100,
+      include: {
+        items: true,
       },
     });
   }

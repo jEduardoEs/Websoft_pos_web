@@ -141,6 +141,29 @@ export function useGarantias() {
     }
   }
 
+  const [showDetalle, setShowDetalle] = useState(false)
+
+  const verDetalle = (g: Garantia) => {
+    setSelectedGarantia(g)
+    loadReclamos(g.id)
+    setShowDetalle(true)
+  }
+
+  const anularGarantia = async (g: Garantia) => {
+    if (!confirm(`¿Seguro que deseas anular la garantía "${g.numero}"?`)) return
+    try {
+      const data = await GarantiasService.anularGarantia(g.id)
+      if (data.ok) {
+        toast.success(`Garantía ${g.numero} anulada`)
+        load()
+      } else {
+        toast.error(data.error || 'Error al anular la garantía')
+      }
+    } catch {
+      toast.error('Error al anular la garantía')
+    }
+  }
+
   const changeTab = (t: 'todas' | 'vigente' | 'reclamada' | 'vencida' | 'anulada') => {
     setBuscar('')
     setFiltroEstado('')
@@ -149,13 +172,13 @@ export function useGarantias() {
 
   return {
     state: {
-      garantias, buscar, filtroEstado, showModal, showReclamo, selectedGarantia,
+      garantias, buscar, filtroEstado, showModal, showReclamo, showDetalle, selectedGarantia,
       reclamos, todosReclamos, form, reclamoForm, loading, ventas, tab
     },
     actions: {
-      setBuscar, setFiltroEstado, setShowModal, setShowReclamo, setTab: changeTab,
-      setForm, setF, setRF, selVenta,
-      saveGarantia, abrirReclamo, saveReclamo, resolverReclamo,
+      setBuscar, setFiltroEstado, setShowModal, setShowReclamo, setShowDetalle, setTab: changeTab,
+      setForm, setF, setRF, selVenta, verDetalle,
+      saveGarantia, abrirReclamo, saveReclamo, resolverReclamo, anularGarantia,
       emptyForm
     }
   }

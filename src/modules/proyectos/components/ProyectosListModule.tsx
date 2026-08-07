@@ -115,7 +115,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                                Editar
+                                Ver Detalle
                               </button>
                               <button onClick={() => handleEliminar(p.id)}
                                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#b13a2e', background: 'none', border: 'none', borderTop: '1px solid #f1f5f9', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}

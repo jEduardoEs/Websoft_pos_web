@@ -54,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased min-h-screen">
         {children}
-        <Toaster richColors position="bottom-right" />
+        <Toaster richColors position="top-left" />
       </body>
     </html>
   )

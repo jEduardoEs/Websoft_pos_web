@@ -13,6 +13,20 @@ export function useProyectoDetail(id: string) {
   const [loading, setLoading] = useState(false)
   const [mantImagenes, setMantImagenes] = useState<string[]>([])
 
+  const [showFacturaModal, setShowFacturaModal] = useState(false)
+  const [facturaForm, setFacturaForm] = useState<any>({
+    clienteNombre: '',
+    clienteNit: 'CF',
+    clienteCorreo: '',
+    clienteTelefono: '',
+    clienteDireccion: '',
+    metodoPago: 'efectivo',
+    montoTotal: '',
+    diasGarantia: '365',
+    productoSerie: '',
+    notas: '',
+  })
+
   const load = useCallback(async () => {
     const data = await ProyectosService.getProyecto(id)
     if (!data) { 
@@ -30,6 +44,50 @@ export function useProyectoDetail(id: string) {
   }, [id, router])
 
   useEffect(() => { load() }, [load])
+
+  const abrirFacturacion = () => {
+    if (!proyecto) return
+    const cotiz = (proyecto as any).cotizacion
+    const monto = cotiz?.total || (proyecto as any).montoTotal || ''
+    setFacturaForm({
+      clienteNombre: cotiz?.clienteNombre || proyecto.clienteNombre || '',
+      clienteNit: cotiz?.clienteNit || proyecto.clienteNit || 'CF',
+      clienteCorreo: cotiz?.clienteCorreo || '',
+      clienteTelefono: cotiz?.clienteTelefono || proyecto.clienteTelefono || '',
+      clienteDireccion: cotiz?.clienteDireccion || proyecto.clienteDireccion || '',
+      metodoPago: cotiz?.metodoPago || 'efectivo',
+      montoTotal: monto ? String(monto) : '',
+      diasGarantia: '365',
+      productoSerie: '',
+      notas: `Factura de proyecto ${proyecto.numero}`,
+    })
+    setShowFacturaModal(true)
+  }
+
+  const facturarYCompletar = async () => {
+    if (!facturaForm.clienteNombre || !facturaForm.montoTotal || Number(facturaForm.montoTotal) <= 0) {
+      toast.error('Nombre del cliente y monto total son requeridos')
+      return
+    }
+    setLoading(true)
+    try {
+      const data = await ProyectosService.facturarProyecto(id, facturaForm)
+      setLoading(false)
+      if (data.ok) {
+        toast.success(`Factura ${data.venta?.numero || ''} emitida y garantía activada`)
+        if (data.emailSent) {
+          toast.success(`Factura enviada por correo a ${facturaForm.clienteCorreo}`)
+        }
+        setShowFacturaModal(false)
+        load()
+      } else {
+        toast.error(data.error || 'Error al facturar el proyecto')
+      }
+    } catch {
+      setLoading(false)
+      toast.error('Error al facturar el proyecto')
+    }
+  }
 
   const guardarEdicion = async () => {
     setLoading(true)
@@ -63,11 +121,34 @@ export function useProyectoDetail(id: string) {
     }
   }
 
-  const cambiarEstado = async (estado: string) => {
-    const data = await ProyectosService.updateProyecto(id, { estado })
+  const [showPinFaseModal, setShowPinFaseModal] = useState(false)
+  const [faseDestino, setFaseDestino] = useState('')
+  const [pinInput, setPinInput] = useState('')
+
+  const FASE_INDEX: Record<string, number> = { planificado: 0, en_ejecucion: 1, completado: 2 }
+
+  const cambiarEstado = async (nuevoEstado: string, pin?: string) => {
+    if (!proyecto) return
+    const actualIdx = FASE_INDEX[proyecto.estado] ?? 0
+    const nuevoIdx = FASE_INDEX[nuevoEstado] ?? 0
+
+    if (nuevoIdx < actualIdx && !pin) {
+      setFaseDestino(nuevoEstado)
+      setShowPinFaseModal(true)
+      return
+    }
+
+    setLoading(true)
+    const data = await ProyectosService.updateProyecto(id, { estado: nuevoEstado }, pin || pinInput)
+    setLoading(false)
     if (data.ok) { 
-      toast.success(`Estado actualizado`)
+      toast.success(`Fase actualizada`)
+      setShowPinFaseModal(false)
+      setPinInput('')
+      setFaseDestino('')
       load() 
+    } else {
+      toast.error(data.error || 'Error al actualizar fase')
     }
   }
 
@@ -79,6 +160,11 @@ export function useProyectoDetail(id: string) {
       editando,
       editForm,
       showMarcar,
+      showFacturaModal,
+      showPinFaseModal,
+      faseDestino,
+      pinInput,
+      facturaForm,
       mantForm,
       loading,
       mantImagenes
@@ -87,6 +173,12 @@ export function useProyectoDetail(id: string) {
       setEditando,
       setEditForm,
       setShowMarcar,
+      setShowFacturaModal,
+      setShowPinFaseModal,
+      setPinInput,
+      setFacturaForm,
+      abrirFacturacion,
+      facturarYCompletar,
       setMantForm,
       setMantImagenes,
       guardarEdicion,

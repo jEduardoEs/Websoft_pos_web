@@ -29,8 +29,8 @@ export function printGarantia(g: any) {
 </div>
 <div>
   <div class="row"><span class="lbl">Producto:</span><span class="val"><b>${g.productoNombre}</b></span></div>
-  <div class="row"><span class="lbl">No. Serie:</span><span class="val">${g.productoSerie || ''}</span></div>
-  <div class="row"><span class="lbl">Factura:</span><span class="val">${g.ventaNumero || ''}</span></div>
+  <div class="row"><span class="lbl">No. Serie:</span><span class="val"><b style="color:#2563eb;font-family:monospace;font-size:11px">${g.productoSerie || g.serie || '—'}</b></span></div>
+  <div class="row"><span class="lbl">Factura / Venta:</span><span class="val"><b style="color:#0f172a">${g.ventaNumero || g.venta?.numero || '—'}</b></span></div>
   <div class="row"><span class="lbl">Fecha venta:</span><span class="val">${new Date(g.fechaVenta).toLocaleDateString('es-GT')}</span></div>
   <div class="row"><span class="lbl">Vence:</span><span class="val"><b style="color:#16a34a">${new Date(g.fechaVencimiento).toLocaleDateString('es-GT')}</b></span></div>
   <div class="row"><span class="lbl">Duración:</span><span class="val">${g.diasGarantia} días</span></div>

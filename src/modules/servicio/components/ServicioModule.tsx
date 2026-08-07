@@ -17,8 +17,8 @@ export default function ServicioModule() {
 
   const estadoInfo = (e: string) => ESTADOS.find(x => x.value === e) || ESTADOS[0]
 
-  const thS = { background: '#f4f3ef', fontSize: 11, fontWeight: 700 as const, color: '#8a887e', textTransform: 'uppercase' as const, letterSpacing: '.5px' as const, padding: '10px 14px', textAlign: 'left' as const, borderBottom: '1.5px solid #d8d6cd', whiteSpace: 'nowrap' as const }
-  const tdS = { padding: '11px 14px', fontSize: 13, borderBottom: '1px solid #e3e1d8', color: '#18181b' }
+  const thS = { background: '#f8fafc', fontSize: 11, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '.5px' as const, padding: '12px 16px', textAlign: 'left' as const, borderBottom: '1.5px solid #e2e8f0', whiteSpace: 'nowrap' as const }
+  const tdS = { padding: '14px 16px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#18181b', verticalAlign: 'middle' as const }
   const lbl = { display: 'block' as const, fontSize: 11, fontWeight: 700 as const, color: '#8a887e', textTransform: 'uppercase' as const, marginBottom: 4 }
 
   const stats = ESTADOS.map(e => ({ ...e, count: ordenes.filter(o => o.estado === e.value).length }))
@@ -27,8 +27,8 @@ export default function ServicioModule() {
     <div className="page-wrap">
       <div className="page-header">
         <div>
-          <h1>Servicio Tecnico</h1>
-          <p>Ordenes de trabajo y reparaciones</p>
+          <h1>Servicio Técnico</h1>
+          <p>Órdenes de trabajo y reparaciones en taller</p>
         </div>
         <button className="btn-primary" onClick={() => { setForm(emptyForm); setRepuestos([]); setShowModal(true) }}>
           + Nueva Orden
@@ -36,12 +36,12 @@ export default function ServicioModule() {
       </div>
 
       {/* Estado cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 12 }}>
         {stats.map(s => (
           <div key={s.value} onClick={() => setFiltroEstado(filtroEstado === s.value ? '' : s.value)}
-            className="card" style={{ padding: '12px 14px', cursor: 'pointer', borderTop: `3px solid ${s.color}`, opacity: filtroEstado && filtroEstado !== s.value ? .5 : 1, transition: 'all .15s' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.count}</div>
-            <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>{s.label}</div>
+            className="card" style={{ padding: '14px 16px', cursor: 'pointer', borderTop: `3px solid ${s.color}`, opacity: filtroEstado && filtroEstado !== s.value ? .5 : 1, transition: 'all .15s' }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.count}</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3, fontWeight: 600 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -49,42 +49,72 @@ export default function ServicioModule() {
       {/* Filters */}
       <div className="card" style={{ padding: 14 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <input className="input" placeholder="Buscar por número, cliente, equipo..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ flex: 1 }} />
-          {filtroEstado && <button className="btn-ghost btn-sm" onClick={() => setFiltroEstado('')}> Limpiar filtro</button>}
+          <input className="input" placeholder="Buscar por número, cliente, equipo, técnico..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ flex: 1 }} />
+          {filtroEstado && <button className="btn-ghost btn-sm" onClick={() => setFiltroEstado('')}>Limpiar filtro</button>}
         </div>
       </div>
 
       {/* Table */}
-      <div className="card">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr>{['#', 'Fecha', 'Cliente', 'Equipo', 'Falla', 'Técnico', 'Promesa', 'Total', 'Estado', ''].map(h => <th key={h} style={thS}>{h}</th>)}</tr>
+              <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                <th style={{ ...thS, width: 110 }}>No. Orden</th>
+                <th style={{ ...thS, width: 100 }}>Fecha</th>
+                <th style={{ ...thS, minWidth: 160 }}>Cliente</th>
+                <th style={{ ...thS, minWidth: 140 }}>Equipo</th>
+                <th style={{ ...thS, minWidth: 200 }}>Falla Reportada</th>
+                <th style={{ ...thS, minWidth: 130 }}>Técnico</th>
+                <th style={{ ...thS, width: 110 }}>Promesa</th>
+                <th style={{ ...thS, width: 110 }}>Total</th>
+                <th style={{ ...thS, width: 130 }}>Estado</th>
+                <th style={{ ...thS, width: 140, textAlign: 'right' }}>Acciones</th>
+              </tr>
             </thead>
             <tbody>
               {ordenes.length === 0 ? (
-                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 50, color: '#8a887e' }}>Sin órdenes</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 50, color: '#8a887e', fontSize: 13 }}>Sin órdenes de servicio registradas.</td></tr>
               ) : ordenes.map(o => {
                 const est = estadoInfo(o.estado)
                 const vencida = o.fechaPromesa && new Date(o.fechaPromesa) < new Date() && !['entregado', 'cancelado'].includes(o.estado)
                 return (
-                  <tr key={o.id} onClick={() => { setSelected(o); setShowDetalle(true) }} style={{ cursor: 'pointer' }}>
-                    <td style={{ ...tdS, fontWeight: 700, color: '#1581E3' }}>{o.numero}</td>
-                    <td style={{ ...tdS, color: '#8a887e', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(o.fecha)}</td>
-                    <td style={{ ...tdS, fontWeight: 600 }}>{o.clienteNombre}</td>
-                    <td style={{ ...tdS, color: '#52524d' }}>{o.tipoEquipo} {o.marca ? `· ${o.marca}` : ''}</td>
-                    <td style={{ ...tdS, color: '#52524d', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.descripcionFalla}</td>
-                    <td style={{ ...tdS, color: '#8a887e', fontSize: 12 }}>{o.tecnicoNombre || '—'}</td>
-                    <td style={{ ...tdS, color: vencida ? '#dc2626' : '#64748b', fontSize: 12, fontWeight: vencida ? 700 : 400 }}>
+                  <tr key={o.id} onClick={() => { setSelected(o); setShowDetalle(true) }}
+                    style={{ cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background-color .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <td style={{ ...tdS, fontWeight: 700, color: '#1581E3', whiteSpace: 'nowrap' }}>{o.numero}</td>
+                    <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(o.fecha)}</td>
+                    <td style={{ ...tdS, fontWeight: 600, color: '#0f172a' }}>{o.clienteNombre}</td>
+                    <td style={{ ...tdS, color: '#334155', fontWeight: 500 }}>{o.tipoEquipo} {o.marca ? `· ${o.marca}` : ''}</td>
+                    <td style={{ ...tdS, color: '#475569', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.descripcionFalla}</td>
+                    <td style={{ ...tdS, color: '#64748b', fontSize: 12 }}>{o.tecnicoNombre || '—'}</td>
+                    <td style={{ ...tdS, color: vencida ? '#dc2626' : '#64748b', fontSize: 12, fontWeight: vencida ? 700 : 400, whiteSpace: 'nowrap' }}>
                       {o.fechaPromesa ? fmtDate(o.fechaPromesa) : '—'}
-                      {vencida && ' '}
                     </td>
-                    <td style={{ ...tdS, fontWeight: 700 }}>{o.total > 0 ? fmt(o.total) : '—'}</td>
-                    <td style={{ ...tdS }}>
-                      <span style={{ background: est.bg, color: est.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{est.label}</span>
+                    <td style={{ ...tdS, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{o.total > 0 ? fmt(o.total) : '—'}</td>
+                    <td style={{ ...tdS, whiteSpace: 'nowrap' }}>
+                      <span style={{ background: est.bg, color: est.color, fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, display: 'inline-block' }}>
+                        {est.label}
+                      </span>
                     </td>
-                    <td style={{ ...tdS }} onClick={e => e.stopPropagation()}>
-                      <button className="btn-ghost btn-sm" onClick={() => printOrden(o)}></button>
+                    <td style={{ ...tdS, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={() => { setSelected(o); setShowDetalle(true); }}
+                          style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px' }}
+                        >
+                          Ver
+                        </button>
+                        <button
+                          className="btn-ghost btn-sm"
+                          onClick={() => printOrden(o)}
+                          style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', color: '#1581E3', borderColor: '#bfdbfe', background: '#eff6ff' }}
+                        >
+                          Imprimir
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

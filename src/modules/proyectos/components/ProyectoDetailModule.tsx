@@ -11,8 +11,8 @@ const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { 
 export default function ProyectoDetailModule({ id }: { id: string }) {
   const router = useRouter()
   const { state, actions, utils } = useProyectoDetail(id)
-  const { proyecto, editando, editForm, showMarcar, mantForm, loading, mantImagenes } = state
-  const { setEditando, setEditForm, setShowMarcar, setMantForm, setMantImagenes, guardarEdicion, marcarRealizado, cambiarEstado } = actions
+  const { proyecto, editando, editForm, showMarcar, showFacturaModal, showPinFaseModal, faseDestino, pinInput, facturaForm, mantForm, loading, mantImagenes } = state
+  const { setEditando, setEditForm, setShowMarcar, setShowFacturaModal, setShowPinFaseModal, setPinInput, setFacturaForm, abrirFacturacion, facturarYCompletar, setMantForm, setMantImagenes, guardarEdicion, marcarRealizado, cambiarEstado } = actions
   const { diasPara } = utils
 
   const [uploading, setUploading] = useState(false)
@@ -35,21 +35,30 @@ export default function ProyectoDetailModule({ id }: { id: string }) {
           </div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{proyecto.numero} · Creado el {fmt(proyecto.createdAt)}</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {!editando && (
-            <>
-              <select value={proyecto.estado} onChange={e => cambiarEstado(e.target.value)} className="input" style={{ fontSize: 12, padding: '6px 10px' }}>
-                {Object.entries(ESTADO_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-              <button className="btn-ghost" onClick={() => setEditando(true)}>Editar</button>
-            </>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {proyecto.estado === 'completado' && (
+            <button
+              onClick={abrirFacturacion}
+              style={{
+                background: '#1581E3',
+                color: '#ffffff',
+                border: '1.5px solid #0f6cbd',
+                borderRadius: 4,
+                padding: '6px 10px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.5,
+              }}
+            >
+              Emitir Factura
+            </button>
           )}
-          {editando && (
-            <>
-              <button className="btn-ghost" onClick={() => setEditando(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={guardarEdicion} disabled={loading}>{loading ? 'Guardando...' : 'Guardar cambios'}</button>
-            </>
-          )}
+          <select value={proyecto.estado} onChange={e => cambiarEstado(e.target.value)} className="input" style={{ fontSize: 12, padding: '6px 10px', lineHeight: 1.5 }}>
+            {Object.entries(ESTADO_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
         </div>
       </div>
 
@@ -336,6 +345,115 @@ export default function ProyectoDetailModule({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* Modal Facturar Proyecto */}
+      {showFacturaModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
+          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 8, padding: 28, width: '100%', maxWidth: 650, margin: 'auto', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 12, borderBottom: '1.5px solid #d8d6cd' }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#18181b', margin: 0 }}>Facturar Proyecto {proyecto.numero}</h3>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Emisión de factura, envío por email y activación de garantía en el sistema POS</p>
+              </div>
+              <button onClick={() => setShowFacturaModal(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={lbl}>Cliente / Empresa *</label>
+                  <input className="input" value={facturaForm.clienteNombre} onChange={e => setFacturaForm((p: any) => ({ ...p, clienteNombre: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={lbl}>NIT / CF *</label>
+                  <input className="input" value={facturaForm.clienteNit} onChange={e => setFacturaForm((p: any) => ({ ...p, clienteNit: e.target.value }))} placeholder="CF o NIT de la empresa" />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={lbl}>Correo Electrónico (para envío de factura)</label>
+                  <input className="input" type="email" value={facturaForm.clienteCorreo} onChange={e => setFacturaForm((p: any) => ({ ...p, clienteCorreo: e.target.value }))} placeholder="ejemplo@cliente.com" />
+                </div>
+                <div>
+                  <label style={lbl}>Teléfono</label>
+                  <input className="input" value={facturaForm.clienteTelefono} onChange={e => setFacturaForm((p: any) => ({ ...p, clienteTelefono: e.target.value }))} />
+                </div>
+              </div>
+
+              <div>
+                <label style={lbl}>Dirección de Facturación</label>
+                <input className="input" value={facturaForm.clienteDireccion} onChange={e => setFacturaForm((p: any) => ({ ...p, clienteDireccion: e.target.value }))} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={lbl}>Monto Total (Q) *</label>
+                  <input className="input" type="number" step="0.01" value={facturaForm.montoTotal} onChange={e => setFacturaForm((p: any) => ({ ...p, montoTotal: e.target.value }))} placeholder="0.00" />
+                </div>
+                <div>
+                  <label style={lbl}>Método de Pago</label>
+                  <select className="input" value={facturaForm.metodoPago} onChange={e => setFacturaForm((p: any) => ({ ...p, metodoPago: e.target.value }))}>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                    <option value="transferencia">Transferencia Bancaria</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Días de Garantía</label>
+                  <input className="input" type="number" value={facturaForm.diasGarantia} onChange={e => setFacturaForm((p: any) => ({ ...p, diasGarantia: e.target.value }))} placeholder="365" />
+                </div>
+              </div>
+
+              <div>
+                <label style={lbl}>No. de Serie (para la garantía)</label>
+                <input className="input" value={facturaForm.productoSerie} onChange={e => setFacturaForm((p: any) => ({ ...p, productoSerie: e.target.value }))} placeholder="Ej: SN-987654321" />
+              </div>
+
+              <div>
+                <label style={lbl}>Notas / Descripción de Factura</label>
+                <textarea className="input" rows={2} value={facturaForm.notas} onChange={e => setFacturaForm((p: any) => ({ ...p, notas: e.target.value }))} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24, paddingTop: 14, borderTop: '1px solid #e3e1d8' }}>
+              <button className="btn-ghost" onClick={() => setShowFacturaModal(false)}>Cancelar</button>
+              <button className="btn-primary" style={{ background: '#1581E3', borderColor: '#0f6cbd' }} onClick={facturarYCompletar} disabled={loading}>
+                {loading ? 'Emitiendo Factura...' : 'Emitir Factura y Activar Garantía'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Autorización Clave para Regresar Fase */}
+      {showPinFaseModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 28, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b', marginBottom: 8 }}>Autorización Requerida</h3>
+            <p style={{ fontSize: 13, color: '#52524d', marginBottom: 20, lineHeight: 1.5 }}>
+              Para regresar el proyecto a la fase de <b>{ESTADO_LABEL[faseDestino] || faseDestino}</b> se requiere la clave de un administrador.
+            </p>
+            <input
+              className="input"
+              type="password"
+              placeholder="Contraseña de administrador"
+              value={pinInput}
+              onChange={e => setPinInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && faseDestino) cambiarEstado(faseDestino, pinInput) }}
+              style={{ marginBottom: 16, textAlign: 'center', fontSize: 15 }}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn-ghost" onClick={() => { setShowPinFaseModal(false); setPinInput('') }}>Cancelar</button>
+              <button className="btn-primary" onClick={() => cambiarEstado(faseDestino, pinInput)} disabled={loading}>
+                {loading ? 'Verificando...' : 'Confirmar Autorización'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )

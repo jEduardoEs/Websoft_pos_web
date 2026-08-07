@@ -80,4 +80,13 @@ export class GarantiasService {
     })
     return res.json()
   }
+
+  static async anularGarantia(id: number): Promise<any> {
+    const res = await fetch(`/api/garantias/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'anulada' }),
+    })
+    return res.json()
+  }
 }

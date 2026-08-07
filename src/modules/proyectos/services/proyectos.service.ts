@@ -79,11 +79,11 @@ export class ProyectosService {
     return await res.json()
   }
 
-  static async updateProyecto(id: number | string, data: any): Promise<any> {
+  static async updateProyecto(id: number | string, data: any, pin?: string): Promise<any> {
     const res = await fetch(`/api/proyectos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify({ ...data, pin })
     })
     return await res.json()
   }
@@ -93,6 +93,15 @@ export class ProyectosService {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accion: 'marcar_mantenimiento', mantId, ...data }),
+    })
+    return await res.json()
+  }
+
+  static async facturarProyecto(id: number | string, data: any): Promise<any> {
+    const res = await fetch(`/api/proyectos/${id}/facturar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     })
     return await res.json()
   }

@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const body = await req.json();
-    const { accion, mantId, ...campos } = body;
+    const { accion, mantId, pin, ...campos } = body;
 
     if (accion === 'marcar_mantenimiento' && mantId) {
       const mant = await ProyectoService.registerMantenimiento(
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const proyecto = await ProyectoService.update(
       Number(params.id),
-      campos,
+      { ...campos, pin },
       parseInt(session.user.id),
       session.user.name || 'API'
     );

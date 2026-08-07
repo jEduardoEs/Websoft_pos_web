@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { CreateProyectoDto } from '../dto/create-proyecto.dto';
+import { enviarFacturaPorCorreo } from '@/lib/email-factura';
+import { emitirFEL, FELResponse } from '@/lib/fel';
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
@@ -45,13 +47,28 @@ export class ProyectoService {
   }
 
   static async findById(id: number) {
-    return prisma.proyecto.findUnique({
+    const proyecto = await prisma.proyecto.findUnique({
       where: { id },
       include: {
         mantenimientos: { orderBy: { numero: 'asc' } },
         garantias: { orderBy: { createdAt: 'desc' } },
       },
     });
+
+    if (!proyecto) return null;
+
+    let cotizacion = null;
+    if (proyecto.cotizacionId) {
+      cotizacion = await prisma.cotizacion.findUnique({
+        where: { id: proyecto.cotizacionId },
+        include: { items: true },
+      });
+    }
+
+    return {
+      ...proyecto,
+      cotizacion,
+    };
   }
 
   static async create(data: CreateProyectoDto, userId: number, userName: string) {
@@ -110,7 +127,32 @@ export class ProyectoService {
     });
   }
 
-  static async update(id: number, data: Partial<CreateProyectoDto>, userId: number, userName: string) {
+  static async update(id: number, data: Partial<CreateProyectoDto> & { pin?: string }, userId: number, userName: string) {
+    const actual = await prisma.proyecto.findUnique({ where: { id } });
+    if (!actual) throw new Error('Proyecto no encontrado');
+
+    const FASE_INDEX: Record<string, number> = { planificado: 0, en_ejecucion: 1, completado: 2 };
+
+    if (data.estado && actual.estado && FASE_INDEX[data.estado] !== undefined && FASE_INDEX[actual.estado] !== undefined) {
+      if (FASE_INDEX[data.estado] < FASE_INDEX[actual.estado]) {
+        if (!data.pin) {
+          throw new Error('Se requiere contraseña de administrador para regresar a una fase anterior');
+        }
+        const bcrypt = await import('bcryptjs');
+        const admins = await prisma.usuario.findMany({ where: { rol: 'admin', activo: true } });
+        let valido = false;
+        for (const a of admins) {
+          if (a.password && await bcrypt.compare(data.pin, a.password)) {
+            valido = true;
+            break;
+          }
+        }
+        if (!valido) {
+          throw new Error('Contraseña de administrador incorrecta');
+        }
+      }
+    }
+
     const proyecto = await prisma.proyecto.update({
       where: { id },
       data: {
@@ -145,52 +187,223 @@ export class ProyectoService {
         }
       });
 
-      // Si el proyecto se marca como 'completado', activar su garantía automáticamente
-      if (data.estado === 'completado') {
-        const garantiasExistentes = await prisma.garantia.findMany({ where: { proyectoId: id } });
-        if (garantiasExistentes.length > 0) {
-          for (const g of garantiasExistentes) {
-            const dias = g.diasGarantia || 365;
-            const now = new Date();
-            const fVenc = new Date(now.getTime() + dias * 24 * 60 * 60 * 1000);
-            await prisma.garantia.update({
-              where: { id: g.id },
-              data: {
-                estado: 'vigente',
-                fechaVenta: now,
-                fechaVencimiento: fVenc,
-                notas: g.notas
-                  ? `${g.notas} | Garantía activada al completar proyecto ${proyecto.numero}`
-                  : `Garantía activada al completar proyecto ${proyecto.numero}`,
-              },
-            });
-          }
-        } else {
-          const countG = await prisma.garantia.count();
-          const numG = `GAR-${String(countG + 1).padStart(6, '0')}`;
-          const now = new Date();
-          const fVenc = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-          await prisma.garantia.create({
+    } catch {}
+
+    return proyecto;
+  }
+
+  static async facturarProyecto(id: number, data: any, userId: number, userName: string) {
+    const proyecto = await prisma.proyecto.findUnique({
+      where: { id },
+    });
+
+    if (!proyecto) throw new Error('Proyecto no encontrado');
+
+    let cotizacion: any = null;
+    if (proyecto.cotizacionId) {
+      cotizacion = await prisma.cotizacion.findUnique({
+        where: { id: proyecto.cotizacionId },
+        include: { items: true },
+      });
+    }
+
+    const clienteNombre = data.clienteNombre || proyecto.clienteNombre;
+    const clienteNit = data.clienteNit || proyecto.clienteNit || 'CF';
+    const clienteCorreo = data.clienteCorreo || '';
+    const clienteTelefono = data.clienteTelefono || proyecto.clienteTelefono || '';
+    const total = Number(data.total || data.montoTotal || 0);
+    if (!total || total <= 0) throw new Error('El total a facturar debe ser mayor a 0');
+
+    const diasGarantia = Number(data.diasGarantia || 365);
+
+    // 1. Transaction to generate sale invoice, update project status, & create warranty
+    const result = await prisma.$transaction(async (tx) => {
+      // Get next sale number
+      const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });
+      const num = parseInt(cfg?.valor || '1');
+      const numeroVenta = `FAC-${String(num).padStart(6, '0')}`;
+
+      // Increment sequence number
+      await tx.config.upsert({
+        where: { clave: 'numero_siguiente' },
+        create: { clave: 'numero_siguiente', valor: String(num + 1) },
+        update: { valor: String(num + 1) },
+      });
+
+      const impuesto = Number((total - total / 1.05).toFixed(2));
+      const subtotal = Number((total - impuesto).toFixed(2));
+
+      // Build sale items
+      const itemsList = cotizacion?.items && cotizacion.items.length > 0
+        ? cotizacion.items.map((it: any) => ({
+            codigo: it.codigo || 'PRY-ITEM',
+            nombre: it.descripcion,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+            descuento: it.descuento || 0,
+            subtotal: it.totalItem,
+          }))
+        : [
+            {
+              codigo: proyecto.numero,
+              nombre: proyecto.nombre || proyecto.descripcion || 'Servicios y Trabajos del Proyecto',
+              cantidad: 1,
+              precioUnitario: subtotal,
+              descuento: 0,
+              subtotal: subtotal,
+            },
+          ];
+
+      // Create Venta record in POS database
+      const venta = await tx.venta.create({
+        data: {
+          numero: numeroVenta,
+          fecha: new Date(),
+          clienteNombre,
+          clienteNit,
+          subtotal,
+          descuento: 0,
+          impuesto,
+          total,
+          metodoPago: data.metodoPago || 'efectivo',
+          montoRecibido: total,
+          cambio: 0,
+          notas: `Facturado desde proyecto ${proyecto.numero}`,
+          usuarioId: userId,
+          usuarioNombre: userName,
+          items: {
+            create: itemsList.map(it => ({
+              codigo: it.codigo,
+              nombre: it.nombre,
+              cantidad: it.cantidad,
+              precioUnitario: it.precioUnitario,
+              descuento: it.descuento,
+              subtotal: it.subtotal,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // Update project status to completado
+      const updatedProyecto = await tx.proyecto.update({
+        where: { id },
+        data: {
+          estado: 'completado',
+          notas: proyecto.notas
+            ? `${proyecto.notas} | Facturado con Venta ${numeroVenta}`
+            : `Facturado con Venta ${numeroVenta}`,
+        },
+      });
+
+      // Create and activate Garantia in POS database
+      const countG = await tx.garantia.count();
+      const numG = `GAR-${String(countG + 1).padStart(6, '0')}`;
+      const now = new Date();
+      const fVenc = new Date(now.getTime() + diasGarantia * 24 * 60 * 60 * 1000);
+
+      const garantia = await tx.garantia.create({
+        data: {
+          numero: numG,
+          clienteNombre,
+          clienteTelefono,
+          clienteNit,
+          productoNombre: proyecto.nombre || proyecto.descripcion || 'Servicios / Equipos del Proyecto',
+          productoSerie: data.productoSerie || data.serie || null,
+          ventaNumero: numeroVenta,
+          ventaId: venta.id,
+          proyectoId: proyecto.id,
+          diasGarantia,
+          fechaVenta: now,
+          fechaVencimiento: fVenc,
+          estado: 'vigente',
+          notas: `Garantía activada tras la emisión de factura ${numeroVenta} del proyecto ${proyecto.numero}`,
+          usuarioNombre: userName,
+        },
+      });
+
+      return { venta, garantia, updatedProyecto, itemsList };
+    });
+
+    // 2. Side-effect: FEL Certification & Email Transmission
+    let felResult: FELResponse | null = null;
+    let emailSent = false;
+
+    try {
+      const configs = await prisma.config.findMany({
+        where: { clave: { in: ['fel_activo', 'email_factura_activo'] } }
+      });
+      const configMap = Object.fromEntries(configs.map(c => [c.clave, c.valor]));
+
+      if (configMap['fel_activo'] === 'true' || process.env.DTEVIA_API_KEY) {
+        felResult = await emitirFEL({
+          numeroInterno: result.venta.numero,
+          nitReceptor: clienteNit,
+          nombreReceptor: clienteNombre,
+          correoReceptor: clienteCorreo,
+          items: result.itemsList.map(it => ({
+            cantidad: it.cantidad,
+            descripcion: it.nombre,
+            precioUnitario: it.precioUnitario,
+            descuento: it.descuento || 0,
+            subtotal: it.subtotal,
+            codigoProducto: it.codigo,
+          })),
+          subtotal: result.venta.subtotal,
+          descuento: 0,
+          impuesto: result.venta.impuesto,
+          total: result.venta.total,
+          metodoPago: result.venta.metodoPago,
+        });
+
+        if (felResult && felResult.ok) {
+          await prisma.venta.update({
+            where: { id: result.venta.id },
             data: {
-              numero: numG,
-              clienteNombre: proyecto.clienteNombre,
-              clienteTelefono: proyecto.clienteTelefono,
-              clienteNit: proyecto.clienteNit,
-              productoNombre: proyecto.nombre || proyecto.descripcion || 'Servicios / Equipos del Proyecto',
-              proyectoId: proyecto.id,
-              diasGarantia: 365,
-              fechaVenta: now,
-              fechaVencimiento: fVenc,
-              estado: 'vigente',
-              notas: `Garantía generada y activada automáticamente al completar proyecto ${proyecto.numero}`,
-              usuarioNombre: userName,
+              felUuid: felResult.uuid,
+              felSerie: felResult.serie,
+              felNumero: felResult.numero,
+              felCertificacion: felResult.fechaCertificacion,
+              felPdfUrl: felResult.pdfUrl,
+              felEstado: felResult.sandbox ? 'sandbox' : 'certificado',
             },
           });
         }
       }
-    } catch {}
 
-    return proyecto;
+      if (clienteCorreo && clienteCorreo.includes('@')) {
+        const emailRes = await enviarFacturaPorCorreo({
+          uuid: felResult?.uuid,
+          serie: felResult?.serie,
+          numero: felResult?.numero,
+          fechaCertificacion: felResult?.fechaCertificacion,
+          pdfUrl: felResult?.pdfUrl,
+          sandbox: felResult?.sandbox,
+          numeroInterno: result.venta.numero,
+          fecha: result.venta.fecha,
+          clienteNombre,
+          clienteNit,
+          clienteCorreo,
+          subtotal: result.venta.subtotal,
+          descuento: 0,
+          impuesto: result.venta.impuesto,
+          total: result.venta.total,
+          metodoPago: result.venta.metodoPago,
+          items: result.itemsList,
+        });
+        emailSent = Boolean(emailRes && emailRes.ok);
+      }
+    } catch (e) {
+      console.error('[FacturarProyecto FEL/Email Error]:', e);
+    }
+
+    return {
+      venta: result.venta,
+      garantia: result.garantia,
+      proyecto: result.updatedProyecto,
+      fel: felResult,
+      emailSent,
+    };
   }
 
   static async registerMantenimiento(id: number, mantId: number, data: any, userId: number, userName: string) {
