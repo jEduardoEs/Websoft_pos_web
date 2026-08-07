@@ -76,8 +76,8 @@ export class MetricsRepository {
     return logPerformance('getMiMeta', async () => {
       const [usuario, ventasMes, ventasDia] = await Promise.all([
         prisma.usuario.findUnique({ where: { id: userId }, select: { metaMensual: true } }),
-        prisma.venta.aggregate({ where: { usuarioId, fecha: { gte: startOfMonth }, estado: 'completada' }, _sum: { total: true }, _count: true }),
-        prisma.venta.aggregate({ where: { usuarioId, fecha: { gte: startOfDay }, estado: 'completada' }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfMonth }, estado: 'completada' }, _sum: { total: true }, _count: true }),
+        prisma.venta.aggregate({ where: { usuarioId: userId, fecha: { gte: startOfDay }, estado: 'completada' }, _sum: { total: true }, _count: true }),
       ]);
       const meta = usuario?.metaMensual || 0;
       const real = ventasMes._sum.total || 0;

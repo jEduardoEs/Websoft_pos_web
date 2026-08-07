@@ -51,7 +51,7 @@ export class DashboardService {
     }
 
     // 5️⃣ Personal meta for non‑admin users
-    let miMeta = null;
+    let miMeta: any = null;
     if (user.role !== 'admin') {
       const userId = parseInt(user.id as string);
       miMeta = await MetricsRepository.getMiMeta(userId, startOfMonth, startOfDay);

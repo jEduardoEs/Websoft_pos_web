@@ -1,7 +1,11 @@
 import { DomainEvent } from './types/DomainEvent';
 import { IEventHandler } from './EventHandler';
 
-type HandlerMap = Map<string, Set<IEventHandler<any>>>;
+export type EventHandlerType<E extends DomainEvent = DomainEvent> =
+  | ((event: E) => Promise<void> | void)
+  | IEventHandler<any>;
+
+type HandlerMap = Map<string, Set<EventHandlerType<any>>>;
 
 export class EventBus {
   private handlers: HandlerMap = new Map();
@@ -14,7 +18,11 @@ export class EventBus {
       let attempts = 0;
       while (attempts < this.maxRetries) {
         try {
-          await Promise.resolve(handler(event));
+          if (typeof handler === 'function') {
+            await Promise.resolve(handler(event));
+          } else if (handler && typeof handler.handle === 'function') {
+            await Promise.resolve(handler.handle(event));
+          }
           return;
         } catch (err) {
           attempts++;
@@ -29,18 +37,18 @@ export class EventBus {
     console.info('[EventBus] Published', event.type, event);
   }
 
-  subscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandler<E>): void {
+  subscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandlerType<E>): void {
     if (!this.handlers.has(eventName)) {
       this.handlers.set(eventName, new Set());
     }
-    this.handlers.get(eventName)!.add(handler as EventHandler<any>);
+    this.handlers.get(eventName)!.add(handler);
     console.info(`[EventBus] Subscribed to ${eventName}`);
   }
 
-  unsubscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandler<E>): void {
+  unsubscribe<E extends DomainEvent>(eventName: E['type'], handler: EventHandlerType<E>): void {
     const set = this.handlers.get(eventName);
     if (set) {
-      set.delete(handler as EventHandler<any>);
+      set.delete(handler);
       console.info(`[EventBus] Unsubscribed from ${eventName}`);
     }
   }
