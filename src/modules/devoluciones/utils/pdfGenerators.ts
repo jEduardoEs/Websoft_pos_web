@@ -1,13 +1,26 @@
+function safeDate(val: any): string {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
 export function printDevolucion(devolucion: any) {
-  const w = window.open('', '_blank', 'width=750,height=700')
+  if (!devolucion) return;
+  const w = window.open('', '_blank', 'width=750,height=700');
   if (!w) {
     alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
     return;
   }
 
-  const fmt = (n: number) => `Q ${Number(n).toFixed(2)}`
+  const fmt = (n: number) => `Q ${Number(n || 0).toFixed(2)}`;
+  const devIdStr = String(devolucion.id || '0').padStart(5, '0');
   
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante de Devolución DEV-${String(devolucion.id).padStart(5, '0')}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante de Devolución DEV-${devIdStr}</title>
 <style>
 @page { size: auto; margin: 5mm; }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -31,8 +44,8 @@ th { background: #f1f5f9; font-weight: 700; color: #475569; }
     <div style="font-size:9px;color:#64748b">Guastatoya, El Progreso · Tel: 3836-1044</div>
   </div>
   <div style="text-align:right;font-size:10px;color:#64748b">
-    Comprobante: <b style="color:#2563eb;font-size:14px">DEV-${String(devolucion.id).padStart(5, '0')}</b><br>
-    Fecha: ${new Date(devolucion.fecha).toLocaleDateString('es-GT')}
+    Comprobante: <b style="color:#2563eb;font-size:14px">DEV-${devIdStr}</b><br>
+    Fecha: ${safeDate(devolucion.fecha)}
   </div>
 </div>
 <div class="title">COMPROBANTE DE DEVOLUCIÓN</div>

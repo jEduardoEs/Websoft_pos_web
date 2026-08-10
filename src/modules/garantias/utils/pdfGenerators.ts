@@ -1,12 +1,22 @@
-import { Garantia, Reclamo } from '../services/garantias.service'
+function safeDate(val: any): string {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
 
 export function printGarantia(g: any) {
-  const w = window.open('', '_blank', 'width=750,height=600')
+  if (!g) return;
+  const w = window.open('', '_blank', 'width=750,height=600');
   if (!w) {
     alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
     return;
   }
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Garantía ${g.numero || ''}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:24px;color:#0f172a}
   .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #2563eb}
@@ -19,42 +29,43 @@ export function printGarantia(g: any) {
   .footer{margin-top:14px;text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
 </style></head><body>
 <div class="header"><div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b">Guastatoya · Tel: 3836-1044</div></div>
-<div style="text-align:right;font-size:10px;color:#64748b">Garantía: <b style="color:#16a34a;font-size:14px">${g.numero}</b></div></div>
+<div style="text-align:right;font-size:10px;color:#64748b">Garantía: <b style="color:#16a34a;font-size:14px">${g.numero || '—'}</b></div></div>
 <div class="banner">CERTIFICADO DE GARANTÍA</div>
 <div class="grid">
 <div>
-  <div class="row"><span class="lbl">Cliente:</span><span class="val">${g.clienteNombre}</span></div>
+  <div class="row"><span class="lbl">Cliente:</span><span class="val">${g.clienteNombre || '—'}</span></div>
   <div class="row"><span class="lbl">NIT:</span><span class="val">${g.clienteNit || 'CF'}</span></div>
-  <div class="row"><span class="lbl">Teléfono:</span><span class="val">${g.clienteTelefono || ''}</span></div>
+  <div class="row"><span class="lbl">Teléfono:</span><span class="val">${g.clienteTelefono || '—'}</span></div>
 </div>
 <div>
-  <div class="row"><span class="lbl">Producto:</span><span class="val"><b>${g.productoNombre}</b></span></div>
+  <div class="row"><span class="lbl">Producto:</span><span class="val"><b>${g.productoNombre || '—'}</b></span></div>
   <div class="row"><span class="lbl">No. Serie:</span><span class="val"><b style="color:#2563eb;font-family:monospace;font-size:11px">${g.productoSerie || g.serie || '—'}</b></span></div>
   <div class="row"><span class="lbl">Factura / Venta:</span><span class="val"><b style="color:#0f172a">${g.ventaNumero || g.venta?.numero || '—'}</b></span></div>
-  <div class="row"><span class="lbl">Fecha venta:</span><span class="val">${new Date(g.fechaVenta).toLocaleDateString('es-GT')}</span></div>
-  <div class="row"><span class="lbl">Vence:</span><span class="val"><b style="color:#16a34a">${new Date(g.fechaVencimiento).toLocaleDateString('es-GT')}</b></span></div>
-  <div class="row"><span class="lbl">Duración:</span><span class="val">${g.diasGarantia} días</span></div>
+  <div class="row"><span class="lbl">Fecha venta:</span><span class="val">${safeDate(g.fechaVenta)}</span></div>
+  <div class="row"><span class="lbl">Vence:</span><span class="val"><b style="color:#16a34a">${safeDate(g.fechaVencimiento)}</b></span></div>
+  <div class="row"><span class="lbl">Duración:</span><span class="val">${g.diasGarantia || 365} días</span></div>
 </div>
 </div>
-<div class="cond"><b>Condiciones:</b><br>${g.condiciones || ''}</div>
+<div class="cond"><b>Condiciones:</b><br>${g.condiciones || 'Garantía estándar contra defectos de fábrica.'}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
   <div><div class="sign">Firma del cliente: ___________________</div></div>
   <div><div class="sign">WebSoft Solutions: ___________________</div></div>
 </div>
-<div class="footer">WebSoft Solutions · ${g.numero}</div>
-</body></html>`)
+<div class="footer">WebSoft Solutions · ${g.numero || ''}</div>
+</body></html>`);
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 300);
 }
 
-export function printReclamo(r: any, g: Garantia) {
-  const w = window.open('', '_blank', 'width=750,height=600')
+export function printReclamo(r: any, g: any) {
+  if (!r) return;
+  const w = window.open('', '_blank', 'width=750,height=600');
   if (!w) {
     alert('Por favor autoriza las ventanas emergentes (popups) para imprimir el PDF.');
     return;
   }
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reclamo ${r.numero || ''}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;font-size:11px;padding:24px;color:#0f172a}
   .header{display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #dc2626}
@@ -65,18 +76,18 @@ export function printReclamo(r: any, g: Garantia) {
   .sign{border-top:1px solid #0f172a;padding-top:4px;font-size:10px;font-weight:700;margin-top:20px}
 </style></head><body>
 <div class="header"><div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b">Guastatoya · Tel: 3836-1044</div></div>
-<div style="text-align:right;font-size:10px"><b style="color:#dc2626;font-size:14px">${r.numero}</b><br>${new Date(r.fecha).toLocaleDateString('es-GT')}</div></div>
+<div style="text-align:right;font-size:10px"><b style="color:#dc2626;font-size:14px">${r.numero || '—'}</b><br>${safeDate(r.fecha)}</div></div>
 <div class="banner">RECLAMO DE GARANTÍA</div>
-<div class="row"><span class="lbl">Cliente:</span><span class="val">${r.clienteNombre} (${r.clienteNit || 'CF'})</span></div>
-<div class="row"><span class="lbl">Producto:</span><span class="val"><b>${r.productoNombre}</b> ${r.productoSerie ? `(Serie: ${r.productoSerie})` : ''}</span></div>
-<div class="row"><span class="lbl">Garantía Ref:</span><span class="val">${r.garantiaNumero}</span></div>
-<div class="falla"><b>Motivo del reclamo:</b> ${r.motivoReclamo}<br><br><b>Falla reportada:</b> ${r.descripcionFalla}</div>
+<div class="row"><span class="lbl">Cliente:</span><span class="val">${r.clienteNombre || '—'} (${r.clienteNit || 'CF'})</span></div>
+<div class="row"><span class="lbl">Producto:</span><span class="val"><b>${r.productoNombre || '—'}</b> ${r.productoSerie ? `(Serie: ${r.productoSerie})` : ''}</span></div>
+<div class="row"><span class="lbl">Garantía Ref:</span><span class="val">${r.garantiaNumero || g?.numero || '—'}</span></div>
+<div class="falla"><b>Motivo del reclamo:</b> ${r.motivoReclamo || '—'}<br><br><b>Falla reportada:</b> ${r.descripcionFalla || '—'}</div>
 ${r.resolucion ? `<div style="font-size:10px;margin-bottom:10px"><b>Resolución:</b> ${r.resolucion}</div>` : ''}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
   <div><div class="sign">Firma del cliente: ___________________</div></div>
   <div><div class="sign">Recibido por: ___________________</div></div>
 </div>
-</body></html>`)
+</body></html>`);
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 300);

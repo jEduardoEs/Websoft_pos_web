@@ -32,7 +32,7 @@ export class CotizacionService {
    * Create a new quotation
    */
   static async create(data: CreateCotizacionDto, usuarioId: number, usuarioNombre: string) {
-    return prisma.$transaction(async (tx) => {
+    const res = await prisma.$transaction(async (tx) => {
       // Get the next sequence number for the quotation
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente_cotizacion' } });
       const num = parseInt(cfg?.valor || '1');
@@ -105,12 +105,34 @@ export class CotizacionService {
 
       return cotizacion;
     });
+
+    try {
+      const { eventBus } = await import('@/core/events/EventBus');
+      const { CotizacionCreada } = await import('@/core/events/types/CotizacionCreada');
+      await eventBus.publish(new CotizacionCreada({
+        cotizacionId: res.id,
+        numero: res.numero,
+        clienteNombre: res.clienteNombre,
+        total: res.total,
+        usuarioNombre: usuarioNombre,
+      }));
+    } catch (err) {
+      console.error('[CotizacionService] Error publishing CotizacionCreada:', err);
+    }
+
+    return res;
   }
 
   /**
    * Update quotation status with auto-project creation and protection
    */
   static async updateEstado(id: number, estado: string, user: any, pin?: string) {
+    const cotizacionActual = await prisma.cotizacion.findUnique({ where: { id } });
+    if (!cotizacionActual) throw new Error('Cotización no encontrada');
+
+    const { WorkflowEngine } = await import('@/core/state');
+    WorkflowEngine.validateTransition('cotizacion', cotizacionActual.estado, estado);
+
     const estadosProtegidos = ['aceptada', 'rechazada', 'anulada'];
     if (estadosProtegidos.includes(estado)) {
       if (user.role !== 'admin') {
@@ -150,6 +172,20 @@ export class CotizacionService {
         await syncProyectoDesdeCotizacion(prisma, id, 'planificado', user.name);
       } catch (err) {
         console.error('[CotizacionService] Error auto-syncing proyecto:', err);
+      }
+
+      try {
+        const { eventBus } = await import('@/core/events/EventBus');
+        const { CotizacionAprobada } = await import('@/core/events/types/CotizacionAprobada');
+        await eventBus.publish(new CotizacionAprobada({
+          cotizacionId: updated.id,
+          numero: updated.numero,
+          clienteNombre: updated.clienteNombre,
+          total: updated.total,
+          usuarioNombre: user.name,
+        }));
+      } catch (err) {
+        console.error('[CotizacionService] Error publishing CotizacionAprobada:', err);
       }
     }
     return updated;
@@ -217,7 +253,9 @@ export class CotizacionService {
       include: { items: true },
     });
     if (!cotizacion) throw new Error('Cotización no encontrada');
-    if (cotizacion.estado === 'facturada') throw new Error('Ya fue facturada');
+
+    const { WorkflowEngine, CotizacionState } = await import('@/core/state');
+    WorkflowEngine.validateTransition('cotizacion', cotizacion.estado, CotizacionState.FACTURADA);
 
     return prisma.$transaction(async (tx) => {
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });

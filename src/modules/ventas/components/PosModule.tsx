@@ -150,6 +150,7 @@ export function PosModule() {
   };
 
   const handleProcesarVenta = async () => {
+    if (loading) return;
     const recNum = parseFloat(montoRecibido) || 0;
     if (metodoPago === 'efectivo' && recNum < totalCart) {
       toast.error('El monto recibido es menor al total');

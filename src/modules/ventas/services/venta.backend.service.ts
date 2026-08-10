@@ -13,7 +13,9 @@ export class VentaBackendService {
   static async anularVenta(id: number, motivo: string, user: any) {
     const venta = await prisma.venta.findUnique({ where: { id }, include: { items: true } });
     if (!venta) throw new Error('No encontrado');
-    if (venta.estado === 'anulada') throw new Error('Ya anulada');
+
+    const { WorkflowEngine, VentaState } = await import('@/core/state');
+    WorkflowEngine.validateTransition('venta', venta.estado, VentaState.ANULADA);
 
     await prisma.$transaction(async (tx) => {
       await tx.venta.update({ where: { id: venta.id }, data: { estado: 'anulada', notas: motivo } });

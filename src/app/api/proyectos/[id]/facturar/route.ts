@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       session.user.name || 'API'
     );
 
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json(result);
   } catch (e: any) {
     console.error('[FacturarProyecto API Error]:', e);
     return NextResponse.json({ error: e.message || 'Error al facturar el proyecto' }, { status: 500 });

@@ -4,6 +4,7 @@ import { saleCompletedListener } from './listeners/SaleCompletedListener';
 
 export function registerProyectosListeners() {
   eventBus.subscribe('SaleCreated', saleCreatedListener);
+  eventBus.subscribe('VentaCreada', saleCreatedListener);
   eventBus.subscribe('SaleCompleted', saleCompletedListener);
   console.info('[Proyectos] Event listeners registered');
 }

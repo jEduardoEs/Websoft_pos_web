@@ -123,6 +123,21 @@ export class ProyectoService {
         });
       } catch {}
 
+      try {
+        const { eventBus } = await import('@/core/events/EventBus');
+        const { ProyectoCreado } = await import('@/core/events/types/ProyectoCreado');
+        await eventBus.publish(new ProyectoCreado({
+          proyectoId: proyecto.id,
+          numero: proyecto.numero,
+          nombre: proyecto.nombre,
+          clienteNombre: proyecto.clienteNombre,
+          cotizacionId: proyecto.cotizacionId,
+          usuarioNombre: userName,
+        }));
+      } catch (err) {
+        console.error('[ProyectoService] Error publishing ProyectoCreado:', err);
+      }
+
       return proyecto;
     });
   }
@@ -130,6 +145,11 @@ export class ProyectoService {
   static async update(id: number, data: Partial<CreateProyectoDto> & { pin?: string }, userId: number, userName: string) {
     const actual = await prisma.proyecto.findUnique({ where: { id } });
     if (!actual) throw new Error('Proyecto no encontrado');
+
+    if (data.estado) {
+      const { WorkflowEngine } = await import('@/core/state');
+      WorkflowEngine.validateTransition('proyecto', actual.estado, data.estado);
+    }
 
     const FASE_INDEX: Record<string, number> = { planificado: 0, en_ejecucion: 1, completado: 2 };
 
@@ -186,8 +206,31 @@ export class ProyectoService {
           detalle: `Proyecto ${proyecto.numero} editado (${proyecto.estado})`,
         }
       });
-
     } catch {}
+
+    try {
+      const { eventBus } = await import('@/core/events/EventBus');
+      if (proyecto.estado === 'cancelado') {
+        const { ProyectoCancelado } = await import('@/core/events/types/ProyectoCancelado');
+        await eventBus.publish(new ProyectoCancelado({
+          proyectoId: proyecto.id,
+          numero: proyecto.numero,
+          usuarioNombre: userName,
+        }));
+      } else if (proyecto.estado === 'completado') {
+        const { RuleEngine } = await import('@/core/rules');
+        RuleEngine.assertCanCreditCommission({ estado: proyecto.estado });
+
+        const { ComisionDevengada } = await import('@/core/events/types/ComisionDevengada');
+        await eventBus.publish(new ComisionDevengada({
+          proyectoId: proyecto.id,
+          vendedorNombre: userName,
+          monto: 100, // standard project completion bonus commission
+        }));
+      }
+    } catch (err) {
+      console.error('[ProyectoService] Error publishing update events:', err);
+    }
 
     return proyecto;
   }
@@ -199,12 +242,30 @@ export class ProyectoService {
 
     if (!proyecto) throw new Error('Proyecto no encontrado');
 
+    const { RuleEngine } = await import('@/core/rules');
+    RuleEngine.assertCanInvoiceProject({ estado: proyecto.estado, id: proyecto.id });
+
+    // Validar que el proyecto no haya sido facturado previamente
+    const garantiaExistente = await prisma.garantia.findFirst({
+      where: { proyectoId: id }
+    });
+    if (garantiaExistente || (proyecto.notas && proyecto.notas.includes('Facturado con Venta'))) {
+      throw new Error('Este proyecto ya fue facturado en el sistema. No es posible emitir la factura nuevamente.');
+    }
+
     let cotizacion: any = null;
     if (proyecto.cotizacionId) {
       cotizacion = await prisma.cotizacion.findUnique({
         where: { id: proyecto.cotizacionId },
         include: { items: true },
       });
+
+      const ventaExistente = await prisma.venta.findFirst({
+        where: { cotizacionId: proyecto.cotizacionId }
+      });
+      if (ventaExistente) {
+        throw new Error(`La cotización vinculada al proyecto ya fue facturada con la venta ${ventaExistente.numero}.`);
+      }
     }
 
     const clienteNombre = data.clienteNombre || proyecto.clienteNombre;
@@ -371,8 +432,8 @@ export class ProyectoService {
         }
       }
 
-      if (clienteCorreo && clienteCorreo.includes('@')) {
-        const emailRes = await enviarFacturaPorCorreo({
+      if (configMap['email_factura_activo'] === 'true' && clienteCorreo && clienteCorreo.includes('@')) {
+        const mailRes = await enviarFacturaPorCorreo({
           uuid: felResult?.uuid,
           serie: felResult?.serie,
           numero: felResult?.numero,
@@ -384,20 +445,54 @@ export class ProyectoService {
           clienteNombre,
           clienteNit,
           clienteCorreo,
+          items: result.itemsList.map(it => ({
+            codigo: it.codigo,
+            nombre: it.nombre,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+            descuento: it.descuento || 0,
+            subtotal: it.subtotal,
+          })),
           subtotal: result.venta.subtotal,
           descuento: 0,
           impuesto: result.venta.impuesto,
           total: result.venta.total,
           metodoPago: result.venta.metodoPago,
-          items: result.itemsList,
         });
-        emailSent = Boolean(emailRes && emailRes.ok);
+        emailSent = Boolean(mailRes && mailRes.ok);
       }
-    } catch (e) {
-      console.error('[FacturarProyecto FEL/Email Error]:', e);
+    } catch (err) {
+      console.error('[ProyectoService] Error processing FEL/email side-effects:', err);
+    }
+
+    try {
+      const { eventBus } = await import('@/core/events/EventBus');
+      const { FacturaEmitida, PagoRegistrado } = await import('@/core/events/types');
+
+      await eventBus.publish(new FacturaEmitida({
+        proyectoId: result.updatedProyecto.id,
+        ventaId: result.venta.id,
+        numeroFactura: felResult?.numero || result.venta.numero,
+        uuid: felResult?.uuid,
+        clienteNombre,
+        total: result.venta.total,
+        usuarioNombre: userName,
+      }));
+
+      await eventBus.publish(new PagoRegistrado({
+        proyectoId: result.updatedProyecto.id,
+        ventaId: result.venta.id,
+        monto: result.venta.total,
+        metodoPago: data.metodoPago || 'efectivo',
+        clienteNombre,
+        usuarioNombre: userName,
+      }));
+    } catch (err) {
+      console.error('[ProyectoService] Error publishing facturarProyecto events:', err);
     }
 
     return {
+      ok: true,
       venta: result.venta,
       garantia: result.garantia,
       proyecto: result.updatedProyecto,

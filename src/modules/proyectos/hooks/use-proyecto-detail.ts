@@ -47,6 +47,10 @@ export function useProyectoDetail(id: string) {
 
   const abrirFacturacion = () => {
     if (!proyecto) return
+    if (proyecto.notas?.includes('Facturado con Venta') || ((proyecto as any).garantias && (proyecto as any).garantias.length > 0)) {
+      toast.error('Este proyecto ya ha sido facturado previamente')
+      return
+    }
     const cotiz = (proyecto as any).cotizacion
     const monto = cotiz?.total || (proyecto as any).montoTotal || ''
     setFacturaForm({
@@ -65,6 +69,7 @@ export function useProyectoDetail(id: string) {
   }
 
   const facturarYCompletar = async () => {
+    if (loading) return
     if (!facturaForm.clienteNombre || !facturaForm.montoTotal || Number(facturaForm.montoTotal) <= 0) {
       toast.error('Nombre del cliente y monto total son requeridos')
       return

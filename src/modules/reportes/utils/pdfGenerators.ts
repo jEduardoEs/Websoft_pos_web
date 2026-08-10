@@ -1,6 +1,17 @@
+function safeDate(val: any): string {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
 export function exportarInventarioPDF(invReporte: any) {
-  if (!invReporte) return
-  const { resumen, porCategoria } = invReporte
+  if (!invReporte) return;
+  const { resumen = {}, porCategoria = [] } = invReporte;
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:Arial,sans-serif;font-size:11px;color:#0f172a;padding:20px}
@@ -21,29 +32,31 @@ export function exportarInventarioPDF(invReporte: any) {
   </style></head><body>
   <div class="header">
     <div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b;margin-top:2px">Guastatoya, El Progreso</div></div>
-    <div style="text-align:right"><div class="badge">VALORACION DE INVENTARIO</div><div style="font-size:9px;color:#64748b;margin-top:5px">Generado: ${new Date().toLocaleDateString('es-GT')}</div></div>
+    <div style="text-align:right"><div class="badge">VALORACION DE INVENTARIO</div><div style="font-size:9px;color:#64748b;margin-top:5px">Generado: ${safeDate(new Date())}</div></div>
   </div>
   <div class="kpis">
-    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total productos</div><div class="kpi-value" style="color:#2563eb">${resumen.totalProductos}</div></div>
-    <div class="kpi" style="border-top-color:#d97706"><div class="kpi-label">Inversion total</div><div class="kpi-value" style="color:#d97706">Q ${resumen.totalInversion.toFixed(2)}</div></div>
-    <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-label">Valor de venta</div><div class="kpi-value" style="color:#16a34a">Q ${resumen.totalValorVenta.toFixed(2)}</div></div>
-    <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-label">Ganancia proyectada</div><div class="kpi-value" style="color:#7c3aed">Q ${resumen.gananciaProyectada.toFixed(2)}</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total productos</div><div class="kpi-value" style="color:#2563eb">${resumen.totalProductos || 0}</div></div>
+    <div class="kpi" style="border-top-color:#d97706"><div class="kpi-label">Inversion total</div><div class="kpi-value" style="color:#d97706">Q ${Number(resumen.totalInversion || 0).toFixed(2)}</div></div>
+    <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-label">Valor de venta</div><div class="kpi-value" style="color:#16a34a">Q ${Number(resumen.totalValorVenta || 0).toFixed(2)}</div></div>
+    <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-label">Ganancia proyectada</div><div class="kpi-value" style="color:#7c3aed">Q ${Number(resumen.gananciaProyectada || 0).toFixed(2)}</div></div>
   </div>
   <table>
     <thead><tr><th>Categoria</th><th class="center">Productos</th><th class="center">Unidades</th><th class="right">Inversion (costo)</th><th class="right">Valor venta</th><th class="right">Ganancia</th><th class="right">Margen</th></tr></thead>
     <tbody>
       ${porCategoria.map((cat: any) => {
-        const gan = cat.valorVenta - cat.inversion
-        const mar = cat.inversion > 0 ? Math.round((gan/cat.inversion)*100) : 0
-        return `<tr><td style="font-weight:600">${cat.categoria}</td><td class="center">${cat.items}</td><td class="center">${cat.stock}</td><td class="right">Q ${cat.inversion.toFixed(2)}</td><td class="right">Q ${cat.valorVenta.toFixed(2)}</td><td class="right" style="color:#7c3aed">Q ${gan.toFixed(2)}</td><td class="right" style="font-weight:700;color:${mar>=30?'#16a34a':mar>=15?'#d97706':'#dc2626'}">${mar}%</td></tr>`
+        const inv = Number(cat.inversion || 0);
+        const vv = Number(cat.valorVenta || 0);
+        const gan = vv - inv;
+        const mar = inv > 0 ? Math.round((gan / inv) * 100) : 0;
+        return `<tr><td style="font-weight:600">${cat.categoria || 'Sin categoría'}</td><td class="center">${cat.items || 0}</td><td class="center">${cat.stock || 0}</td><td class="right">Q ${inv.toFixed(2)}</td><td class="right">Q ${vv.toFixed(2)}</td><td class="right" style="color:#7c3aed">Q ${gan.toFixed(2)}</td><td class="right" style="font-weight:700;color:${mar>=30?'#16a34a':mar>=15?'#d97706':'#dc2626'}">${mar}%</td></tr>`;
       }).join('')}
-      <tr class="total-row"><td>TOTALES</td><td class="center">${resumen.totalProductos}</td><td class="center">${resumen.totalUnidades}</td><td class="right">Q ${resumen.totalInversion.toFixed(2)}</td><td class="right">Q ${resumen.totalValorVenta.toFixed(2)}</td><td class="right">Q ${resumen.gananciaProyectada.toFixed(2)}</td><td class="right">${resumen.margenProyectado}%</td></tr>
+      <tr class="total-row"><td>TOTALES</td><td class="center">${resumen.totalProductos || 0}</td><td class="center">${resumen.totalUnidades || 0}</td><td class="right">Q ${Number(resumen.totalInversion || 0).toFixed(2)}</td><td class="right">Q ${Number(resumen.totalValorVenta || 0).toFixed(2)}</td><td class="right">Q ${Number(resumen.gananciaProyectada || 0).toFixed(2)}</td><td class="right">${resumen.margenProyectado || 0}%</td></tr>
     </tbody>
   </table>
-  <div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e"><strong>Alertas:</strong> ${resumen.productosStockBajo} productos con stock bajo · ${resumen.productosAgotados} productos agotados</div>
+  <div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:6px;font-size:10px;color:#92400e"><strong>Alertas:</strong> ${resumen.productosStockBajo || 0} productos con stock bajo · ${resumen.productosAgotados || 0} productos agotados</div>
   <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Este reporte es confidencial</span></div>
-  </body></html>`
-  const w = window.open('', '_blank')
+  </body></html>`;
+  const w = window.open('', '_blank');
   if (w) {
     w.document.write(html);
     w.document.close();
@@ -55,17 +68,16 @@ export function exportarInventarioPDF(invReporte: any) {
 }
 
 export function exportarPatrimonioPDF(d: any) {
-  if (!d) return
-  const fmtQ = (n: number) => `Q ${Number(n).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  const fmtFecha = (s: string) => new Date(s).toLocaleDateString('es-GT', { day: '2-digit', month: 'long', year: 'numeric' })
-  const hoy = fmtFecha(d.fechaReporte)
+  if (!d) return;
+  const fmtQ = (n: number) => `Q ${Number(n || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const hoy = safeDate(d.fechaReporte || new Date());
 
   const rowsActivos = d.activosFijos.map((a: any, i: number) => `
     <tr style="background:${i % 2 === 0 ? '#fff' : '#f8faff'}">
       <td class="code">${a.codigo}</td>
       <td>${a.nombre}</td>
       <td>${a.descripcion || '—'}</td>
-      <td class="center">${fmtFecha(a.fechaAdquisicion)}</td>
+      <td class="center">${safeDate(a.fechaAdquisicion)}</td>
       <td class="right">${fmtQ(a.costoOriginal)}</td>
       <td class="center">${a.vidaUtilAnios} años</td>
       <td class="right" style="color:#d97706">${fmtQ(a.depreciacionAcum)}</td>
@@ -232,14 +244,27 @@ export function exportarPatrimonioPDF(d: any) {
 }
 
 export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
-  if (!reporte) return
-  const ivaPct = 5
-  const ivaRecaudado = reporte.granTotal * (ivaPct / (100 + ivaPct))
-  const diasRows = Object.entries(reporte.porDia)
+  if (!reporte) return;
+  const granTotal = Number(reporte.granTotal || 0);
+  const totalVentas = Number(reporte.totalVentas || 0);
+  const ivaPct = 5;
+  const ivaRecaudado = granTotal * (ivaPct / (100 + ivaPct));
+
+  const diasRows = Object.entries(reporte.porDia || {})
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([dia, v]: any) => `<tr><td>${new Date(dia).toLocaleDateString('es-GT')}</td><td class="center">${v.ventas}</td><td class="right">Q ${v.total.toFixed(2)}</td><td class="right">Q ${(v.total / v.ventas).toFixed(2)}</td><td class="center">0</td></tr>`).join('')
-  const prodRows = (reporte.topProductos || []).slice(0, 15).map((p: any) =>
-    `<tr><td>${p.nombre}</td><td class="center">${p.cantidad}</td><td class="right">Q ${p.total.toFixed(2)}</td><td class="center">${Math.round((p.total / reporte.granTotal) * 100)}%</td></tr>`).join('')
+    .map(([dia, v]: any) => {
+      const tot = Number(v.total || 0);
+      const cant = Number(v.ventas || 0);
+      const prom = cant > 0 ? (tot / cant) : 0;
+      return `<tr><td>${safeDate(dia)}</td><td class="center">${cant}</td><td class="right">Q ${tot.toFixed(2)}</td><td class="right">Q ${prom.toFixed(2)}</td><td class="center">0</td></tr>`;
+    }).join('');
+
+  const prodRows = (reporte.topProductos || []).slice(0, 15).map((p: any) => {
+    const totP = Number(p.total || 0);
+    const pct = granTotal > 0 ? Math.round((totP / granTotal) * 100) : 0;
+    return `<tr><td>${p.nombre || '—'}</td><td class="center">${p.cantidad || 0}</td><td class="right">Q ${totP.toFixed(2)}</td><td class="center">${pct}%</td></tr>`;
+  }).join('');
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
     *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#0f172a;padding:20px}
     .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #2563eb}
@@ -258,19 +283,19 @@ export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
   </style></head><body>
   <div class="header">
     <div><div class="logo">Web<span>Soft</span> Solutions</div><div style="font-size:9px;color:#64748b;margin-top:3px">Guastatoya, El Progreso</div></div>
-    <div style="text-align:right"><div class="badge">REPORTE DE VENTAS</div><div style="font-size:9px;color:#64748b;margin-top:6px">Periodo: ${new Date(fi).toLocaleDateString('es-GT')} – ${new Date(ff).toLocaleDateString('es-GT')}</div></div>
+    <div style="text-align:right"><div class="badge">REPORTE DE VENTAS</div><div style="font-size:9px;color:#64748b;margin-top:6px">Periodo: ${safeDate(fi)} – ${safeDate(ff)}</div></div>
   </div>
   <div class="kpis">
-    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total ventas</div><div class="kpi-value" style="color:#2563eb">${reporte.totalVentas}</div></div>
-    <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-label">Ingresos</div><div class="kpi-value" style="color:#16a34a">Q ${reporte.granTotal.toFixed(2)}</div></div>
+    <div class="kpi" style="border-top-color:#2563eb"><div class="kpi-label">Total ventas</div><div class="kpi-value" style="color:#2563eb">${totalVentas}</div></div>
+    <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-label">Ingresos</div><div class="kpi-value" style="color:#16a34a">Q ${granTotal.toFixed(2)}</div></div>
     <div class="kpi" style="border-top-color:#d97706"><div class="kpi-label">IVA recaudado</div><div class="kpi-value" style="color:#d97706">Q ${ivaRecaudado.toFixed(2)}</div></div>
-    <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-label">Ticket prom.</div><div class="kpi-value" style="color:#7c3aed">Q ${reporte.totalVentas > 0 ? (reporte.granTotal / reporte.totalVentas).toFixed(2) : '0.00'}</div></div>
+    <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-label">Ticket prom.</div><div class="kpi-value" style="color:#7c3aed">Q ${totalVentas > 0 ? (granTotal / totalVentas).toFixed(2) : '0.00'}</div></div>
   </div>
   <div class="section-title">Ventas por dia</div>
   <table><thead><tr><th>Fecha</th><th class="center">Ventas</th><th class="right">Total</th><th class="right">Ticket prom.</th><th class="center">Dev.</th></tr></thead><tbody>${diasRows}</tbody></table>
   <div class="section-title">Productos mas vendidos</div>
   <table><thead><tr><th>Producto</th><th class="center">Cantidad</th><th class="right">Total</th><th class="center">% ingresos</th></tr></thead><tbody>${prodRows}</tbody></table>
-  <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Generado el ${new Date().toLocaleDateString('es-GT')}</span></div>
+  <div class="footer"><span>WebSoft Solutions · Guastatoya, El Progreso</span><span>Generado el ${safeDate(new Date())}</span></div>
   </body></html>`
   const w = window.open('', '_blank')
   if (w) {

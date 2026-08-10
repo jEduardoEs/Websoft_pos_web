@@ -217,6 +217,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   };
 
   const guardar = async () => {
+    if (loading) return;
     if (!form.clienteNombre.trim()) { toast.error('Nombre de cliente requerido'); return; }
     if (items.length === 0) { toast.error('Agrega al menos un item'); return; }
 

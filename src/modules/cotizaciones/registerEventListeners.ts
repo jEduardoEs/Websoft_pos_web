@@ -3,5 +3,6 @@ import { quotationApprovedListener } from '@/modules/ventas/listeners/QuotationA
 
 export function registerCotizacionesListeners() {
   eventBus.subscribe('QuotationApproved', quotationApprovedListener);
+  eventBus.subscribe('CotizacionAprobada', quotationApprovedListener);
   console.info('[Cotizaciones] Event listeners registered');
 }

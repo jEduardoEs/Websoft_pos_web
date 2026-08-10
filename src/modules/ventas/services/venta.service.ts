@@ -84,6 +84,15 @@ export class VentaService {
       }
     }
 
+    if (dto.cotizacionId) {
+      const ventaPrevia = await prisma.venta.findFirst({
+        where: { cotizacionId: dto.cotizacionId }
+      });
+      if (ventaPrevia) {
+        throw new Error(`La cotización ya fue facturada previamente en el sistema con el comprobante ${ventaPrevia.numero}`);
+      }
+    }
+
     let numeroVenta = '';
 
     const venta = await prisma.$transaction(async (tx) => {
@@ -306,6 +315,47 @@ export class VentaService {
       console.error('[VentaService] Side-effects error:', err);
     }
 
+    try {
+      const { eventBus } = await import('@/core/events/EventBus');
+      const { VentaCreada, PagoRegistrado, ComisionReservada, FacturaEmitida } = await import('@/core/events/types');
+
+      await eventBus.publish(new VentaCreada({
+        ventaId: venta.id,
+        numero: venta.numero,
+        clienteNombre: venta.clienteNombre,
+        total: venta.total,
+        cotizacionId: dto.cotizacionId,
+        usuarioNombre: userName,
+      }));
+
+      await eventBus.publish(new PagoRegistrado({
+        ventaId: venta.id,
+        monto: venta.total,
+        metodoPago: dto.metodoPago || 'efectivo',
+        clienteNombre: venta.clienteNombre,
+        usuarioNombre: userName,
+      }));
+
+      await eventBus.publish(new ComisionReservada({
+        ventaId: venta.id,
+        vendedorNombre: userName,
+        monto: Number((venta.total * 0.05).toFixed(2)),
+      }));
+
+      if (felResult && (felResult as any).exito) {
+        await eventBus.publish(new FacturaEmitida({
+          ventaId: venta.id,
+          numeroFactura: (felResult as any).numero || venta.numero,
+          uuid: (felResult as any).uuid,
+          clienteNombre: venta.clienteNombre,
+          total: venta.total,
+          usuarioNombre: userName,
+        }));
+      }
+    } catch (err) {
+      console.error('[VentaService] Error publishing domain events:', err);
+    }
+
     return {
       venta,
       fel: felResult,
@@ -313,15 +363,28 @@ export class VentaService {
     };
   }
 
-  static async anular(id: number) {
+  static async anular(id: number, motivo: string = 'Solicitud de cliente', userId: number = 1, userName: string = 'Sistema') {
+    const { CancellationEngine } = await import('@/core/cancellations');
+    const result = await CancellationEngine.cancelVenta({
+      targetId: id,
+      type: 'venta',
+      motivo,
+      usuarioId: userId,
+      usuarioNombre: userName,
+      retenerAnticipo50: true,
+    });
+
+    return result;
+  }
+
+  static async delete(id: number) {
     const venta = await prisma.venta.findUnique({ where: { id } });
     if (!venta) throw new Error('Venta no encontrada');
 
-    await prisma.venta.update({
-      where: { id },
-      data: { estado: 'anulada' },
-    });
+    const { RuleEngine } = await import('@/core/rules');
+    RuleEngine.assertCanDeleteSale({ estado: venta.estado, felUuid: (venta as any).felUuid });
 
+    await prisma.venta.delete({ where: { id } });
     return true;
   }
   static async createFromQuotation(quotationId: number) {

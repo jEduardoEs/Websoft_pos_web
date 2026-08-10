@@ -85,6 +85,7 @@ export function useGarantias() {
   }
 
   const saveGarantia = async () => {
+    if (loading) return
     if (!form.clienteNombre || !form.productoNombre) { toast.error('Cliente y producto requeridos'); return }
     setLoading(true)
     try {
@@ -109,6 +110,7 @@ export function useGarantias() {
   }
 
   const saveReclamo = async () => {
+    if (loading) return
     if (!selectedGarantia) return
     if (!reclamoForm.motivoReclamo || !reclamoForm.descripcionFalla) {
       toast.error('Motivo y descripción son requeridos'); return
