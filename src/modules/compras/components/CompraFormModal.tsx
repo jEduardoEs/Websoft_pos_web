@@ -234,7 +234,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
             <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Registrar Compra</div>
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Ingresa los datos de la factura y los productos adquiridos. El stock se sumará automáticamente.</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}></button>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, padding: 14, background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 8 }}>
@@ -245,7 +245,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', marginBottom: 4 }}>2. Adjuntar PDF (Opcional)</div>
             <input type="file" accept=".pdf,.png,.jpg" onChange={handleUploadFactura} disabled={uploading} style={{ fontSize: 12 }} />
-            {form.facturaUrl && <div style={{ fontSize: 11, color: '#16a34a', marginTop: 4 }}>✓ Archivo adjunto</div>}
+            {form.facturaUrl && <div style={{ fontSize: 11, color: '#16a34a', marginTop: 4 }}> Archivo adjunto</div>}
           </div>
         </div>
 
@@ -309,7 +309,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
               <input className="input" type="number" min="1" step="1" value={item.cantidad} onChange={e => updItem(i, 'cantidad', e.target.value)} style={{ fontSize: 12, textAlign: 'center' }} />
               <input className="input" type="number" min="0" step="0.01" value={item.precioUnitario} onChange={e => updItem(i, 'precioUnitario', e.target.value)} placeholder="0.00" style={{ fontSize: 12 }} />
               <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>{fmt(item.subtotal)}</div>
-              <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16 }}></button>
             </div>
           ))}
 

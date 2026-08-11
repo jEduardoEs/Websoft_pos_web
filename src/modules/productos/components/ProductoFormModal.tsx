@@ -122,7 +122,7 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
           <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#0f172a' }}>
             {producto ? 'Editar Producto' : 'Nuevo Producto'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

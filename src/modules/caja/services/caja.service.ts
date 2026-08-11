@@ -54,7 +54,20 @@ export class CajaService {
     if (activa) {
       throw new Error('Ya hay una caja abierta');
     }
-    return this.repository.createApertura(data, usuarioId, usuarioNombre);
+    const result = await this.repository.createApertura(data, usuarioId, usuarioNombre);
+    try {
+      const { CajaTurnoAggregate } = await import('@/core/domain/CajaTurnoAggregate');
+      const agg = CajaTurnoAggregate.openShift({
+        id: result.id,
+        usuarioId,
+        usuarioNombre,
+        fondoInicial: data.fondoInicial || 0,
+      });
+      await agg.dispatchEvents();
+    } catch (err) {
+      console.error('[CajaService] Error publishing CajaShiftOpened event:', err);
+    }
+    return result;
   }
 
   async registrarMovimiento(data: MovimientoCajaDto, usuarioId: number, usuarioNombre: string) {
@@ -62,7 +75,20 @@ export class CajaService {
     if (!activa) {
       throw new Error('No hay caja abierta');
     }
-    return this.repository.createMovimiento(data, activa.id, usuarioId, usuarioNombre);
+    const result = await this.repository.createMovimiento(data, activa.id, usuarioId, usuarioNombre);
+    try {
+      const { CajaTurnoAggregate } = await import('@/core/domain/CajaTurnoAggregate');
+      const agg = new CajaTurnoAggregate(activa.id, usuarioId, usuarioNombre, { amount: activa.fondoInicial } as any, 'abierta');
+      if (data.tipo === 'inyeccion') {
+        agg.injectCapital(data.monto, data.motivo || 'Inyección de capital');
+      } else {
+        agg.withdrawCapital(data.monto, data.motivo || 'Retiro de capital');
+      }
+      await agg.dispatchEvents();
+    } catch (err) {
+      console.error('[CajaService] Error publishing movement event:', err);
+    }
+    return result;
   }
 
   async cerrarCaja(data: CerrarCajaDto, usuarioId: number, usuarioNombre: string) {
@@ -94,6 +120,15 @@ export class CajaService {
       usuarioId,
       usuarioNombre
     );
+
+    try {
+      const { CajaTurnoAggregate } = await import('@/core/domain/CajaTurnoAggregate');
+      const agg = new CajaTurnoAggregate(activa.id, usuarioId, usuarioNombre, { amount: activa.fondoInicial } as any, 'abierta');
+      agg.closeShift(contado, resumen.debeHaber);
+      await agg.dispatchEvents();
+    } catch (err) {
+      console.error('[CajaService] Error publishing CajaShiftClosed event:', err);
+    }
 
     return {
       cierre,

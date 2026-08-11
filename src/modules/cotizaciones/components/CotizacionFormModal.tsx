@@ -191,7 +191,7 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
 
                     <td style={{ padding: 8, textAlign: 'right', fontWeight: 700, fontSize: 13, color: 'var(--ws-text, #18181b)' }}>{fmt(it.total)}</td>
                     <td style={{ padding: 8, textAlign: 'center' }}>
-                      <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: 'var(--ws-red, #b13a2e)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+                      <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: 'var(--ws-red, #b13a2e)', cursor: 'pointer', fontWeight: 700 }}></button>
                     </td>
                   </tr>
                 ))}

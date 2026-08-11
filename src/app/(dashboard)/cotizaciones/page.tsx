@@ -945,7 +945,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                 autoFocus
                 style={{ fontSize: 20, textAlign: 'center', letterSpacing: 6, fontWeight: 700 }}
               />
-              {pinError && <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginTop: 6 }}>⚠ {pinError}</div>}
+              {pinError && <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginTop: 6 }}> {pinError}</div>}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { setPinModal(null); setPin(''); setPinError('') }}>Cancelar</button>

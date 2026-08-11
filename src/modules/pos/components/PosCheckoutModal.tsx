@@ -53,7 +53,7 @@ export function PosCheckoutModal({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Completar Pago</h2>
-              <button onClick={() => setShowCobro(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+              <button onClick={() => setShowCobro(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}></button>
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: 24 }}>

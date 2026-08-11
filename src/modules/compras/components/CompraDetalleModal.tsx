@@ -24,7 +24,7 @@ export function CompraDetalleModal({ compra, onClose }: CompraDetalleModalProps)
             </div>
           </div>
           <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontWeight: 700, color: '#64748b' }}>
-            ✕
+            
           </button>
         </div>
 

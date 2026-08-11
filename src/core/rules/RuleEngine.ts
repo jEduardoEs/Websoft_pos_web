@@ -12,6 +12,60 @@ import {
 
 export class RuleEngine {
   /**
+   * BR-001: Minimum 50% deposit required for quotation approval.
+   */
+  static assertQuoteDeposit(depositAmount: number, totalAmount: number): void {
+    const minRequired = totalAmount * 0.5;
+    if (depositAmount < minRequired) {
+      throw new Error(
+        `BR-001 Violada: La cotización requiere un anticipo mínimo del 50% (Q ${minRequired.toFixed(2)}). Abonado actual: Q ${depositAmount.toFixed(2)}.`
+      );
+    }
+  }
+
+  /**
+   * BR-002: Non-refundable deposit policy on commercial cancellation.
+   */
+  static assertDepositNonRefundable(): void {
+    console.info('[RuleEngine] BR-002 Enforced: El anticipo no es reembolsable tras la cancelación.');
+  }
+
+  /**
+   * BR-007: Warranty birth only post-project delivery.
+   */
+  static assertWarrantyEligibility(proyectoState: string): void {
+    const valid = ['entregado', 'completado'];
+    if (!valid.includes(proyectoState)) {
+      throw new Error(
+        `BR-007 Violada: Los certificados de garantía solo se emiten para proyectos en estado entregado o completado. Estado actual: '${proyectoState}'.`
+      );
+    }
+  }
+
+  /**
+   * BR-009: Commission eligibility upon project delivery/closure.
+   */
+  static assertCommissionEligibility(proyectoState: string): void {
+    const valid = ['entregado', 'completado', 'cerrado'];
+    if (!valid.includes(proyectoState)) {
+      throw new Error(
+        `BR-009 Violada: Las comisiones solo se pueden liberar para proyectos entregados o cerrados. Estado actual: '${proyectoState}'.`
+      );
+    }
+  }
+
+  /**
+   * BR-010: Cash register shift open invariant for POS transactions.
+   */
+  static assertCajaOpen(cajaShiftState?: string | null): void {
+    if (cajaShiftState !== 'abierta') {
+      throw new Error(
+        'BR-010 Violada: Es necesario contar con un turno de caja en estado abierta para procesar transacciones en el POS.'
+      );
+    }
+  }
+
+  /**
    * Rule 1: No facturar si el proyecto no está aprobado (debe estar en ejecución o completado).
    */
   static assertCanInvoiceProject(context: ProjectInvoiceContext): void {
@@ -58,9 +112,9 @@ export class RuleEngine {
    * Rule 5: No acreditar comisiones antes de finalizar el proyecto.
    */
   static assertCanCreditCommission(context: CommissionCreditContext): void {
-    if (context.estado !== 'completado') {
+    if (context.estado !== 'completado' && context.estado !== 'entregado') {
       throw new Error(
-        `Regla de Negocio Violada: Las comisiones solo se pueden acreditar cuando el proyecto esté 'completado'. Estado actual: '${context.estado}'.`
+        `Regla de Negocio Violada: Las comisiones solo se pueden acreditar cuando el proyecto esté entregado o completado. Estado actual: '${context.estado}'.`
       );
     }
   }

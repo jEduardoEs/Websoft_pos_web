@@ -1,19 +1,19 @@
 // Event listener for Inventory State Engine
-// Automatically connects domain events (VentaCreada, FacturaEmitida, ProyectoCancelado) to inventory state transitions.
+// Automatically connects domain events (SaleCreated, VentaCreada, FacturaEmitida, ProyectoCancelado) to inventory state transitions.
 
 import { eventBus } from '@/core/events/EventBus';
 import { prisma } from '@/lib/prisma';
 import { InventoryStateEngine } from './InventoryStateEngine';
 
 export function registerInventoryEventListeners(): void {
-  // 1. Event VentaCreada: Transition Disponible -> Reservado
-  eventBus.subscribe('VentaCreada', async (event: any) => {
-    const { ventaId, usuarioNombre } = event.payload || {};
-    if (!ventaId) return;
+  const processSaleCreated = async (event: any) => {
+    const { saleId, ventaId, usuarioNombre } = event.payload || {};
+    const id = Number(saleId || ventaId);
+    if (!id) return;
 
     try {
       const venta = await prisma.venta.findUnique({
-        where: { id: Number(ventaId) },
+        where: { id },
         include: { items: true },
       });
       if (!venta) return;
@@ -26,9 +26,13 @@ export function registerInventoryEventListeners(): void {
         await InventoryStateEngine.reserveStock(items, `Venta ${venta.numero}`, usuarioNombre || 'Sistema');
       }
     } catch (err) {
-      console.error('[InventoryEventListener] Error on VentaCreada:', err);
+      console.error('[InventoryEventListener] Error processing sale event:', err);
     }
-  });
+  };
+
+  // 1. Event SaleCreated & VentaCreada: Transition Disponible -> Reservado
+  eventBus.subscribe('SaleCreated', processSaleCreated);
+  eventBus.subscribe('VentaCreada', processSaleCreated);
 
   // 2. Event FacturaEmitida: Transition Reservado -> Entregado / Consumido
   eventBus.subscribe('FacturaEmitida', async (event: any) => {

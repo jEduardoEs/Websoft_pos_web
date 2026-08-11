@@ -22,7 +22,7 @@ export const auditListener = async (event: DomainEvent): Promise<void> => {
     await TotalAuditService.log({
       usuarioId: payload.usuarioId || 1,
       usuarioNombre,
-      fecha: event.timestamp || new Date(),
+      fecha: event.timestamp instanceof Date ? event.timestamp : new Date(event.timestamp || Date.now()),
       ip: payload.ip || '127.0.0.1',
       equipo: payload.equipo || 'Server EventBus',
       estadoAnterior,

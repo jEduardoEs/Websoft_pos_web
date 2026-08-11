@@ -63,7 +63,7 @@ export function MantenimientosModule() {
     const dias = diasPara(fecha)
     const vencido = dias !== null && dias < 0 && !realizado
     const proximo = dias !== null && dias >= 0 && dias <= 15 && !realizado
-    if (realizado) return <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}>✓ {fmt(fecha)}</span>
+    if (realizado) return <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}> {fmt(fecha)}</span>
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: vencido ? '#fef2f2' : proximo ? '#fffbeb' : '#f8fafc', color: vencido ? '#dc2626' : proximo ? '#d97706' : '#64748b', fontWeight: 700 }}>

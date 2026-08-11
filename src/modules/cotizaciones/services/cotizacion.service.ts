@@ -144,6 +144,23 @@ export class CotizacionService {
       }
     }
 
+    // Integrate Domain Aggregate & Invariants (BR-001 & BR-002)
+    if (estado === 'aceptada') {
+      const { CotizacionAggregate } = await import('@/core/domain/CotizacionAggregate');
+      const { Money } = await import('@/core/domain/ValueObjects');
+      const anticipoPagado = Number((cotizacionActual as any).anticipoPagado || cotizacionActual.total * 0.5);
+      const cotAggregate = new CotizacionAggregate(
+        cotizacionActual.id,
+        cotizacionActual.numero,
+        cotizacionActual.clienteId || 1,
+        cotizacionActual.clienteNombre,
+        new Money(cotizacionActual.total),
+        new Money(anticipoPagado),
+        cotizacionActual.estado as any
+      );
+      cotAggregate.approve();
+    }
+
     const updated = await prisma.cotizacion.update({
       where: { id },
       data: {

@@ -63,11 +63,11 @@ export default function MantenimientosPage() {
     const dias = diasPara(fecha)
     const vencido = dias !== null && dias < 0 && !realizado
     const proximo = dias !== null && dias >= 0 && dias <= 15 && !realizado
-    if (realizado) return <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}>✓ {fmt(fecha)}</span>
+    if (realizado) return <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 700 }}> {fmt(fecha)}</span>
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: vencido ? '#fef2f2' : proximo ? '#fffbeb' : '#f8fafc', color: vencido ? '#dc2626' : proximo ? '#d97706' : '#64748b', fontWeight: 700 }}>
-          {vencido ? `⚠ Vencido ${fmt(fecha)}` : proximo ? `⏰ En ${dias}d — ${fmt(fecha)}` : fmt(fecha)}
+          {vencido ? ` Vencido ${fmt(fecha)}` : proximo ? `⏰ En ${dias}d — ${fmt(fecha)}` : fmt(fecha)}
         </span>
         <button onClick={() => { setShowMarcar({ mant, num }); setNotas('') }}
           style={{ fontSize: 10, padding: '2px 7px', background: '#1581E3', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
@@ -90,7 +90,7 @@ export default function MantenimientosPage() {
       {/* Alertas */}
       {(proximos.length > 0 || vencidos.length > 0) && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {vencidos.length > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}>⚠ {vencidos.length} mantenimiento(s) vencido(s) — requieren atención</div>}
+          {vencidos.length > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}> {vencidos.length} mantenimiento(s) vencido(s) — requieren atención</div>}
           {proximos.length > 0 && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#92400e', fontWeight: 600 }}>⏰ {proximos.length} mantenimiento(s) próximo(s) en los siguientes 15 días</div>}
         </div>
       )}

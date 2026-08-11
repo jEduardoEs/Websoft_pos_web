@@ -84,7 +84,7 @@ export function PosCart({
               </button>
             )}
             {nitStatus === 'found' && clienteTieneCorreo && (
-              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}>✓</span>
+              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
             )}
             {nitStatus === 'found' && !clienteTieneCorreo && (
               <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}>!</span>
@@ -159,7 +159,7 @@ export function PosCart({
                   onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                   onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
                 >
-                  ✕
+                  
                 </button>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', paddingRight: 16, lineHeight: 1.25, marginBottom: 6 }}>
                   {item.codigo ? <span style={{ color: '#64748b', fontWeight: 500, fontSize: 11 }}>[{item.codigo}] </span> : ''}

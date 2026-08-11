@@ -316,6 +316,27 @@ export class VentaService {
     }
 
     try {
+      const { VentaAggregate } = await import('@/core/domain/VentaAggregate');
+      const ventaAgg = VentaAggregate.createFromPos({
+        id: venta.id,
+        numero: venta.numero,
+        clienteNombre: venta.clienteNombre,
+        clienteNit: venta.clienteNit,
+        total: venta.total,
+        metodoPago: venta.metodoPago,
+        items: dto.items.map(it => ({
+          productoId: it.productoId || null,
+          codigo: it.codigo || 'PRD',
+          nombre: it.nombre,
+          cantidad: it.cantidad,
+          precioUnitario: it.precioUnitario,
+          descuento: it.descuento || 0,
+          subtotal: it.subtotal,
+        })),
+        cotizacionId: dto.cotizacionId ? Number(dto.cotizacionId) : undefined,
+      });
+      await ventaAgg.dispatchEvents();
+
       const { eventBus } = await import('@/core/events/EventBus');
       const { VentaCreada, PagoRegistrado, ComisionReservada, FacturaEmitida } = await import('@/core/events/types');
 

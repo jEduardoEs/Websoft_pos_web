@@ -569,7 +569,7 @@ export default function ReportesPage() {
       {tabReporte === 'patrimonio' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card" style={{ padding: 28, textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
+            <div style={{ fontSize: 32, marginBottom: 12 }}></div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Reporte de Patrimonio</h2>
             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 6, maxWidth: 420, margin: '0 auto 8px' }}>
               Genera el estado de patrimonio con activos fijos e inventario valorado al costo.

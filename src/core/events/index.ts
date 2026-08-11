@@ -3,6 +3,7 @@ import { registerVentasListeners } from '@/modules/ventas/registerEventListeners
 import { registerProyectosListeners } from '@/modules/proyectos/registerEventListeners';
 import { registerAuditoriaListeners } from '@/modules/auditoria/registerEventListeners';
 import { registerInventoryEventListeners } from '@/core/inventory/InventoryEventListener';
+import { registerWarrantyClaimApprovedListener } from '@/modules/garantias/listeners/WarrantyClaimApprovedListener';
 
 export function initializeEventBus() {
   console.info('[EventBus] Initializing event listeners...');
@@ -11,5 +12,6 @@ export function initializeEventBus() {
   registerProyectosListeners();
   registerAuditoriaListeners();
   registerInventoryEventListeners();
+  registerWarrantyClaimApprovedListener();
   console.info('[EventBus] Initialization complete.');
 }
