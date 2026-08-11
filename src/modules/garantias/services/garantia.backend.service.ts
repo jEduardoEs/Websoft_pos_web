@@ -10,8 +10,10 @@ export class GarantiaBackendService {
       where.OR = [
         { clienteNombre: { contains: buscar, mode: 'insensitive' } },
         { productoNombre: { contains: buscar, mode: 'insensitive' } },
+        { productoSerie: { contains: buscar, mode: 'insensitive' } },
         { numero: { contains: buscar, mode: 'insensitive' } },
         { clienteNit: { contains: buscar, mode: 'insensitive' } },
+        { ventaNumero: { contains: buscar, mode: 'insensitive' } },
       ];
     }
 

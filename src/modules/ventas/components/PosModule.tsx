@@ -318,7 +318,7 @@ export function PosModule() {
             <p style={{ fontSize: 13, color: '#475569', marginBottom: 20 }}>Comprobante No: <strong>{lastVenta.numero}</strong></p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button className="btn-secondary" onClick={() => setLastVenta(null)}>Cerrar</button>
-              <button className="btn-primary" onClick={handleImprimirUltimoTicket}>️ Imprimir Ticket</button>
+              <button className="btn-primary" onClick={handleImprimirUltimoTicket}>Imprimir Ticket</button>
             </div>
           </div>
         </div>

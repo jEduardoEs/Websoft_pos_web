@@ -18,26 +18,22 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
           onClick={() => setSidebarOpen(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 98, display: 'none' }}
           className="mobile-overlay"
-          aria-hidden="true"
         />
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
         {/* Sidebar — desktop siempre visible, móvil como drawer */}
-        <div id="mobile-sidebar" className={`sidebar-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
+        <div className={`sidebar-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <Sidebar />
         </div>
 
         {/* Contenido principal */}
-        <main style={{ flex: 1, overflowY: 'auto', background: '#f4f3ef', minWidth: 0 }} aria-label="Contenido principal">
+        <main style={{ flex: 1, overflowY: 'auto', background: '#f4f3ef', minWidth: 0 }}>
           {/* Botón hamburguesa — solo móvil */}
           <button
-            type="button"
             onClick={() => setSidebarOpen(p => !p)}
             className="hamburger-btn"
-            aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
-            aria-expanded={sidebarOpen}
-            aria-controls="mobile-sidebar"
+            aria-label="Menú"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               {sidebarOpen

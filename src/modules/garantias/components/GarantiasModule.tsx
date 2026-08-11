@@ -147,14 +147,7 @@ export default function GarantiasModule() {
                                 >
                                   Imprimir
                                 </button>
-                                {g.estado !== 'anulada' && (
-                                  <button
-                                    onClick={() => anularGarantia(g)}
-                                    style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', background: '#f8eeec', color: '#b13a2e', border: '1px solid #e3c3bd', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                  >
-                                    Anular
-                                  </button>
-                                )}
+                                
                               </div>
                             </td>
                           </tr>
@@ -247,14 +240,7 @@ export default function GarantiasModule() {
                                 >
                                   Imprimir
                                 </button>
-                                {g.estado !== 'anulada' && (
-                                  <button
-                                    onClick={() => anularGarantia(g)}
-                                    style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', background: '#f8eeec', color: '#b13a2e', border: '1px solid #e3c3bd', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                  >
-                                    Anular
-                                  </button>
-                                )}
+                                
                               </div>
                             </td>
                           </tr>
@@ -577,14 +563,7 @@ export default function GarantiasModule() {
               >
                 Imprimir Certificado
               </button>
-              {selectedGarantia.estado !== 'anulada' && (
-                <button
-                  onClick={() => { setShowDetalle(false); anularGarantia(selectedGarantia); }}
-                  style={{ fontSize: 12, fontWeight: 600, padding: '8px 16px', background: '#f8eeec', color: '#b13a2e', border: '1px solid #e3c3bd', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Anular Garantía
-                </button>
-              )}
+              
               <button className="btn-secondary" onClick={() => setShowDetalle(false)}>Cerrar</button>
             </div>
           </div>

@@ -130,10 +130,10 @@ export default function Sidebar() {
   }
 
   return (
-    <aside style={{ width: 210, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }} aria-label="Navegación lateral">
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }} aria-label="Navegación principal">
+    <aside style={{ width: 210, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }}>
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
         {/* Dashboard */}
-        <Link href="/dashboard" style={{ textDecoration: 'none' }} aria-current={pathname === '/dashboard' ? 'page' : undefined}>
+        <Link href="/dashboard" style={{ textDecoration: 'none' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 7, marginBottom: 6, background: pathname === '/dashboard' ? '#eff6ff' : 'transparent', color: pathname === '/dashboard' ? '#2563eb' : '#475569', fontSize: 13, fontWeight: pathname === '/dashboard' ? 700 : 500, transition: 'all .12s' }}>
             <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: pathname === '/dashboard' ? '#2563eb' : '#94a3b8', flexShrink: 0 }}>
               <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -149,7 +149,7 @@ export default function Sidebar() {
 
           return (
             <div key={group.id} style={{ marginBottom: 2 }}>
-              <button type="button" onClick={() => toggleGroup(group.id)} aria-expanded={isOpen} aria-controls={`${group.id}-items`} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: hasActive && !isOpen ? '#eff6ff' : 'transparent', color: hasActive ? '#2563eb' : '#374151', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', transition: 'all .12s', textAlign: 'left' }}>
+              <button onClick={() => toggleGroup(group.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: hasActive && !isOpen ? '#eff6ff' : 'transparent', color: hasActive ? '#2563eb' : '#374151', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', transition: 'all .12s', textAlign: 'left' }}>
                 <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: hasActive ? '#2563eb' : '#94a3b8', flexShrink: 0 }}>
                   <path d={group.icon} />
                 </svg>
@@ -160,12 +160,12 @@ export default function Sidebar() {
               </button>
 
               {isOpen && (
-                <div id={`${group.id}-items`} style={{ paddingLeft: 12, marginTop: 2 }}>
+                <div style={{ paddingLeft: 12, marginTop: 2 }}>
                   {group.items.map(item => {
                     if (!canSeeItem(item)) return null
                     const active = pathname === item.href || pathname.startsWith(item.href)
                     return (
-                      <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }} aria-current={active ? 'page' : undefined}>
+                      <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 9px', borderRadius: 6, marginBottom: 1, background: active ? '#eff6ff' : 'transparent', color: active ? '#2563eb' : '#64748b', fontSize: 12, fontWeight: active ? 600 : 400, borderLeft: `2px solid ${active ? '#2563eb' : 'transparent'}`, transition: 'all .12s' }}>
                           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: active ? '#2563eb' : '#94a3b8', flexShrink: 0 }}>
                             <path d={item.icon} />
