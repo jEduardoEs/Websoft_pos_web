@@ -7,8 +7,6 @@ export const warrantyClaimApprovedListener = async (event: any): Promise<void> =
 
   if (!garantiaId || !crearOrdenTrabajo) return;
 
-  console.info(`[WarrantyClaimApprovedListener] Processing claim repair order for Warranty ${garantiaId}`);
-
   try {
     const garantia = await prisma.garantia.findUnique({
       where: { id: Number(garantiaId) },
@@ -33,8 +31,6 @@ export const warrantyClaimApprovedListener = async (event: any): Promise<void> =
         usuarioNombre: 'System (EventBus)',
       },
     });
-
-    console.info(`[WarrantyClaimApprovedListener] Orden de Servicio Técnico ${numOT} creada para garantía ${garantia.numero}`);
   } catch (error) {
     console.error(`[WarrantyClaimApprovedListener] Error creating technical service order for warranty ${garantiaId}:`, error);
   }
@@ -42,5 +38,4 @@ export const warrantyClaimApprovedListener = async (event: any): Promise<void> =
 
 export function registerWarrantyClaimApprovedListener(): void {
   eventBus.subscribe('WarrantyClaimApproved', warrantyClaimApprovedListener);
-  console.info('[Garantias] WarrantyClaimApprovedListener registered successfully.');
 }

@@ -4,14 +4,28 @@ import { registerProyectosListeners } from '@/modules/proyectos/registerEventLis
 import { registerAuditoriaListeners } from '@/modules/auditoria/registerEventListeners';
 import { registerInventoryEventListeners } from '@/core/inventory/InventoryEventListener';
 import { registerWarrantyClaimApprovedListener } from '@/modules/garantias/listeners/WarrantyClaimApprovedListener';
+import { eventBus } from './EventBus';
+import { DomainNotificationManager } from '../notifications/DomainNotificationManager';
+import { AppCache } from '../cache/AppCache';
 
 export function initializeEventBus() {
-  console.info('[EventBus] Initializing event listeners...');
   registerCotizacionesListeners();
   registerVentasListeners();
   registerProyectosListeners();
   registerAuditoriaListeners();
   registerInventoryEventListeners();
   registerWarrantyClaimApprovedListener();
-  console.info('[EventBus] Initialization complete.');
+
+  const domainNotificationManager = DomainNotificationManager.getInstance();
+  const domainEventTypes = [
+    'SaleCreated', 'VentaCreada', 'QuoteApproved', 'CotizacionAprobada',
+    'ProjectDelivered', 'WarrantyStarted', 'WarrantyClaimApproved',
+    'CajaShiftOpened', 'CajaShiftClosed', 'QuoteCancelled'
+  ];
+  domainEventTypes.forEach(evt => {
+    eventBus.subscribe(evt, (e) => {
+      domainNotificationManager.handleDomainEvent(e);
+      AppCache.clear();
+    });
+  });
 }

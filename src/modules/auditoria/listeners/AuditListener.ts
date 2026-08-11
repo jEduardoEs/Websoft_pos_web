@@ -33,8 +33,6 @@ export const auditListener = async (event: DomainEvent): Promise<void> => {
       valoresModificados: payload,
       detalle: `Evento de dominio procesado: ${typeStr}`,
     });
-
-    console.info(`[AuditListener] Audited event ${typeStr}`);
   } catch (error) {
     console.error(`[AuditListener] Failed to log event ${event.type}:`, error);
   }

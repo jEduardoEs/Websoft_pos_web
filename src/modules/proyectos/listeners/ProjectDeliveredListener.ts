@@ -8,8 +8,6 @@ export const projectDeliveredListener = async (event: any): Promise<void> => {
   const { projectId, clienteNombre, diasGarantia } = payload;
   if (!projectId) return;
 
-  console.info(`[ProjectDeliveredListener] Processing delivery for Project ${projectId}`);
-
   try {
     const proyecto = await prisma.proyecto.findUnique({
       where: { id: Number(projectId) },
@@ -71,5 +69,4 @@ export const projectDeliveredListener = async (event: any): Promise<void> => {
 
 export function registerProjectDeliveredListener(): void {
   eventBus.subscribe('ProjectDelivered', projectDeliveredListener);
-  console.info('[Proyectos] ProjectDeliveredListener registered successfully.');
 }

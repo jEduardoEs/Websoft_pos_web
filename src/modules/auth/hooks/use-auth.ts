@@ -28,7 +28,6 @@ export function useAuth() {
           toast.error(`Error de login: ${res.error}`)
         }
       } else if (res?.ok) {
-        toast.success('Login exitoso, redirigiendo...')
         router.push('/dashboard')
         router.refresh()
       } else {

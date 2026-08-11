@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from 'next-auth'
 
 export const authConfig: NextAuthConfig = {
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'Websoft123456789012345678901234567890',
   pages: { signIn: '/login', error: '/login' },
   session: { strategy: 'jwt', maxAge: 8 * 60 * 60 },
   providers: [], // Empty here, defined in lib/auth.ts

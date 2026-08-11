@@ -4,15 +4,13 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { authConfig } from '@/auth.config'
 
-console.log("******** AUTH.TS CARGADO ********")
-
 function generateToken() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  secret: 'Websoft123456789012345678901234567890',
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   trustHost: true,
   providers: [
     Credentials({
@@ -22,13 +20,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('========== [AUTH] INICIO LOGIN ==========')
         if (!credentials?.usuario || !credentials?.password) {
           console.warn('[AUTH] Credenciales incompletas')
           return null
         }
-        
-        console.log('[AUTH] Usuario recibido:', credentials.usuario)
         const user = await prisma.usuario.findFirst({
           where: {
             usuario: {
@@ -113,7 +108,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           permisos: permisosResueltos,
         }
 
-        console.log('========== [AUTH] FIN LOGIN ==========')
         return authUser
       },
     }),
