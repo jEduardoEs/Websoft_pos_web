@@ -9,17 +9,21 @@ export class DescuentosRepository {
   }
 
   async findByCodigo(codigo: string): Promise<DescuentoResponseDTO | null> {
-    const d = await prisma.descuento.findUnique({
-      where: { codigo: codigo.toUpperCase() },
+    if (!codigo || !codigo.trim()) return null
+    const clean = codigo.trim()
+    const d = await prisma.descuento.findFirst({
+      where: {
+        codigo: { equals: clean, mode: 'insensitive' },
+      },
     })
-    if (!d || !d.activo) return null
+    if (!d) return null
     return DescuentoMapper.toDTO(d)
   }
 
   async create(data: CrearDescuentoDTO): Promise<DescuentoResponseDTO> {
     const created = await prisma.descuento.create({
       data: {
-        codigo: data.codigo.toUpperCase(),
+        codigo: data.codigo.trim().toUpperCase(),
         descripcion: data.descripcion || null,
         tipo: data.tipo || 'porcentaje',
         valor: Number(data.valor) || 0,
@@ -36,7 +40,7 @@ export class DescuentosRepository {
     const updated = await prisma.descuento.update({
       where: { id: Number(id) },
       data: {
-        codigo: data.codigo.toUpperCase(),
+        codigo: data.codigo.trim().toUpperCase(),
         descripcion: data.descripcion || null,
         tipo: data.tipo || 'porcentaje',
         valor: Number(data.valor) || 0,
@@ -53,6 +57,13 @@ export class DescuentosRepository {
     await prisma.descuento.update({
       where: { id: Number(id) },
       data: { activo: false },
+    })
+    return true
+  }
+
+  async hardDelete(id: number): Promise<boolean> {
+    await prisma.descuento.delete({
+      where: { id: Number(id) },
     })
     return true
   }

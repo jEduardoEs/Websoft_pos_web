@@ -36,8 +36,13 @@ const lbl: React.CSSProperties = {
 
 export default function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([])
-  const [fi, setFi] = useState(new Date().toISOString().slice(0, 10))
-  const [ff, setFf] = useState(new Date().toISOString().slice(0, 10))
+  // Default date range: From 30 days ago to today so all recent sales load automatically
+  const [fi, setFi] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().slice(0, 10)
+  })
+  const [ff, setFf] = useState(() => new Date().toISOString().slice(0, 10))
   const [estado, setEstado] = useState('')
   const [selected, setSelected] = useState<Venta | null>(null)
   const [loading, setLoading] = useState(false)
@@ -150,6 +155,16 @@ export default function VentasPage() {
             }}
           >
             Hoy
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              setFi('')
+              setFf('')
+            }}
+          >
+            Todo
           </button>
           <button type="button" className="btn-primary" onClick={load} disabled={loading}>
             {loading ? 'Buscando...' : 'Buscar'}

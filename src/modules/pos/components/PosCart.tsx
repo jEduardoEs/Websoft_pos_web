@@ -16,6 +16,7 @@ interface PosCartProps {
   nitStatus: 'idle' | 'found' | 'notfound';
   ejecutarBusquedaNit: () => void;
   setShowRegCliente: (b: boolean) => void;
+  setRegForm?: any;
   clienteTieneCorreo: boolean;
 
   subtotal: number;
@@ -33,7 +34,7 @@ interface PosCartProps {
 
 export function PosCart({
   cart, changeQty, changePrice, removeItem, clearCart,
-  clienteNit, setClienteNit, clienteNombre, setClienteNombre, nitStatus, ejecutarBusquedaNit, setShowRegCliente, clienteTieneCorreo,
+  clienteNit, setClienteNit, clienteNombre, setClienteNombre, nitStatus, ejecutarBusquedaNit, setShowRegCliente, setRegForm, clienteTieneCorreo,
   subtotal, descuento, impuesto, total,
   descPct, codigoDesc, setCodigoDesc, validarDescuento,
   setShowCobro
@@ -56,7 +57,11 @@ export function PosCart({
                 onChange={e => {
                   const val = e.target.value.toUpperCase();
                   setClienteNit(val);
-                  if (val.length < 3 || val === 'CF') setClienteNombre('Consumidor Final');
+                  if (val === 'CF' || val.trim() === '') {
+                    if (clienteNombre === '' || clienteNombre === 'Consumidor Final') {
+                      setClienteNombre('Consumidor Final');
+                    }
+                  }
                 }} 
                 onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} 
               />
@@ -77,7 +82,18 @@ export function PosCart({
             />
             {nitStatus === 'notfound' && (
               <button 
-                onClick={() => setShowRegCliente(true)} 
+                onClick={() => {
+                  if (setRegForm) {
+                    setRegForm({
+                      nombre: clienteNombre !== 'Consumidor Final' ? clienteNombre : '',
+                      nit: clienteNit !== 'CF' ? clienteNit : '',
+                      telefono: '',
+                      direccion: '',
+                      correo: '',
+                    });
+                  }
+                  setShowRegCliente(true);
+                }} 
                 style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', height: 38, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
               >
                 + Crear

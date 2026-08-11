@@ -51,7 +51,12 @@ export async function DELETE(req: NextRequest) {
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    await descuentosRepository.softDelete(Number(id))
+    const hard = searchParams.get('hard') === 'true'
+    if (hard) {
+      await descuentosRepository.hardDelete(Number(id))
+    } else {
+      await descuentosRepository.softDelete(Number(id))
+    }
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     console.error('descuentos/route.ts error:', e?.message)

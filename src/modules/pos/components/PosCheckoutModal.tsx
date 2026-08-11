@@ -26,10 +26,9 @@ export function PosCheckoutModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20, overflowY: 'auto' }}>
-      <div style={{ background: '#fff', padding: 24, borderRadius: 16, width: 400, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+      <div style={{ background: '#fff', padding: 24, borderRadius: 16, width: 420, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
         {lastVenta ? (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Venta Completada</h2>
             <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20 }}>Documento: {lastVenta.numero}</p>
             
@@ -45,7 +44,7 @@ export function PosCheckoutModal({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button onClick={printTicket} className="btn-secondary" style={{ padding: 12, fontWeight: 700 }}>️ Re-Imprimir</button>
+              <button onClick={printTicket} className="btn-secondary" style={{ padding: 12, fontWeight: 700 }}>Re-Imprimir</button>
               <button onClick={resetPos} className="btn-primary" style={{ padding: 12, fontWeight: 700 }}>Nueva Venta</button>
             </div>
           </div>
@@ -53,7 +52,13 @@ export function PosCheckoutModal({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Completar Pago</h2>
-              <button onClick={() => setShowCobro(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}></button>
+              <button 
+                onClick={() => setShowCobro(false)} 
+                title="Regresar al carrito" 
+                style={{ background: 'none', border: 'none', fontSize: 22, fontWeight: 700, cursor: 'pointer', color: '#64748b', lineHeight: 1 }}
+              >
+                x
+              </button>
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -98,14 +103,26 @@ export function PosCheckoutModal({
               </div>
             )}
 
-            <button 
-              onClick={cobrar} 
-              disabled={loading || (metodoPago === 'efectivo' && parseFloat(montoRecibido || '0') < total)}
-              className="btn-primary" 
-              style={{ width: '100%', height: 50, fontSize: 16, fontWeight: 800 }}
-            >
-              {loading ? 'Procesando...' : `Confirmar Cobro ${fmt(total)}`}
-            </button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button 
+                type="button"
+                onClick={() => setShowCobro(false)} 
+                disabled={loading}
+                className="btn-secondary" 
+                style={{ flex: 1, height: 48, fontSize: 14, fontWeight: 700 }}
+              >
+                Regresar
+              </button>
+              <button 
+                type="button"
+                onClick={cobrar} 
+                disabled={loading || (metodoPago === 'efectivo' && parseFloat(montoRecibido || '0') < total)}
+                className="btn-primary" 
+                style={{ flex: 2, height: 48, fontSize: 15, fontWeight: 800 }}
+              >
+                {loading ? 'Procesando...' : `Confirmar Cobro (${fmt(total)})`}
+              </button>
+            </div>
           </div>
         )}
       </div>

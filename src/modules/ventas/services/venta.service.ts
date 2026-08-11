@@ -25,27 +25,28 @@ export class VentaService {
     const { fechaIni, fechaFin, estado, buscar } = params;
 
     const where: any = {};
-    if (estado) {
+    if (estado && estado.trim() !== '') {
       where.estado = estado;
-    } else {
-      where.estado = { not: 'anulada' };
     }
 
-    if (buscar) {
+    if (buscar && buscar.trim() !== '') {
+      const q = buscar.trim();
       where.OR = [
-        { clienteNombre: { contains: buscar, mode: 'insensitive' } },
-        { clienteNit: { contains: buscar, mode: 'insensitive' } },
-        { numero: { contains: buscar, mode: 'insensitive' } },
+        { clienteNombre: { contains: q, mode: 'insensitive' } },
+        { clienteNit: { contains: q, mode: 'insensitive' } },
+        { numero: { contains: q, mode: 'insensitive' } },
       ];
     }
 
     if (fechaIni || fechaFin) {
       where.fecha = {};
-      if (fechaIni) where.fecha.gte = new Date(fechaIni);
-      if (fechaFin) {
-        const end = new Date(fechaFin);
-        end.setHours(23, 59, 59, 999);
-        where.fecha.lte = end;
+      if (fechaIni && fechaIni.trim() !== '') {
+        const start = new Date(`${fechaIni}T00:00:00`);
+        where.fecha.gte = isNaN(start.getTime()) ? new Date(fechaIni) : start;
+      }
+      if (fechaFin && fechaFin.trim() !== '') {
+        const end = new Date(`${fechaFin}T23:59:59.999`);
+        where.fecha.lte = isNaN(end.getTime()) ? new Date(fechaFin) : end;
       }
     }
 

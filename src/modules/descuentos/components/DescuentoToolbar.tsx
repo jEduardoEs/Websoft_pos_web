@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import { Button } from '@/ui'
 
 export interface DescuentoToolbarProps {
   onNuevoCodigo: () => void
@@ -10,14 +9,14 @@ export function DescuentoToolbar({ onNuevoCodigo }: DescuentoToolbarProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Descuentos</h1>
-        <p style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-          Códigos de descuento para ventas
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#18181b' }}>Descuentos</h1>
+        <p style={{ fontSize: 12, color: '#8a887e', marginTop: 2 }}>
+          Consulta y gestiona todos los códigos de descuento del sistema
         </p>
       </div>
-      <Button variant="primary" onClick={onNuevoCodigo}>
+      <button className="btn-primary" onClick={onNuevoCodigo}>
         + Nuevo Código
-      </Button>
+      </button>
     </div>
   )
 }

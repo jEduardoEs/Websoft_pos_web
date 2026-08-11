@@ -6,6 +6,7 @@ import { usePos } from '@/modules/pos/hooks/use-pos';
 import { PosGrid } from '@/modules/pos/components/PosGrid';
 import { PosCart } from '@/modules/pos/components/PosCart';
 import { PosCheckoutModal } from '@/modules/pos/components/PosCheckoutModal';
+import { ClienteFormModal } from '@/modules/clientes/components/ClienteFormModal';
 import { buildTicketHTML, printTicketWindow } from '@/lib/ticket-printer';
 
 export function PosModule() {
@@ -169,13 +170,16 @@ export function PosModule() {
         subtotal: i.subtotal,
       }));
 
+      const finalNit = (clienteNit || '').trim().toUpperCase() || 'CF';
+      const finalNombre = (clienteNombre || '').trim() || (finalNit === 'CF' ? 'Consumidor Final' : 'Cliente Particular');
+
       const res = await fetch('/api/ventas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clienteNombre: clienteNombre.trim() || 'Consumidor Final',
-          clienteNit: clienteNit.trim() || 'CF',
-          clienteCorreo: clienteCorreo.trim() || undefined,
+          clienteNombre: finalNombre,
+          clienteNit: finalNit,
+          clienteCorreo: (clienteCorreo || '').trim() || undefined,
           items: itemsPayload,
           subtotal: subtotalCart,
           descuento: descuentoCart,
@@ -233,29 +237,78 @@ export function PosModule() {
 
   // Search client by NIT and set related state
   const buscarClienteNit = async () => {
-    if (!clienteNit || clienteNit.trim() === '' || clienteNit === 'CF') {
+    const cleanNit = (clienteNit || '').trim().toUpperCase();
+    if (!cleanNit || cleanNit === '' || cleanNit === 'CF') {
       setNitStatus('idle');
       setClienteNombre('Consumidor Final');
+      setClienteCorreo('');
+      setClienteId(null);
+      setClienteTieneCorreo(false);
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(clienteNit)}`);
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(cleanNit)}`);
       const data = await res.json();
       if (data.encontrado && data.cliente) {
         setClienteNombre(data.cliente.nombre);
+        setClienteNit(data.cliente.nit || cleanNit);
+        setClienteId(data.cliente.id);
+        setClienteCorreo(data.cliente.email || '');
+        setClienteTieneCorreo(!!data.cliente.email);
+        setNitStatus('found');
+        toast.success(`Cliente ${data.cliente.nombre} encontrado`);
+      } else {
+        setNitStatus('notfound');
+        setClienteTieneCorreo(false);
+        setRegForm(prev => ({
+          ...prev,
+          nit: cleanNit,
+          nombre: clienteNombre !== 'Consumidor Final' ? clienteNombre : '',
+        }));
+        toast.error('NIT no encontrado. Haz clic en "+ Crear" para registrarlo.');
+      }
+    } catch {
+      setNitStatus('notfound');
+      toast.error('Error al buscar cliente por NIT');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegistrarCliente = async () => {
+    if (!regForm.nombre.trim()) {
+      toast.error('Nombre del cliente requerido');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: regForm.nombre.trim(),
+          nit: regForm.nit || clienteNit || 'CF',
+          telefono: regForm.telefono || undefined,
+          email: regForm.correo || undefined,
+          direccion: regForm.direccion || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.cliente) {
+        setClienteNombre(data.cliente.nombre);
+        setClienteNit(data.cliente.nit || 'CF');
+        setClienteCorreo(data.cliente.email || '');
         setClienteId(data.cliente.id);
         setClienteTieneCorreo(!!data.cliente.email);
         setNitStatus('found');
-        toast.success('Cliente encontrado');
+        setShowRegCliente(false);
+        toast.success('Cliente registrado y seleccionado');
       } else {
-        setNitStatus('notfound');
-        setClienteNombre('');
-        toast.error('NIT no encontrado');
+        toast.error(data.error || 'Error al registrar cliente');
       }
-    } catch (e) {
-      setNitStatus('notfound');
-      toast.error('Error al buscar cliente');
+    } catch {
+      toast.error('Error de conexión al registrar cliente');
     } finally {
       setLoading(false);
     }
@@ -282,6 +335,7 @@ export function PosModule() {
         nitStatus={nitStatus}
         ejecutarBusquedaNit={buscarClienteNit}
         setShowRegCliente={setShowRegCliente}
+        setRegForm={setRegForm}
         clienteTieneCorreo={clienteTieneCorreo}
         subtotal={subtotalCart}
         descuento={descuentoCart}
@@ -307,6 +361,31 @@ export function PosModule() {
           montoRecibido={montoRecibido}
           setMontoRecibido={setMontoRecibido}
           total={totalCart}
+        />
+      )}
+
+      {showRegCliente && (
+        <ClienteFormModal
+          form={{
+            nombre: regForm.nombre || (clienteNombre !== 'Consumidor Final' ? clienteNombre : ''),
+            nit: regForm.nit || (clienteNit !== 'CF' ? clienteNit : ''),
+            telefono: regForm.telefono || '',
+            email: regForm.correo || '',
+            direccion: regForm.direccion || '',
+          }}
+          setForm={(f: any) => {
+            const next = typeof f === 'function' ? f(regForm) : f;
+            setRegForm({
+              nombre: next.nombre || '',
+              nit: next.nit || '',
+              telefono: next.telefono || '',
+              correo: next.email || '',
+              direccion: next.direccion || '',
+            });
+          }}
+          onSave={handleRegistrarCliente}
+          onClose={() => setShowRegCliente(false)}
+          loading={loading}
         />
       )}
 

@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import { Modal, Button } from '@/ui'
 import { DescuentoFormState } from '../types'
 import { DescuentoForm } from './DescuentoForm'
 
@@ -24,17 +23,28 @@ export function DescuentoFormModal({
   if (!isOpen) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nuevo Código de Descuento">
-      <DescuentoForm form={form} onChange={onChange} />
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
+      <div className="card" style={{ width: 500, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 28, background: '#fff', borderRadius: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#18181b', margin: 0 }}>
+            {form.id > 0 ? 'Editar Código de Descuento' : 'Nuevo Código de Descuento'}
+          </h3>
+          <button onClick={onClose} type="button" style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>
+            ×
+          </button>
+        </div>
 
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
-        <Button variant="ghost" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button variant="primary" onClick={onSave} isLoading={loading}>
-          Guardar
-        </Button>
+        <DescuentoForm form={form} onChange={onChange} />
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+          <button className="btn-secondary" onClick={onClose} disabled={loading}>
+            Cancelar
+          </button>
+          <button className="btn-primary" onClick={onSave} disabled={loading}>
+            {loading ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
       </div>
-    </Modal>
+    </div>
   )
 }

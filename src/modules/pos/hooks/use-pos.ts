@@ -76,7 +76,7 @@ export function usePos() {
   const [cotizacionId, setCotizacionId] = useState<number | null>(null);
 
   // Forms
-  const [regForm, setRegForm] = useState({ nombre: '', telefono: '', direccion: '', correo: '' });
+  const [regForm, setRegForm] = useState({ nombre: '', nit: '', telefono: '', direccion: '', correo: '' });
   const [libreForm, setLibreForm] = useState({ codigo: '', nombre: '', precio: '', cantidad: '1' });
   
   const searchRef = useRef<HTMLInputElement>(null);

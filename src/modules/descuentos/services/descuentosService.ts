@@ -20,6 +20,16 @@ export class DescuentosService {
     return Boolean(res.ok && res.data?.ok)
   }
 
+  async eliminar(id: number): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/descuentos?id=${id}&hard=true`, { method: 'DELETE' })
+      const data = await res.json()
+      return Boolean(res.ok && data.ok)
+    } catch {
+      return false
+    }
+  }
+
   async toggleActivo(id: number, activo: boolean): Promise<boolean> {
     try {
       const res = await fetch('/api/descuentos', {

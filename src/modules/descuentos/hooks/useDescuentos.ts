@@ -72,15 +72,14 @@ export function useDescuentos() {
     }
   }, [form, load])
 
-  const del = useCallback(
+  const desactivar = useCallback(
     async (d: DescuentoResponseDTO) => {
-      if (!confirm(`¿Desactivar código "${d.codigo}"?`)) return
-      const success = await descuentosService.desactivar(d.id)
+      const success = await descuentosService.toggleActivo(d.id, false)
       if (success) {
-        toast.success('Desactivado')
+        toast.success(`Código "${d.codigo}" desactivado`)
         load()
       } else {
-        toast.error('Error al desactivar')
+        toast.error('Error al desactivar código')
       }
     },
     [load]
@@ -90,10 +89,24 @@ export function useDescuentos() {
     async (d: DescuentoResponseDTO) => {
       const success = await descuentosService.toggleActivo(d.id, true)
       if (success) {
-        toast.success('Código reactivado')
+        toast.success(`Código "${d.codigo}" activado`)
         load()
       } else {
-        toast.error('Error al reactivar')
+        toast.error('Error al activar código')
+      }
+    },
+    [load]
+  )
+
+  const eliminar = useCallback(
+    async (d: DescuentoResponseDTO) => {
+      if (!confirm(`¿Eliminar permanentemente el código de descuento "${d.codigo}"?`)) return
+      const success = await descuentosService.eliminar(d.id)
+      if (success) {
+        toast.success('Descuento eliminado')
+        load()
+      } else {
+        toast.error('Error al eliminar el descuento')
       }
     },
     [load]
@@ -108,8 +121,10 @@ export function useDescuentos() {
     openNew,
     closeModal,
     save,
-    del,
+    del: desactivar,
+    desactivar,
     activar,
+    eliminar,
     refresh: load,
   }
 }
