@@ -95,6 +95,9 @@ const emptyForm = {
 
 export default function CotizacionesPage() {
   const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([])
+
+
+
   const [showModal, setShowModal] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [selected, setSelected] = useState<Cotizacion | null>(null)
@@ -1105,3 +1108,4 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
     </div>
   )
 }
+

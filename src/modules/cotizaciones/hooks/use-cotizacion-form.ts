@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { LineItem } from '../types/cotizacion';
@@ -48,6 +48,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   const [productos, setProductos] = useState<any[]>([]);
   const [zonas, setZonas] = useState<any[]>([]);
   const [buscarProd, setBuscarProd] = useState('');
+  const lastNitRef = useRef<string>('');
 
   // Sync logged in user into atencion field for new quotations
   useEffect(() => {
@@ -95,7 +96,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
       }
 
       if (isDuplicate) {
-        toast.info(`Duplicando cotización ${cotizacionInitial.numero}`);
+        // Form initialized for duplication
       }
     }
   }, [cotizacionInitial, isDuplicate, userName]);
@@ -124,10 +125,12 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
     const cleanNit = (nit || '').trim();
     setF('clienteNit', cleanNit);
     if (cleanNit.length < 3 || cleanNit.toUpperCase() === 'CF') return;
+    if (lastNitRef.current === cleanNit && form.clienteNombre) return;
     try {
       const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(cleanNit)}`);
       const data = await res.json();
       if (data.encontrado && data.cliente) {
+        lastNitRef.current = cleanNit;
         setForm(p => ({
           ...p,
           clienteNombre: data.cliente.nombre,
@@ -147,6 +150,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
           clienteNit: cleanNit,
         }));
       }
+
     } catch { /* ignore */ }
   };
 
