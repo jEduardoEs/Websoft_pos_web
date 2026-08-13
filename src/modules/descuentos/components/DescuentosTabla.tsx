@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { toast } from 'sonner'
 import { formatGTQ, formatDate } from '@/shared/formatters'
 import { DescuentoResponseDTO } from '../dto/DescuentoDTO'
 
@@ -11,6 +12,16 @@ export interface DescuentosTablaProps {
 }
 
 export function DescuentosTabla({ descuentos, onDesactivar, onActivar, onEliminar }: DescuentosTablaProps) {
+  const copiarCodigo = (codigo: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(codigo)
+        .then(() => toast.success(`Código "${codigo}" copiado al portapapeles`))
+        .catch(() => toast.error('Error al copiar código'))
+    } else {
+      toast.error('No se soporta el portapapeles en este navegador')
+    }
+  }
+
   return (
     <div className="table-responsive" style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 650 }}>
@@ -47,8 +58,36 @@ export function DescuentosTabla({ descuentos, onDesactivar, onActivar, onElimina
             descuentos.map(d => (
               <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#1581E3' }}>
-                  {d.codigo}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span>{d.codigo}</span>
+                    <button
+                      type="button"
+                      onClick={() => copiarCodigo(d.codigo)}
+                      title="Copiar código"
+                      style={{
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        color: '#1d4ed8',
+                        borderRadius: 4,
+                        padding: '3px 8px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                      Copiar
+                    </button>
+                  </div>
                 </td>
+
                 <td style={{ padding: '12px 14px', fontSize: 12 }}>
                   <span className="badge-blue" style={{ textTransform: 'capitalize' }}>
                     {d.tipo}
