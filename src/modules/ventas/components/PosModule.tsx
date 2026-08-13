@@ -252,9 +252,11 @@ export function PosModule() {
     if (!cleanNit || cleanNit === '' || cleanNit === 'CF') {
       setNitStatus('idle');
       setClienteNombre('Consumidor Final');
+      setClienteNit('CF');
       setClienteCorreo('');
       setClienteId(null);
       setClienteTieneCorreo(false);
+      setRegForm({ nombre: '', nit: 'CF', telefono: '', direccion: '', correo: '' });
       return;
     }
     setLoading(true);
@@ -270,17 +272,34 @@ export function PosModule() {
         setNitStatus('found');
         toast.success(`Cliente ${data.cliente.nombre} encontrado`);
       } else {
+        // Reset previous client data completely so old client details do not stick!
         setNitStatus('notfound');
+        setClienteId(null);
+        setClienteCorreo('');
         setClienteTieneCorreo(false);
-        setRegForm(prev => ({
-          ...prev,
+        setClienteNombre('');
+        setRegForm({
+          nombre: '',
           nit: cleanNit,
-          nombre: clienteNombre !== 'Consumidor Final' ? clienteNombre : '',
-        }));
+          telefono: '',
+          direccion: '',
+          correo: '',
+        });
         toast.error('NIT no encontrado. Haz clic en "+ Crear" para registrarlo.');
       }
     } catch {
       setNitStatus('notfound');
+      setClienteId(null);
+      setClienteCorreo('');
+      setClienteTieneCorreo(false);
+      setClienteNombre('');
+      setRegForm({
+        nombre: '',
+        nit: cleanNit,
+        telefono: '',
+        direccion: '',
+        correo: '',
+      });
       toast.error('Error al buscar cliente por NIT');
     } finally {
       setLoading(false);
@@ -343,6 +362,9 @@ export function PosModule() {
         cart={cart} changeQty={changeQty} changePrice={changePrice} removeItem={removeItem} clearCart={clearCart}
         clienteNit={clienteNit} setClienteNit={setClienteNit}
         clienteNombre={clienteNombre} setClienteNombre={setClienteNombre}
+        setClienteId={setClienteId}
+        setClienteCorreo={setClienteCorreo}
+        setNitStatus={setNitStatus}
         nitStatus={nitStatus}
         ejecutarBusquedaNit={buscarClienteNit}
         setShowRegCliente={setShowRegCliente}
@@ -378,7 +400,7 @@ export function PosModule() {
       {showRegCliente && (
         <ClienteFormModal
           form={{
-            nombre: regForm.nombre || (clienteNombre !== 'Consumidor Final' ? clienteNombre : ''),
+            nombre: regForm.nombre || '',
             nit: regForm.nit || (clienteNit !== 'CF' ? clienteNit : ''),
             telefono: regForm.telefono || '',
             email: regForm.correo || '',
@@ -399,6 +421,7 @@ export function PosModule() {
           loading={loading}
         />
       )}
+
 
       {/* Modal de éxito de venta y ticket */}
       {lastVenta && (

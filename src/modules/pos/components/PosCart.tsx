@@ -13,6 +13,9 @@ interface PosCartProps {
   setClienteNit: (n: string) => void;
   clienteNombre: string;
   setClienteNombre: (n: string) => void;
+  setClienteId?: (id: number | null) => void;
+  setClienteCorreo?: (c: string) => void;
+  setNitStatus?: (s: 'idle' | 'found' | 'notfound') => void;
   nitStatus: 'idle' | 'found' | 'notfound';
   ejecutarBusquedaNit: () => void;
   setShowRegCliente: (b: boolean) => void;
@@ -34,7 +37,7 @@ interface PosCartProps {
 
 export function PosCart({
   cart, changeQty, changePrice, removeItem, clearCart,
-  clienteNit, setClienteNit, clienteNombre, setClienteNombre, nitStatus, ejecutarBusquedaNit, setShowRegCliente, setRegForm, clienteTieneCorreo,
+  clienteNit, setClienteNit, clienteNombre, setClienteNombre, setClienteId, setClienteCorreo, setNitStatus, nitStatus, ejecutarBusquedaNit, setShowRegCliente, setRegForm, clienteTieneCorreo,
   subtotal, descuento, impuesto, total,
   descPct, codigoDesc, setCodigoDesc, validarDescuento,
   setShowCobro
@@ -57,10 +60,14 @@ export function PosCart({
                 onChange={e => {
                   const val = e.target.value.toUpperCase();
                   setClienteNit(val);
+                  // When editing NIT, reset status and old client data
+                  if (setNitStatus) setNitStatus('idle');
+                  if (setClienteId) setClienteId(null);
+                  if (setClienteCorreo) setClienteCorreo('');
                   if (val === 'CF' || val.trim() === '') {
-                    if (clienteNombre === '' || clienteNombre === 'Consumidor Final') {
-                      setClienteNombre('Consumidor Final');
-                    }
+                    setClienteNombre('Consumidor Final');
+                  } else {
+                    setClienteNombre('');
                   }
                 }} 
                 onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} 
@@ -85,7 +92,7 @@ export function PosCart({
                 onClick={() => {
                   if (setRegForm) {
                     setRegForm({
-                      nombre: clienteNombre !== 'Consumidor Final' ? clienteNombre : '',
+                      nombre: '',
                       nit: clienteNit !== 'CF' ? clienteNit : '',
                       telefono: '',
                       direccion: '',
@@ -99,6 +106,7 @@ export function PosCart({
                 + Crear
               </button>
             )}
+
             {nitStatus === 'found' && clienteTieneCorreo && (
               <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
             )}

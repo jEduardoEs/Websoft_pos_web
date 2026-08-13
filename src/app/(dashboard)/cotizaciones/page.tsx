@@ -167,6 +167,15 @@ export default function CotizacionesPage() {
           clienteNit: data.cliente.nit || cleanNit,
         }))
         toast.success(`Cliente ${data.cliente.nombre} encontrado — Datos cargados`)
+      } else {
+        setForm(p => ({
+          ...p,
+          clienteNombre: '',
+          clienteTelefono: '',
+          clienteDireccion: '',
+          clienteCorreo: '',
+          clienteNit: cleanNit,
+        }))
       }
     } catch { /* ignore */ }
   }
