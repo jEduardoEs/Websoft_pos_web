@@ -219,14 +219,8 @@ export class CotizacionService {
       });
     } catch {}
 
-    // Synchronize automatic project creation or reversion
+    // Cotizaciones aceptadas se sincronizarán a Proyectos únicamente cuando sean facturadas
     if (estado === 'aceptada') {
-      try {
-        await syncProyectoDesdeCotizacion(prisma, id, 'planificado', user.name);
-      } catch (err) {
-        console.error('[CotizacionService] Error auto-syncing proyecto:', err);
-      }
-
       try {
         const { eventBus } = await import('@/core/events/EventBus');
         const { CotizacionAprobada } = await import('@/core/events/types/CotizacionAprobada');
@@ -249,6 +243,7 @@ export class CotizacionService {
       }
     }
     return updated;
+
   }
 
   static async updateFull(id: number, data: any, user: any) {

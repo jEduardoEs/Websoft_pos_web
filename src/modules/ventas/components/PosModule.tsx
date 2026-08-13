@@ -39,6 +39,16 @@ export function PosModule() {
   useEffect(() => { loadConfig(); }, [loadConfig]);
   useEffect(() => { if (tab === 'cotizacion') loadCotizaciones(); }, [tab, loadCotizaciones]);
 
+  // Limpiar descuentos automáticamente cuando el carrito está vacío
+  useEffect(() => {
+    if (cart.length === 0) {
+      setDescMontoExacto(null);
+      setDescPct(0);
+      setCodigoDesc('');
+    }
+  }, [cart.length, setDescPct, setCodigoDesc]);
+
+
   const cargarCotizacion = async (cot: any) => {
     if (!cot) return;
     let items = cot.items;

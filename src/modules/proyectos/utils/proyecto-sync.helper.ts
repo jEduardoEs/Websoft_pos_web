@@ -6,6 +6,31 @@ function addMonths(date: Date, months: number): Date {
   return d;
 }
 
+export function esCotizacionProyecto(cotizacion: any): boolean {
+  if (!cotizacion) return false;
+  
+  // 1. Explicit check on tiempoInstalacion
+  if (cotizacion.tiempoInstalacion && String(cotizacion.tiempoInstalacion).trim().length > 0) {
+    return true;
+  }
+  
+  // 2. Check general description
+  if (cotizacion.descripcion && /instalac|proyecto|montaje|servicio técnico/i.test(cotizacion.descripcion)) {
+    return true;
+  }
+  
+  // 3. Check items
+  if (cotizacion.items && Array.isArray(cotizacion.items)) {
+    return cotizacion.items.some((i: any) => 
+      (i.codigo && i.codigo.toUpperCase().includes('INST')) ||
+      (i.descripcion && /instalac|proyecto|montaje|servicio/i.test(i.descripcion)) ||
+      (i.tipo && i.tipo === 'instalacion')
+    );
+  }
+
+  return false;
+}
+
 export async function syncProyectoDesdeCotizacion(
   tx: any,
   cotizacionId: number,
@@ -21,6 +46,12 @@ export async function syncProyectoDesdeCotizacion(
 
   if (!cotizacion) return null;
 
+  // Only sync/create project if this quotation is an installation project!
+  if (!esCotizacionProyecto(cotizacion)) {
+    return null;
+  }
+
+
   // 2. Check if project already exists for this quotation
   const existente = await tx.proyecto.findUnique({
     where: { cotizacionId },
@@ -30,8 +61,8 @@ export async function syncProyectoDesdeCotizacion(
   if (existente) {
     // If project exists, reactivate/advance status and append note
     const notasActuales = existente.notas || '';
-    const notaNueva = ventaNumero 
-      ? `Venta/Factura ${ventaNumero} vinculada.` 
+    const notaNueva = ventaNumero
+      ? `Venta/Factura ${ventaNumero} vinculada.`
       : `Cotización re-autorizada por ${usuarioNombre}. Estado actualizado a ${nuevoEstado}.`;
 
     const updatedProyecto = await tx.proyecto.update({
@@ -47,7 +78,7 @@ export async function syncProyectoDesdeCotizacion(
   // 3. Create new project if none exists
   const count = await tx.proyecto.count();
   const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
-  
+
   const itemsText = cotizacion.items && cotizacion.items.length > 0
     ? cotizacion.items.map((i: any) => `${i.cantidad}x ${i.descripcion}`).join(', ')
     : cotizacion.descripcion || 'Instalación / Trabajo cotizado';

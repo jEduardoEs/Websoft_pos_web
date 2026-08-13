@@ -151,14 +151,19 @@ export function usePos() {
     return { ...item, precioUnitario: p, subtotal: item.cantidad * p - item.descuento };
   }));
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setDescPct(0);
+    setCodigoDesc('');
+  };
 
   const resetPos = () => {
-    setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF'); setClienteCorreo('');
+    setCart([]); setClienteNombre('Consumidor Final'); setClienteNit('CF'); setClienteCorreo(''); setClienteId(null); setClienteTieneCorreo(false);
     setMetodoPago('efectivo'); setMontoRecibido(''); setDescPct(0); setCodigoDesc('');
     setShowCobro(false); setLastVenta(null); setLastFel(null); setNitStatus('idle'); setCotizacionId(null);
     searchRef.current?.focus();
   };
+
 
   return {
     state: {

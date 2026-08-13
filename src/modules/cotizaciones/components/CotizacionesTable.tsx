@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fmt, fmtDate } from '@/lib/utils';
 import { Cotizacion } from '../types/cotizacion';
 
+import { esCotizacionProyecto } from '@/modules/proyectos/utils/proyecto-sync.helper';
+
 interface CotizacionesTableProps {
   cotizaciones: Cotizacion[];
   loading: boolean;
@@ -44,6 +46,7 @@ export function CotizacionesTable({
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 11, color: '#64748b', textTransform: 'uppercase' }}>
             <th style={{ padding: '12px 16px' }}>Número</th>
+            <th style={{ padding: '12px 16px' }}>Tipo</th>
             <th style={{ padding: '12px 16px' }}>Cliente</th>
             <th style={{ padding: '12px 16px' }}>Fecha</th>
             <th style={{ padding: '12px 16px', textAlign: 'right' }}>Total</th>
@@ -56,12 +59,25 @@ export function CotizacionesTable({
           {cotizaciones.map((c) => {
             const menuOpen = openMenuId === c.id;
             const vencida = new Date(c.createdAt).getTime() + (c.validezDias * 86400000) < Date.now();
+            const esProy = esCotizacionProyecto(c);
 
             return (
               <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: 13 }}>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#1581E3', fontFamily: 'Courier New, monospace' }}>
                   {c.numero}
                 </td>
+                <td style={{ padding: '12px 16px' }}>
+                  {esProy ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'inline-block' }}>
+                      PROYECTO
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', display: 'inline-block' }}>
+                      PRODUCTOS
+                    </span>
+                  )}
+                </td>
+
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ fontWeight: 600, color: '#0f172a' }}>{c.clienteNombre}</div>
                   <div style={{ fontSize: 11, color: '#64748b' }}>NIT: {c.clienteNit || 'CF'}</div>
