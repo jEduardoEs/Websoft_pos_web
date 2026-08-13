@@ -11,6 +11,7 @@ export const CotizacionTransitionMap: Record<string, string[]> = {
     CotizacionState.ANULADA,
   ],
   [CotizacionState.ACEPTADA]: [
+    CotizacionState.PENDIENTE,
     CotizacionState.FACTURADA,
     CotizacionState.ANULADA,
   ],

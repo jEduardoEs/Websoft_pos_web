@@ -10,12 +10,13 @@ interface CotizacionesTableProps {
   onEdit?: (c: Cotizacion) => void;
   onDuplicate?: (c: Cotizacion) => void;
   onAnular: (c: Cotizacion) => void;
+  onRevertir?: (c: Cotizacion) => void;
   onEnviar: (c: Cotizacion) => void;
   onFacturar: (c: Cotizacion) => void;
 }
 
 export function CotizacionesTable({ 
-  cotizaciones, loading, isAdmin, onView, onEdit, onDuplicate, onAnular, onEnviar, onFacturar 
+  cotizaciones, loading, isAdmin, onView, onEdit, onDuplicate, onAnular, onRevertir, onEnviar, onFacturar 
 }: CotizacionesTableProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -128,6 +129,18 @@ export function CotizacionesTable({
                         Imprimir PDF
                       </a>
                       
+                      {c.estado === 'aceptada' && onRevertir && (
+                        <>
+                          <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                          <button onClick={() => { onRevertir(c); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#d97706', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 600, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#fef3c7')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Revertir a Pendiente
+                          </button>
+                        </>
+                      )}
+
                       {c.estado === 'pendiente' && (
                         <>
                           <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />

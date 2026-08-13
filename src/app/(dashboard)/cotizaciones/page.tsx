@@ -88,7 +88,7 @@ function newItem(tipo: LineItem['tipo']): LineItem {
 
 const emptyForm = {
   clienteNombre: '', clienteDireccion: '', clienteTelefono: '',
-  clienteNit: 'CF', atencion: '',
+  clienteNit: 'CF', clienteCorreo: '', atencion: '',
   formaPago: 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
   descripcion: '', notas: '', validezDias: '15', tiempoInstalacion: '',
 }
@@ -151,10 +151,11 @@ export default function CotizacionesPage() {
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
   const buscarNitCliente = async (nit: string) => {
-    setF('clienteNit', nit)
-    if (nit.length < 3 || nit.toUpperCase() === 'CF') return
+    const cleanNit = (nit || '').trim()
+    setF('clienteNit', cleanNit)
+    if (cleanNit.length < 3 || cleanNit.toUpperCase() === 'CF') return
     try {
-      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(nit)}`)
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(cleanNit)}`)
       const data = await res.json()
       if (data.encontrado && data.cliente) {
         setForm(p => ({
@@ -162,9 +163,10 @@ export default function CotizacionesPage() {
           clienteNombre: data.cliente.nombre,
           clienteTelefono: data.cliente.telefono || p.clienteTelefono,
           clienteDireccion: data.cliente.direccion || p.clienteDireccion,
-          clienteNit: nit,
+          clienteCorreo: data.cliente.email || p.clienteCorreo,
+          clienteNit: data.cliente.nit || cleanNit,
         }))
-        toast.success(`Cliente: ${data.cliente.nombre}`)
+        toast.success(`Cliente ${data.cliente.nombre} encontrado — Datos cargados`)
       }
     } catch { /* ignore */ }
   }
@@ -292,6 +294,7 @@ export default function CotizacionesPage() {
     setForm({
       clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
       clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      clienteCorreo: c.clienteCorreo || '',
       atencion: c.atencion || '', formaPago: c.formaPago || '',
       descripcion: c.descripcion || '', notas: c.notas || '',
       validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
@@ -314,6 +317,7 @@ export default function CotizacionesPage() {
     setForm({
       clienteNombre: c.clienteNombre, clienteDireccion: c.clienteDireccion || '',
       clienteTelefono: c.clienteTelefono || '', clienteNit: c.clienteNit || 'CF',
+      clienteCorreo: c.clienteCorreo || '',
       atencion: c.atencion || '', formaPago: c.formaPago || '',
       descripcion: c.descripcion || '', notas: c.notas || '',
       validezDias: String(c.validezDias || 15), tiempoInstalacion: c.tiempoInstalacion || '',
@@ -509,7 +513,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Cotizaciones</h1>
           <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Genera y gestiona cotizaciones con calculo automatico</p>
         </div>
-        <button className="btn-primary" onClick={() => { setForm(emptyForm); setItems([newItem('producto')]); setShowModal(true) }}>
+        <button className="btn-primary" onClick={() => { setForm({ ...emptyForm, atencion: session?.user?.name || '' }); setItems([newItem('producto')]); setShowModal(true) }}>
           + Nueva Cotizacion
         </button>
       </div>
@@ -629,8 +633,8 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <input className="input" value={form.clienteDireccion} onChange={e => setF('clienteDireccion', e.target.value)} />
                 </div>
                 <div>
-                  <label style={lbl}>Atencion a</label>
-                  <input className="input" value={form.atencion} onChange={e => setF('atencion', e.target.value)} />
+                  <label style={lbl}>Atendido por / Vendedor</label>
+                  <input className="input" value={form.atencion} onChange={e => setF('atencion', e.target.value)} placeholder="Nombre del vendedor" />
                 </div>
                 <div>
                   <label style={lbl}>Validez (dias)</label>

@@ -32,6 +32,35 @@ export class CotizacionService {
    * Create a new quotation
    */
   static async create(data: CreateCotizacionDto, usuarioId: number, usuarioNombre: string) {
+    // Validate inventory stock for quotation items
+    if (data.items && data.items.length > 0) {
+      const codigos = data.items.map(it => it.codigo).filter(Boolean) as string[];
+      if (codigos.length > 0) {
+        const prods = await prisma.producto.findMany({
+          where: {
+            codigo: { in: codigos, mode: 'insensitive' },
+            activo: true,
+          },
+          select: { id: true, codigo: true, stock: true, nombre: true },
+        });
+
+        const prodMap = new Map<string, { stock: number; nombre: string }>();
+        prods.forEach(p => {
+          if (p.codigo) prodMap.set(p.codigo.trim().toUpperCase(), p);
+        });
+
+        for (const item of data.items) {
+          if (!item.codigo) continue;
+          const prod = prodMap.get(item.codigo.trim().toUpperCase());
+          if (prod) {
+            if (prod.stock < item.cantidad) {
+              throw new Error(`Stock insuficiente para '${prod.nombre}' en inventario. Disponible: ${prod.stock} unidades, Cotizado: ${item.cantidad} unidades`);
+            }
+          }
+        }
+      }
+    }
+
     const res = await prisma.$transaction(async (tx) => {
       // Get the next sequence number for the quotation
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente_cotizacion' } });
@@ -133,8 +162,9 @@ export class CotizacionService {
     const { WorkflowEngine } = await import('@/core/state');
     WorkflowEngine.validateTransition('cotizacion', cotizacionActual.estado, estado);
 
+    const esReversion = cotizacionActual.estado === 'aceptada' || cotizacionActual.estado === 'rechazada';
     const estadosProtegidos = ['aceptada', 'rechazada', 'anulada'];
-    if (estadosProtegidos.includes(estado)) {
+    if (estadosProtegidos.includes(estado) || esReversion) {
       if (user.role !== 'admin') {
         if (!pin) throw new Error('PIN_REQUIRED');
         const admin = await prisma.usuario.findFirst({ where: { rol: 'admin', activo: true } });
@@ -161,11 +191,17 @@ export class CotizacionService {
       cotAggregate.approve();
     }
 
+    const notasActualizadas = estado === 'aceptada' 
+      ? `Autorizada por: ${user.name} el ${new Date().toLocaleString('es-GT')}`
+      : estado === 'pendiente' && cotizacionActual.estado === 'aceptada'
+      ? `Revertida a pendiente por: ${user.name} el ${new Date().toLocaleString('es-GT')}`
+      : cotizacionActual.notas;
+
     const updated = await prisma.cotizacion.update({
       where: { id },
       data: {
         estado,
-        notas: estado === 'aceptada' ? `Autorizada por: ${user.name} el ${new Date().toLocaleString('es-GT')}` : undefined,
+        notas: notasActualizadas,
       },
       include: { items: true },
     });
@@ -178,12 +214,12 @@ export class CotizacionService {
           accion: `COTIZACION_${estado.toUpperCase()}`,
           tabla: 'cotizaciones',
           registroId: String(id),
-          detalle: `Estado cambiado a: ${estado}`,
+          detalle: `Estado cambiado de ${cotizacionActual.estado} a: ${estado}`,
         },
       });
     } catch {}
 
-    // Synchronize automatic project creation on quotation acceptance
+    // Synchronize automatic project creation or reversion
     if (estado === 'aceptada') {
       try {
         await syncProyectoDesdeCotizacion(prisma, id, 'planificado', user.name);
@@ -204,11 +240,47 @@ export class CotizacionService {
       } catch (err) {
         console.error('[CotizacionService] Error publishing CotizacionAprobada:', err);
       }
+    } else if (estado === 'pendiente' || estado === 'anulada' || estado === 'rechazada') {
+      try {
+        const { handleReversionProyectoDesdeCotizacion } = await import('@/modules/proyectos/utils/proyecto-sync.helper');
+        await handleReversionProyectoDesdeCotizacion(prisma, id, estado, user.name);
+      } catch (err) {
+        console.error('[CotizacionService] Error syncing proyecto reversion:', err);
+      }
     }
     return updated;
   }
 
   static async updateFull(id: number, data: any, user: any) {
+    // Validate inventory stock for quotation items
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      const codigos = data.items.map((it: any) => it.codigo).filter(Boolean) as string[];
+      if (codigos.length > 0) {
+        const prods = await prisma.producto.findMany({
+          where: {
+            codigo: { in: codigos, mode: 'insensitive' },
+            activo: true,
+          },
+          select: { id: true, codigo: true, stock: true, nombre: true },
+        });
+
+        const prodMap = new Map<string, { stock: number; nombre: string }>();
+        prods.forEach(p => {
+          if (p.codigo) prodMap.set(p.codigo.trim().toUpperCase(), p);
+        });
+
+        for (const item of data.items) {
+          if (!item.codigo) continue;
+          const prod = prodMap.get(item.codigo.trim().toUpperCase());
+          if (prod) {
+            if (prod.stock < item.cantidad) {
+              throw new Error(`Stock insuficiente para '${prod.nombre}' en inventario. Disponible: ${prod.stock} unidades, Cotizado: ${item.cantidad} unidades`);
+            }
+          }
+        }
+      }
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       await tx.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
       return tx.cotizacion.update({
@@ -273,6 +345,27 @@ export class CotizacionService {
 
     const { WorkflowEngine, CotizacionState } = await import('@/core/state');
     WorkflowEngine.validateTransition('cotizacion', cotizacion.estado, CotizacionState.FACTURADA);
+
+    // Validate stock for all items in inventory before billing
+    for (const item of cotizacion.items) {
+      if (!item.codigo && !item.descripcion) continue;
+      const prod = await prisma.producto.findFirst({
+        where: {
+          OR: [
+            ...(item.codigo ? [{ codigo: { equals: item.codigo, mode: 'insensitive' as const } }] : []),
+            ...(item.descripcion ? [{ nombre: { equals: item.descripcion, mode: 'insensitive' as const } }] : []),
+          ],
+          activo: true,
+        },
+        select: { id: true, nombre: true, stock: true },
+      });
+
+      if (prod) {
+        if (prod.stock < item.cantidad) {
+          throw new Error(`Stock insuficiente para facturar '${prod.nombre}'. Disponible: ${prod.stock} unidades, Cotizado: ${item.cantidad} unidades`);
+        }
+      }
+    }
 
     return prisma.$transaction(async (tx) => {
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });

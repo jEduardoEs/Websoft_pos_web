@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
+import { matchesSearchQuery } from '@/lib/search-utils'
 
 interface Compra {
   id: number; fecha: string; total: number; notas: string | null; estado: string
@@ -261,7 +262,7 @@ export default function ComprasPage() {
     } else toast.error(data.error || 'Error')
   }
 
-  const prodFiltrados = productos.filter(p => !buscarProd || p.nombre.toLowerCase().includes(buscarProd.toLowerCase()) || (p.codigo || '').toLowerCase().includes(buscarProd.toLowerCase()))
+  const prodFiltrados = productos.filter(p => matchesSearchQuery(`${p.codigo || ''} ${p.nombre || ''}`, buscarProd))
 
   const thS = { background: '#f8fafc', fontSize: 11, fontWeight: 700 as const, color: '#64748b', textTransform: 'uppercase' as const, padding: '10px 14px', textAlign: 'left' as const, borderBottom: '1px solid #e2e8f0' }
   const tdS = { padding: '11px 14px', fontSize: 13, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }

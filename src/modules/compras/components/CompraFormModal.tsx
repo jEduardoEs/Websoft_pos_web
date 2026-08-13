@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { fmt } from '@/lib/utils';
 import { CreateCompraDto } from '../dto/create-compra.dto';
 import { useCompras } from '../hooks/use-compras';
+import { matchesSearchQuery } from '@/lib/search-utils';
 
 interface CompraFormModalProps {
   onClose: () => void;
@@ -59,7 +60,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
 
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i));
   const total = items.reduce((s, i) => s + i.subtotal, 0);
-  const prodFiltrados = productos.filter(p => p.nombre.toLowerCase().includes(buscarProd.toLowerCase()) || p.codigo?.toLowerCase().includes(buscarProd.toLowerCase()));
+  const prodFiltrados = productos.filter(p => matchesSearchQuery(`${p.codigo || ''} ${p.nombre || ''} ${p.descripcion || ''} ${p.categoria || ''}`, buscarProd));
 
   // XML Parser
   const parseXML = async (file: File) => {

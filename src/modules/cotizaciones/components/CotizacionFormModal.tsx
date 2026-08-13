@@ -45,12 +45,19 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
                 <div>
-                  <label className="label">NIT (Enter para buscar)</label>
-                  <input className="input" value={form.clienteNit} onChange={e => setF('clienteNit', e.target.value)} onKeyDown={e => e.key === 'Enter' && buscarNitCliente(form.clienteNit)} />
+                  <label className="label">NIT (Tab/Enter auto-carga)</label>
+                  <input
+                    className="input"
+                    value={form.clienteNit}
+                    onChange={e => setF('clienteNit', e.target.value)}
+                    onBlur={e => buscarNitCliente(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && buscarNitCliente(form.clienteNit)}
+                    placeholder="CF o NIT"
+                  />
                 </div>
                 <div>
                   <label className="label">Nombre / Razón Social <span style={{ color: 'red' }}>*</span></label>
-                  <input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} />
+                  <input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} placeholder="Ej: Juan Pérez / Empresa S.A." />
                 </div>
               </div>
 
@@ -65,9 +72,15 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
                 </div>
               </div>
 
-              <div>
-                <label className="label">Dirección</label>
-                <input className="input" value={form.clienteDireccion} onChange={e => setF('clienteDireccion', e.target.value)} />
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                <div>
+                  <label className="label">Dirección</label>
+                  <input className="input" value={form.clienteDireccion} onChange={e => setF('clienteDireccion', e.target.value)} placeholder="Ej: Ciudad de Guatemala" />
+                </div>
+                <div>
+                  <label className="label" style={{ fontWeight: 600, color: 'var(--ws-blue, #1581E3)' }}>Atendido por / Vendedor</label>
+                  <input className="input" value={form.atencion || ''} onChange={e => setF('atencion', e.target.value)} placeholder="Nombre del vendedor" />
+                </div>
               </div>
             </div>
 

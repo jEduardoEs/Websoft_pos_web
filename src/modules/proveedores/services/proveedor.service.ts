@@ -2,22 +2,33 @@ import { CreateProveedorDto } from '../dto/create-proveedor.dto';
 import { UpdateProveedorDto } from '../dto/update-proveedor.dto';
 import { Proveedor } from '../types/proveedor';
 import { prisma } from '@/lib/prisma';
+import { buildSearchWhereClause, rankSearchResults } from '@/lib/search-utils';
 
 export class ProveedorService {
   async getAll(buscar: string = '', limit: number = 100): Promise<Proveedor[]> {
     const where: any = { activo: true };
-    if (buscar) {
-      where.OR = [
-        { nombre: { contains: buscar, mode: 'insensitive' } },
-        { nit: { contains: buscar, mode: 'insensitive' } },
-        { telefono: { contains: buscar, mode: 'insensitive' } },
-      ];
+    if (buscar && buscar.trim()) {
+      const searchWhere = buildSearchWhereClause(buscar, ['nombre', 'nit', 'telefono', 'email', 'contacto', 'direccion']);
+      Object.assign(where, searchWhere);
     }
-    const result = await prisma.proveedor.findMany({
+    let result = await prisma.proveedor.findMany({
       where,
       orderBy: { nombre: 'asc' },
-      take: limit,
+      take: buscar && buscar.trim() ? limit * 2 : limit,
     });
+
+    if (buscar && buscar.trim()) {
+      result = rankSearchResults<any>(
+        result,
+        buscar,
+        (p: any) => `${p.nombre} ${p.nit || ''} ${p.telefono || ''} ${p.email || ''} ${p.contacto || ''} ${p.direccion || ''}`,
+        (p: any) => p.nit
+      );
+      if (limit) {
+        result = result.slice(0, limit);
+      }
+    }
+
     return result.map(p => ({
       id: p.id,
       nombre: p.nombre,

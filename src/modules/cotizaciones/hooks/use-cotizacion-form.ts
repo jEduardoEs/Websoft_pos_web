@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { LineItem } from '../types/cotizacion';
 
@@ -32,12 +33,15 @@ function recalc(item: LineItem): LineItem {
 export const emptyForm = {
   id: null as number | null,
   clienteNombre: '', clienteDireccion: '', clienteTelefono: '',
-  clienteNit: 'CF', clienteCorreo: '',
+  clienteNit: 'CF', clienteCorreo: '', atencion: '',
   formaPago: 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
   descripcion: '', notas: '', validezDias: '15', tiempoInstalacion: '',
 };
 
 export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any, isDuplicate: boolean = false) {
+  const { data: session } = useSession();
+  const userName = session?.user?.name || '';
+
   const [form, setForm] = useState(emptyForm);
   const [items, setItems] = useState<LineItem[]>([newItem('producto')]);
   const [loading, setLoading] = useState(false);
@@ -45,14 +49,15 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   const [zonas, setZonas] = useState<any[]>([]);
   const [buscarProd, setBuscarProd] = useState('');
 
+  // Sync logged in user into atencion field for new quotations
+  useEffect(() => {
+    if (!cotizacionInitial && userName && !form.atencion) {
+      setForm(p => ({ ...p, atencion: userName }));
+    }
+  }, [userName, cotizacionInitial]);
+
   useEffect(() => {
     if (cotizacionInitial) {
-      // Determine initial tipoIva if present
-      let initialTipoIva: 'incluido' | '12' | '5' = 'incluido';
-      if (cotizacionInitial.tipoIva) {
-        initialTipoIva = cotizacionInitial.tipoIva;
-      }
-
       setForm({
         id: isDuplicate ? null : cotizacionInitial.id,
         clienteNombre: cotizacionInitial.clienteNombre || '',
@@ -60,6 +65,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         clienteTelefono: cotizacionInitial.clienteTelefono || '',
         clienteNit: cotizacionInitial.clienteNit || 'CF',
         clienteCorreo: cotizacionInitial.clienteCorreo || '',
+        atencion: cotizacionInitial.atencion || userName,
 
         formaPago: cotizacionInitial.formaPago || 'Efectivo, Transferencia, Deposito, Cheque Preautorizado',
         descripcion: cotizacionInitial.descripcion || '',
@@ -92,7 +98,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         toast.info(`Duplicando cotización ${cotizacionInitial.numero}`);
       }
     }
-  }, [cotizacionInitial, isDuplicate]);
+  }, [cotizacionInitial, isDuplicate, userName]);
 
   const loadProductos = useCallback(async () => {
     try {
@@ -115,10 +121,11 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   const setF = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
   const buscarNitCliente = async (nit: string) => {
-    setF('clienteNit', nit);
-    if (nit.length < 3 || nit.toUpperCase() === 'CF') return;
+    const cleanNit = (nit || '').trim();
+    setF('clienteNit', cleanNit);
+    if (cleanNit.length < 3 || cleanNit.toUpperCase() === 'CF') return;
     try {
-      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(nit)}`);
+      const res = await fetch(`/api/clientes/buscar-nit?nit=${encodeURIComponent(cleanNit)}`);
       const data = await res.json();
       if (data.encontrado && data.cliente) {
         setForm(p => ({
@@ -126,11 +133,25 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
           clienteNombre: data.cliente.nombre,
           clienteTelefono: data.cliente.telefono || p.clienteTelefono,
           clienteDireccion: data.cliente.direccion || p.clienteDireccion,
-          clienteNit: nit,
+          clienteCorreo: data.cliente.email || p.clienteCorreo,
+          clienteNit: data.cliente.nit || cleanNit,
         }));
-        toast.success(`Cliente: ${data.cliente.nombre}`);
+        toast.success(`Cliente ${data.cliente.nombre} encontrado — Datos cargados`);
       }
     } catch { /* ignore */ }
+  };
+
+  const selClienteRegistrado = (cliente: any) => {
+    if (!cliente) return;
+    setForm(p => ({
+      ...p,
+      clienteNombre: cliente.nombre || p.clienteNombre,
+      clienteNit: cliente.nit || 'CF',
+      clienteTelefono: cliente.telefono || p.clienteTelefono,
+      clienteDireccion: cliente.direccion || p.clienteDireccion,
+      clienteCorreo: cliente.email || p.clienteCorreo,
+    }));
+    toast.success(`Datos cargados: ${cliente.nombre}`);
   };
 
   const selProducto = (i: number, prod: any) => {
@@ -141,26 +162,21 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         productoId: prod.id,
         codigo: prod.codigo || '',
         descripcion: prod.nombre,
-        costoCompra: prod.costo || 0,
-        precioVenta: prod.precio > 0 ? prod.precio : (prod.costo || 0) * 1.30,
+        costoCompra: prod.costo,
+        precioVenta: prod.precio,
       };
       return recalc(updated);
     }));
   };
 
   const addProductoToCotizacion = (prod: any) => {
-    // Validate stock before adding
-    if (prod.stock !== undefined && prod.stock <= 0) {
-      toast.error(`Stock insuficiente para el producto ${prod.nombre}`);
-      return;
-    }
-    const newRow: LineItem = {
+    const nuevo: LineItem = recalc({
       tipo: 'producto',
       productoId: prod.id,
       codigo: prod.codigo || '',
       descripcion: prod.nombre,
-      costoCompra: prod.costo || 0,
-      precioVenta: prod.precio > 0 ? prod.precio : (prod.costo || 0) * 1.30,
+      costoCompra: prod.costo,
+      precioVenta: prod.precio,
       cantidad: 1,
       descuento: 0,
       subtotal: 0,
@@ -169,76 +185,73 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
       zonaNombre: '',
       zonaTarifa: 0,
       cargoAdicional: 0,
-      notaAdicional: ''
-    };
-    const recalculated = recalc(newRow);
-
-    setItems(prev => {
-      if (prev.length > 0) {
-        const last = prev[prev.length - 1];
-        if (last.tipo === 'producto' && !last.productoId && !last.descripcion.trim()) {
-          return [...prev.slice(0, -1), recalculated];
-        }
-      }
-      return [...prev, recalculated];
+      notaAdicional: '',
     });
-    toast.success(`Producto agregado: ${prod.nombre}`);
+    setItems(prev => [...prev, nuevo]);
+    toast.success(`Agregado: ${prod.nombre}`);
   };
 
-  const updItem = (i: number, k: keyof LineItem, v: number | string) => {
+  const updItem = (i: number, field: keyof LineItem, value: any) => {
     setItems(prev => prev.map((item, idx) => {
       if (idx !== i) return item;
-      const updated = { ...item, [k]: v } as LineItem;
-      // Stock validation for product items when quantity changes
-      if (updated.tipo === 'producto' && updated.productoId && k === 'cantidad') {
-        const prod = productos.find(p => p.id === updated.productoId);
-        if (prod && prod.stock !== undefined && Number(v) > prod.stock) {
-          toast.error(`Cantidad excede el stock disponible (${prod.stock})`);
-          return item; // keep previous quantity
+      let updated = { ...item, [field]: value };
+
+      if (field === 'zonaId') {
+        const z = zonas.find(zn => zn.id === Number(value));
+        if (z) {
+          updated.zonaNombre = z.nombre;
+          updated.zonaTarifa = z.tarifa;
+        } else {
+          updated.zonaNombre = '';
+          updated.zonaTarifa = 0;
         }
       }
+
       return recalc(updated);
     }));
   };
 
-  const addItem = (tipo: LineItem['tipo']) => setItems(p => [...p, newItem(tipo)]);
-  const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i));
-
-  const baseTotal = Math.round(items.reduce((s, i) => s + i.total, 0) * 100) / 100;
-
-  // Fixed 5% IVA extracted from total (prices include IVA)
-  const ivaRate = 0.05;
-  const ivaCalculado = Math.round((baseTotal - baseTotal / (1 + ivaRate)) * 100) / 100;
-  const grandTotal = baseTotal; // baseTotal already includes IVA
+  const addItem = (tipo: LineItem['tipo']) => setItems(prev => [...prev, newItem(tipo)]);
+  const removeItem = (i: number) => {
+    if (items.length <= 1) return toast.warning('La cotización debe tener al menos una línea');
+    setItems(prev => prev.filter((_, idx) => idx !== i));
+  };
 
   const reset = () => {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, atencion: userName });
     setItems([newItem('producto')]);
   };
 
+  const baseTotal = items.reduce((s, i) => s + (i.total || 0), 0);
+  const ivaCalculado = Math.round(baseTotal * 0.05 * 100) / 100;
+  const grandTotal = Math.round((baseTotal + ivaCalculado) * 100) / 100;
+
   const guardar = async () => {
-    if (loading) return;
-    if (!form.clienteNombre.trim()) { toast.error('Nombre de cliente requerido'); return; }
-    if (items.length === 0) { toast.error('Agrega al menos un item'); return; }
+    if (!form.clienteNombre.trim()) return toast.error('El nombre del cliente es obligatorio');
+    if (items.length === 0) return toast.error('Agrega al menos una línea a la cotización');
+
+    for (const item of items) {
+      if (!item.descripcion.trim()) return toast.error('Todas las líneas deben tener una descripción');
+      if (item.cantidad <= 0) return toast.error('La cantidad debe ser mayor a 0');
+    }
 
     setLoading(true);
     try {
       const dto = {
-        clienteNombre: form.clienteNombre,
-        clienteDireccion: form.clienteDireccion,
-        clienteTelefono: form.clienteTelefono,
-        clienteNit: form.clienteNit,
-
-        formaPago: form.formaPago,
-        descripcion: form.descripcion,
-        notas: form.notas,
-        subtotal: baseTotal,
-        descuento: 0,
-        total: grandTotal,
+        clienteNombre: form.clienteNombre.trim(),
+        clienteDireccion: form.clienteDireccion.trim() || undefined,
+        clienteTelefono: form.clienteTelefono.trim() || undefined,
+        clienteNit: form.clienteNit.trim() || 'CF',
+        clienteCorreo: form.clienteCorreo.trim() || undefined,
+        atencion: form.atencion.trim() || userName || undefined,
+        formaPago: form.formaPago.trim() || undefined,
+        descripcion: form.descripcion.trim() || undefined,
+        notas: form.notas.trim() || undefined,
         validezDias: parseInt(form.validezDias) || 15,
-        tiempoInstalacion: form.tiempoInstalacion,
+        tiempoInstalacion: form.tiempoInstalacion.trim() || undefined,
         items: items.map(i => ({
-          codigo: i.codigo,
+          productoId: i.productoId || undefined,
+          codigo: i.codigo || undefined,
           descripcion: i.descripcion,
           cantidad: i.cantidad,
           precioUnitario: i.precioVenta,
@@ -258,10 +271,8 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         body: JSON.stringify(dto),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error al guardar');
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar la cotización');
 
       toast.success(isEdit ? 'Cotización actualizada' : 'Cotización creada exitosamente');
       reset();
@@ -276,6 +287,6 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   return {
     state: { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id },
     setters: { setForm, setItems, setBuscarProd, setF },
-    actions: { buscarNitCliente, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
+    actions: { buscarNitCliente, selClienteRegistrado, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
   };
 }

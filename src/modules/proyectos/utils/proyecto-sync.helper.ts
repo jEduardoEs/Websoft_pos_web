@@ -28,11 +28,11 @@ export async function syncProyectoDesdeCotizacion(
   });
 
   if (existente) {
-    // If project exists, advance status if needed and add notes
+    // If project exists, reactivate/advance status and append note
     const notasActuales = existente.notas || '';
     const notaNueva = ventaNumero 
       ? `Venta/Factura ${ventaNumero} vinculada.` 
-      : `Estado actualizado a ${nuevoEstado}.`;
+      : `Cotización re-autorizada por ${usuarioNombre}. Estado actualizado a ${nuevoEstado}.`;
 
     const updatedProyecto = await tx.proyecto.update({
       where: { id: existente.id },
@@ -81,4 +81,44 @@ export async function syncProyectoDesdeCotizacion(
   });
 
   return nuevoProyecto;
+}
+
+export async function handleReversionProyectoDesdeCotizacion(
+  tx: any,
+  cotizacionId: number,
+  nuevoEstadoCotizacion: string,
+  usuarioNombre: string = 'Sistema'
+) {
+  const proyecto = await tx.proyecto.findUnique({
+    where: { cotizacionId },
+  });
+
+  if (!proyecto) return null;
+
+  const fechaStr = new Date().toLocaleString('es-GT');
+  const notasPrev = proyecto.notas || '';
+
+  if (nuevoEstadoCotizacion === 'pendiente') {
+    const notaNueva = `Cotización revertida a PENDIENTE por ${usuarioNombre} el ${fechaStr}. Proyecto cancelado/suspendido temporalmente.`;
+    return tx.proyecto.update({
+      where: { id: proyecto.id },
+      data: {
+        estado: 'cancelado',
+        notas: notasPrev ? `${notasPrev} | ${notaNueva}` : notaNueva,
+      },
+    });
+  }
+
+  if (nuevoEstadoCotizacion === 'anulada' || nuevoEstadoCotizacion === 'rechazada') {
+    const notaNueva = `Cotización ${nuevoEstadoCotizacion.toUpperCase()} por ${usuarioNombre} el ${fechaStr}.`;
+    return tx.proyecto.update({
+      where: { id: proyecto.id },
+      data: {
+        estado: 'cancelado',
+        notas: notasPrev ? `${notasPrev} | ${notaNueva}` : notaNueva,
+      },
+    });
+  }
+
+  return proyecto;
 }

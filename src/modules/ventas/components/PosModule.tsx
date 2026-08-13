@@ -58,17 +58,28 @@ export function PosModule() {
       return;
     }
 
-    const nuevos: any[] = items.map((it: any) => ({
-      tipo: 'libre' as const,
-      productoId: it.productoId || null,
-      codigo: it.codigo || '',
-      nombre: it.descripcion || it.nombre || 'Item sin nombre',
-      cantidad: Math.max(1, Math.round(Number(it.cantidad) || 1)),
-      precioUnitario: Number(it.precioUnitario) || 0,
-      stock: 99999,
-      descuento: Number(it.descuento) || 0,
-      subtotal: Number(it.totalItem || it.subtotal || (Number(it.precioUnitario || 0) * Number(it.cantidad || 1))) || 0,
-    }));
+    const nuevos: any[] = items.map((it: any) => {
+      const match = productos.find(p => p.id === it.productoId || (p.codigo && it.codigo && p.codigo.trim().toUpperCase() === it.codigo.trim().toUpperCase()));
+      const realStock = match ? match.stock : 99999;
+      const cant = Math.max(1, Math.round(Number(it.cantidad) || 1));
+      const itemNombre = it.descripcion || it.nombre || 'Item sin nombre';
+
+      if (match && realStock < cant) {
+        toast.warning(`Atención: '${itemNombre}' solo posee ${realStock} unidades en inventario`);
+      }
+
+      return {
+        tipo: match ? ('inventario' as const) : ('libre' as const),
+        productoId: match ? match.id : (it.productoId || null),
+        codigo: it.codigo || (match ? match.codigo || '' : ''),
+        nombre: itemNombre,
+        cantidad: cant,
+        precioUnitario: Number(it.precioUnitario) || 0,
+        stock: realStock,
+        descuento: Number(it.descuento) || 0,
+        subtotal: Number(it.totalItem || it.subtotal || (Number(it.precioUnitario || 0) * cant)) || 0,
+      };
+    });
     setCart(nuevos);
     setClienteNombre(cot.clienteNombre || 'Consumidor Final');
     setClienteNit(cot.clienteNit || 'CF');

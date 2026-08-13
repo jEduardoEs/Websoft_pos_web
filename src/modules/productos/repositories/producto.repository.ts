@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Producto } from '../types/producto';
+import { buildSearchWhereClause, rankSearchResults } from '@/lib/search-utils';
 
 export interface FindProductosParams {
   buscar?: string;
@@ -22,22 +23,30 @@ export class ProductoRepository {
       where.categoria = params.categoria;
     }
 
-    if (params?.buscar) {
-      const term = params.buscar.trim();
-      if (term) {
-        where.OR = [
-          { nombre: { contains: term, mode: 'insensitive' } },
-          { codigo: { contains: term, mode: 'insensitive' } },
-          { descripcion: { contains: term, mode: 'insensitive' } },
-        ];
+    if (params?.buscar && params.buscar.trim()) {
+      const searchWhere = buildSearchWhereClause(params.buscar, ['nombre', 'codigo', 'descripcion', 'categoria']);
+      Object.assign(where, searchWhere);
+    }
+
+    let productos = await prisma.producto.findMany({
+      where,
+      orderBy: { nombre: 'asc' },
+      take: params?.limit ? params.limit * 2 : undefined,
+    });
+
+    if (params?.buscar && params.buscar.trim()) {
+      productos = rankSearchResults<Producto>(
+        productos,
+        params.buscar,
+        (p: Producto) => `${p.codigo || ''} ${p.nombre} ${p.descripcion || ''} ${p.categoria || ''}`,
+        (p: Producto) => p.codigo
+      );
+      if (params?.limit) {
+        productos = productos.slice(0, params.limit);
       }
     }
 
-    return prisma.producto.findMany({
-      where,
-      orderBy: { nombre: 'asc' },
-      take: params?.limit || undefined,
-    });
+    return productos;
   }
 
   async findById(id: number): Promise<Producto | null> {

@@ -91,6 +91,7 @@ export function CotizacionesModule() {
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
         onAnular={(c) => setPinModal({ id: c.id, estado: 'anulada', numero: c.numero })}
+        onRevertir={(c) => setPinModal({ id: c.id, estado: 'pendiente', numero: c.numero })}
         onEnviar={(c) => setSendModal(c)}
         onFacturar={handleFacturar}
       />
@@ -163,6 +164,11 @@ export function CotizacionesModule() {
                    Editar Cotización
                 </button>
               )}
+              {selected.estado === 'aceptada' && (
+                <button className="btn-secondary" style={{ flex: 1, color: '#d97706', borderColor: '#fcd34d' }} onClick={() => { setPinModal({ id: selected.id, estado: 'pendiente', numero: selected.numero }); setSelected(null); }}>
+                  Revertir a Pendiente
+                </button>
+              )}
               <a href={`/api/cotizaciones/${selected.id}/pdf`} target="_blank" className="btn-primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
                 ️ Imprimir PDF
               </a>
@@ -174,15 +180,17 @@ export function CotizacionesModule() {
         </div>
       )}
 
-      {/* Modal de Confirmación / PIN para Anular Cotización */}
+      {/* Modal de Confirmación / PIN para Anular o Revertir Cotización */}
       {pinModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 420, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, fontSize: 16, fontWeight: 700, color: '#dc2626' }}>
-              ¿Anular Cotización {pinModal.numero}?
+            <h3 style={{ marginTop: 0, fontSize: 16, fontWeight: 700, color: pinModal.estado === 'anulada' ? '#dc2626' : '#d97706' }}>
+              {pinModal.estado === 'anulada' ? `¿Anular Cotización ${pinModal.numero}?` : `¿Revertir Cotización ${pinModal.numero} a Pendiente?`}
             </h3>
             <p style={{ fontSize: 13, color: '#475569', marginBottom: 16 }}>
-              Esta acción cambiará el estado de la cotización a <strong style={{ color: '#dc2626' }}>ANULADA</strong>.
+              {pinModal.estado === 'anulada' 
+                ? <>Esta acción cambiará el estado de la cotización a <strong style={{ color: '#dc2626' }}>ANULADA</strong>.</>
+                : <>Esta acción cambiará el estado de la cotización a <strong style={{ color: '#d97706' }}>PENDIENTE</strong> para permitir modificaciones.</>}
             </p>
 
             {!isAdmin && (
@@ -211,11 +219,11 @@ export function CotizacionesModule() {
               </button>
               <button 
                 className="btn-primary" 
-                style={{ background: '#dc2626', borderColor: '#dc2626' }} 
+                style={pinModal.estado === 'anulada' ? { background: '#dc2626', borderColor: '#dc2626' } : { background: '#d97706', borderColor: '#d97706' }} 
                 onClick={confirmPin} 
                 disabled={pinLoading || (!isAdmin && !pin)}
               >
-                {pinLoading ? 'Anulando...' : 'Confirmar Anulación'}
+                {pinLoading ? 'Procesando...' : (pinModal.estado === 'anulada' ? 'Confirmar Anulación' : 'Confirmar Reversión')}
               </button>
             </div>
           </div>

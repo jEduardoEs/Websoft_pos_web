@@ -67,20 +67,37 @@ export class VentaService {
 
     // Verify stock in batch to avoid N sequential queries
     const productIds = dto.items.map(it => it.productoId).filter(Boolean) as number[];
-    const prodMap = new Map<number, { id: number; stock: number; nombre: string }>();
-    
-    if (productIds.length > 0) {
+    const productCodigos = dto.items.map(it => it.codigo).filter(Boolean) as string[];
+
+    const prodMapById = new Map<number, { id: number; stock: number; nombre: string }>();
+    const prodMapByCodigo = new Map<string, { id: number; stock: number; nombre: string }>();
+
+    if (productIds.length > 0 || productCodigos.length > 0) {
       const prods = await prisma.producto.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, stock: true, nombre: true },
+        where: {
+          OR: [
+            ...(productIds.length > 0 ? [{ id: { in: productIds } }] : []),
+            ...(productCodigos.length > 0 ? [{ codigo: { in: productCodigos, mode: 'insensitive' as const } }] : []),
+          ],
+          activo: true,
+        },
+        select: { id: true, codigo: true, stock: true, nombre: true },
       });
-      prods.forEach(p => prodMap.set(p.id, p));
+
+      prods.forEach(p => {
+        prodMapById.set(p.id, p);
+        if (p.codigo) prodMapByCodigo.set(p.codigo.trim().toUpperCase(), p);
+      });
 
       for (const item of dto.items) {
-        if (!item.productoId) continue;
-        const prod = prodMap.get(item.productoId);
-        if (!prod || prod.stock < item.cantidad) {
-          throw new Error(`Stock insuficiente: ${item.nombre}`);
+        let prod = item.productoId ? prodMapById.get(item.productoId) : undefined;
+        if (!prod && item.codigo) {
+          prod = prodMapByCodigo.get(item.codigo.trim().toUpperCase());
+        }
+        if (prod) {
+          if (prod.stock < item.cantidad) {
+            throw new Error(`Stock insuficiente para '${prod.nombre}'. Disponible: ${prod.stock} unidades, Solicitado: ${item.cantidad} unidades`);
+          }
         }
       }
     }
@@ -162,7 +179,7 @@ export class VentaService {
       // Update stock & kardex
       for (const item of dto.items) {
         if (!item.productoId) continue;
-        const prod = prodMap.get(item.productoId);
+        const prod = prodMapById.get(item.productoId);
         const stockAntes = prod?.stock ?? 0;
         const newStock = stockAntes - item.cantidad;
 
