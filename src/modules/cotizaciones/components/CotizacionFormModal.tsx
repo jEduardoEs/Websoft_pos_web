@@ -15,9 +15,9 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
     onClose();
   }, cotizacionInitial, isDuplicate);
 
-  const { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode } = state;
-  const { setF, setItems, setBuscarProd } = setters;
-  const { buscarNitCliente, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar } = actions;
+  const { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode, clienteSugerencias, showClienteSugerencias } = state;
+  const { setF, setItems, setBuscarProd, setShowClienteSugerencias } = setters;
+  const { buscarNitCliente, buscarClienteNombre, seleccionarClienteSugerido, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar } = actions;
 
   const title = isDuplicate
     ? `Duplicar Cotización (${cotizacionInitial?.numero || ''})`
@@ -55,11 +55,56 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
                     placeholder="CF o NIT"
                   />
                 </div>
-                <div>
+                <div style={{ position: 'relative' }}>
                   <label className="label">Nombre / Razón Social <span style={{ color: 'red' }}>*</span></label>
-                  <input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} placeholder="Ej: Juan Pérez / Empresa S.A." />
+                  <input
+                    className="input"
+                    value={form.clienteNombre}
+                    onChange={e => buscarClienteNombre(e.target.value)}
+                    placeholder="Escribe para buscar por nombre..."
+                    onFocus={() => { if (clienteSugerencias && clienteSugerencias.length > 0) setShowClienteSugerencias(true); }}
+                  />
+                  {showClienteSugerencias && clienteSugerencias && clienteSugerencias.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: '#fff',
+                        border: '1.5px solid #d8d6cd',
+                        borderRadius: 8,
+                        marginTop: 4,
+                        maxHeight: 200,
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 25px rgba(0,0,0,.15)',
+                        zIndex: 1000,
+                      }}
+                    >
+                      {clienteSugerencias.map((c: any) => (
+                        <div
+                          key={c.id}
+                          onClick={() => seleccionarClienteSugerido(c)}
+                          style={{
+                            padding: '9px 14px',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <div style={{ fontWeight: 600, color: '#18181b' }}>{c.nombre}</div>
+                          <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>
+                            NIT: <strong>{c.nit || 'CF'}</strong> {c.telefono ? `· Tel: ${c.telefono}` : ''} {c.email ? `· ${c.email}` : ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>

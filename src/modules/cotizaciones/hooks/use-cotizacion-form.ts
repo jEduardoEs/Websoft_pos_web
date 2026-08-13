@@ -150,6 +150,46 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
     } catch { /* ignore */ }
   };
 
+  const [clienteSugerencias, setClienteSugerencias] = useState<any[]>([]);
+  const [showClienteSugerencias, setShowClienteSugerencias] = useState(false);
+
+  const buscarClienteNombre = async (query: string) => {
+    setF('clienteNombre', query);
+    if (!query || query.trim().length < 2) {
+      setClienteSugerencias([]);
+      setShowClienteSugerencias(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/clientes?buscar=${encodeURIComponent(query.trim())}`);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setClienteSugerencias(data.slice(0, 6));
+        setShowClienteSugerencias(true);
+      } else {
+        setClienteSugerencias([]);
+        setShowClienteSugerencias(false);
+      }
+    } catch {
+      setClienteSugerencias([]);
+      setShowClienteSugerencias(false);
+    }
+  };
+
+  const seleccionarClienteSugerido = (c: any) => {
+    setForm(p => ({
+      ...p,
+      clienteNombre: c.nombre,
+      clienteNit: c.nit || 'CF',
+      clienteTelefono: c.telefono || '',
+      clienteDireccion: c.direccion || '',
+      clienteCorreo: c.email || '',
+    }));
+    setClienteSugerencias([]);
+    setShowClienteSugerencias(false);
+    toast.success(`Cliente "${c.nombre}" seleccionado — Datos cargados`);
+  };
+
   const selClienteRegistrado = (cliente: any) => {
     if (!cliente) return;
     setForm(p => ({
@@ -160,8 +200,8 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
       clienteDireccion: cliente.direccion || p.clienteDireccion,
       clienteCorreo: cliente.email || p.clienteCorreo,
     }));
-    toast.success(`Datos cargados: ${cliente.nombre}`);
   };
+
 
   const selProducto = (i: number, prod: any) => {
     setItems(prev => prev.map((item, idx) => {
@@ -294,8 +334,9 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   };
 
   return {
-    state: { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id },
-    setters: { setForm, setItems, setBuscarProd, setF },
-    actions: { buscarNitCliente, selClienteRegistrado, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
+    state: { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id, clienteSugerencias, showClienteSugerencias },
+    setters: { setForm, setItems, setBuscarProd, setF, setShowClienteSugerencias },
+    actions: { buscarNitCliente, buscarClienteNombre, seleccionarClienteSugerido, selClienteRegistrado, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
   };
 }
+

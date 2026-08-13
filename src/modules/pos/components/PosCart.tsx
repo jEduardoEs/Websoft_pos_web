@@ -43,6 +43,10 @@ export function PosCart({
   setShowCobro
 }: PosCartProps) {
 
+  const [sugerenciasNombre, setSugerenciasNombre] = React.useState<any[]>([]);
+  const [showSugerenciasNombre, setShowSugerenciasNombre] = React.useState(false);
+
+
   const lbl: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 };
 
   return (
@@ -77,14 +81,37 @@ export function PosCart({
           </div>
         </div>
 
-        <div>
-          <label style={lbl}>Nombre Cliente</label>
+        <div style={{ position: 'relative' }}>
+          <label style={lbl}>Nombre Cliente (escribe para buscar por nombre)</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input 
               className="input" 
               value={clienteNombre} 
-              onChange={e => setClienteNombre(e.target.value)} 
+              onChange={async e => {
+                const val = e.target.value;
+                setClienteNombre(val);
+                if (val.trim().length >= 2 && nitStatus !== 'found') {
+                  try {
+                    const res = await fetch(`/api/clientes?buscar=${encodeURIComponent(val.trim())}`);
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                      setSugerenciasNombre(data.slice(0, 5));
+                      setShowSugerenciasNombre(true);
+                    } else {
+                      setSugerenciasNombre([]);
+                      setShowSugerenciasNombre(false);
+                    }
+                  } catch {
+                    setSugerenciasNombre([]);
+                    setShowSugerenciasNombre(false);
+                  }
+                } else {
+                  setSugerenciasNombre([]);
+                  setShowSugerenciasNombre(false);
+                }
+              }} 
               disabled={nitStatus === 'found'} 
+              placeholder="Escribe el nombre del cliente..."
               style={{ flex: 1 }} 
             />
             {nitStatus === 'notfound' && (
@@ -106,7 +133,6 @@ export function PosCart({
                 + Crear
               </button>
             )}
-
             {nitStatus === 'found' && clienteTieneCorreo && (
               <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
             )}
@@ -114,8 +140,56 @@ export function PosCart({
               <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}>!</span>
             )}
           </div>
+
+          {showSugerenciasNombre && sugerenciasNombre.length > 0 && nitStatus !== 'found' && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: '#fff',
+                border: '1.5px solid #d8d6cd',
+                borderRadius: 8,
+                marginTop: 4,
+                maxHeight: 180,
+                overflowY: 'auto',
+                boxShadow: '0 10px 25px rgba(0,0,0,.15)',
+                zIndex: 1000,
+              }}
+            >
+              {sugerenciasNombre.map((c: any) => (
+                <div
+                  key={c.id}
+                  onClick={() => {
+                    setClienteNombre(c.nombre);
+                    setClienteNit(c.nit || 'CF');
+                    if (setClienteId) setClienteId(c.id);
+                    if (setClienteCorreo) setClienteCorreo(c.email || '');
+                    if (setNitStatus) setNitStatus('found');
+                    setSugerenciasNombre([]);
+                    setShowSugerenciasNombre(false);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #f1f5f9',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                  onMouseEnter={el => (el.currentTarget.style.background = '#f4f3ef')}
+                  onMouseLeave={el => (el.currentTarget.style.background = 'none')}
+                >
+                  <div style={{ fontWeight: 600, color: '#18181b' }}>{c.nombre}</div>
+                  <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>
+                    NIT: <strong>{c.nit || 'CF'}</strong> {c.telefono ? `· Tel: ${c.telefono}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
 
       {/* HEADER DE ITEMS CON BOTÓN LIMPIAR */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px 4px 14px', flexShrink: 0 }}>

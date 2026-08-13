@@ -150,6 +150,9 @@ export default function CotizacionesPage() {
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
+  const [clienteSugerencias, setClienteSugerencias] = useState<any[]>([])
+  const [showClienteSugerencias, setShowClienteSugerencias] = useState(false)
+
   const buscarNitCliente = async (nit: string) => {
     const cleanNit = (nit || '').trim()
     setF('clienteNit', cleanNit)
@@ -179,6 +182,44 @@ export default function CotizacionesPage() {
       }
     } catch { /* ignore */ }
   }
+
+  const buscarClienteNombre = async (query: string) => {
+    setF('clienteNombre', query)
+    if (!query || query.trim().length < 2) {
+      setClienteSugerencias([])
+      setShowClienteSugerencias(false)
+      return
+    }
+    try {
+      const res = await fetch(`/api/clientes?buscar=${encodeURIComponent(query.trim())}`)
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        setClienteSugerencias(data.slice(0, 6))
+        setShowClienteSugerencias(true)
+      } else {
+        setClienteSugerencias([])
+        setShowClienteSugerencias(false)
+      }
+    } catch {
+      setClienteSugerencias([])
+      setShowClienteSugerencias(false)
+    }
+  }
+
+  const seleccionarClienteSugerido = (c: any) => {
+    setForm(p => ({
+      ...p,
+      clienteNombre: c.nombre,
+      clienteNit: c.nit || 'CF',
+      clienteTelefono: c.telefono || '',
+      clienteDireccion: c.direccion || '',
+      clienteCorreo: c.email || '',
+    }))
+    setClienteSugerencias([])
+    setShowClienteSugerencias(false)
+    toast.success(`Cliente "${c.nombre}" seleccionado — Datos cargados`)
+  }
+
 
   const selProducto = (i: number, prod: Producto) => {
     setItems(prev => prev.map((item, idx) => {
@@ -629,10 +670,55 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                     onBlur={e => buscarNitCliente(e.target.value)}
                     placeholder="CF" />
                 </div>
-                <div style={{ gridColumn: '2 / -1' }}>
-                  <label style={lbl}>Nombre del cliente *</label>
-                  <input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} placeholder="Nombre completo" />
+                <div style={{ gridColumn: '2 / -1', position: 'relative' }}>
+                  <label style={lbl}>Nombre del cliente * (escribe para buscar por nombre)</label>
+                  <input
+                    className="input"
+                    value={form.clienteNombre}
+                    onChange={e => buscarClienteNombre(e.target.value)}
+                    placeholder="Nombre completo o busca por nombre..."
+                    onFocus={() => { if (clienteSugerencias.length > 0) setShowClienteSugerencias(true); }}
+                  />
+                  {showClienteSugerencias && clienteSugerencias.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: '#fff',
+                        border: '1.5px solid #d8d6cd',
+                        borderRadius: 8,
+                        marginTop: 4,
+                        maxHeight: 200,
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 25px rgba(0,0,0,.15)',
+                        zIndex: 1000,
+                      }}
+                    >
+                      {clienteSugerencias.map(c => (
+                        <div
+                          key={c.id}
+                          onClick={() => seleccionarClienteSugerido(c)}
+                          style={{
+                            padding: '9px 14px',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <div style={{ fontWeight: 600, color: '#18181b' }}>{c.nombre}</div>
+                          <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>
+                            NIT: <strong>{c.nit || 'CF'}</strong> {c.telefono ? `· Tel: ${c.telefono}` : ''} {c.email ? `· ${c.email}` : ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <div>
                   <label style={lbl}>Telefono</label>
                   <input className="input" value={form.clienteTelefono} onChange={e => setF('clienteTelefono', e.target.value)} />
