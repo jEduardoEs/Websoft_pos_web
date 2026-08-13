@@ -11,8 +11,13 @@ import { Venta } from '@/modules/ventas/types/venta';
 export function VentasModule() {
   const { ventas, loading, error, fetchVentas, anularVenta } = useVentas();
   
-  const [fi, setFi] = useState(new Date().toISOString().slice(0, 10));
-  const [ff, setFf] = useState(new Date().toISOString().slice(0, 10));
+  const [fi, setFi] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [ff, setFf] = useState(() => new Date().toISOString().slice(0, 10));
+
   const [estado, setEstado] = useState('');
   const [buscar, setBuscar] = useState('');
   
