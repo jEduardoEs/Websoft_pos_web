@@ -92,8 +92,6 @@ export function PosModule() {
     } else {
       setDescMontoExacto(null);
     }
-    
-    toast.success(`Cotización ${cot.numero} cargada automáticamente`);
   };
 
   // Carga automática desde parámetro de URL (Ej: /pos?cotizacion=46)
@@ -268,7 +266,6 @@ export function PosModule() {
         setClienteCorreo(data.cliente.email || '');
         setClienteTieneCorreo(!!data.cliente.email);
         setNitStatus('found');
-        toast.success(`Cliente ${data.cliente.nombre} encontrado`);
       } else {
         setNitStatus('notfound');
         setClienteTieneCorreo(false);
