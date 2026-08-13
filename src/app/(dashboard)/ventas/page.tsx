@@ -197,10 +197,11 @@ export default function VentasPage() {
                   <tr key={v.id} onClick={() => setSelected(v)} style={{ cursor: 'pointer' }}>
                     <td
                       className="ws-td"
-                      style={{ fontWeight: 700, color: '#1581E3', fontFamily: 'Courier New, monospace', fontSize: 12 }}
+                      style={{ fontWeight: 700, color: '#1581E3', fontSize: 12 }}
                     >
                       {v.numero}
                     </td>
+
                     <td className="ws-td" style={{ fontSize: 12, color: '#8a887e', whiteSpace: 'nowrap' }}>
                       {fmtDateTime(v.fecha)}
                     </td>

@@ -8,8 +8,6 @@ import { CotizacionFormModal } from '@/modules/cotizaciones/components/Cotizacio
 import { fmt } from '@/lib/utils';
 import { Cotizacion } from '@/modules/cotizaciones/types/cotizacion';
 
-import { esCotizacionProyecto } from '@/modules/proyectos/utils/proyecto-sync.helper';
-
 export function CotizacionesModule() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -33,14 +31,8 @@ export function CotizacionesModule() {
 
   const [formInitial, setFormInitial] = useState<any>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
-  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'proyectos' | 'productos'>('todos');
 
-  const cotizacionesFiltradas = cotizaciones.filter(c => {
-    const esProy = esCotizacionProyecto(c);
-    if (tipoFiltro === 'proyectos') return esProy;
-    if (tipoFiltro === 'productos') return !esProy;
-    return true;
-  });
+
 
   const fetchFullCotizacion = async (c: Cotizacion): Promise<Cotizacion> => {
     if (c.items && c.items.length > 0) return c;
@@ -93,63 +85,8 @@ export function CotizacionesModule() {
         <button className="btn-primary" onClick={() => { setFormInitial(null); setIsDuplicate(false); setShowFormModal(true); }}>+ Nueva Cotización</button>
       </div>
 
-      {/* Bar de Filtros por Tipo */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5 }}>Filtrar por tipo:</span>
-        <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 8, padding: 3, gap: 2 }}>
-          <button
-            onClick={() => setTipoFiltro('todos')}
-            style={{
-              padding: '6px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: tipoFiltro === 'todos' ? '#fff' : 'transparent',
-              color: tipoFiltro === 'todos' ? '#0f172a' : '#64748b',
-              boxShadow: tipoFiltro === 'todos' ? '0 1px 3px rgba(0,0,0,.1)' : 'none',
-            }}
-          >
-            Todas ({cotizaciones.length})
-          </button>
-          <button
-            onClick={() => setTipoFiltro('proyectos')}
-            style={{
-              padding: '6px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: tipoFiltro === 'proyectos' ? '#fff' : 'transparent',
-              color: tipoFiltro === 'proyectos' ? '#2563eb' : '#64748b',
-              boxShadow: tipoFiltro === 'proyectos' ? '0 1px 3px rgba(0,0,0,.1)' : 'none',
-            }}
-          >
-            Proyectos de Instalación ({cotizaciones.filter(esCotizacionProyecto).length})
-          </button>
-          <button
-            onClick={() => setTipoFiltro('productos')}
-            style={{
-              padding: '6px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: tipoFiltro === 'productos' ? '#fff' : 'transparent',
-              color: tipoFiltro === 'productos' ? '#475569' : '#64748b',
-              boxShadow: tipoFiltro === 'productos' ? '0 1px 3px rgba(0,0,0,.1)' : 'none',
-            }}
-          >
-            Ventas de Productos ({cotizaciones.filter(c => !esCotizacionProyecto(c)).length})
-          </button>
-        </div>
-      </div>
-
       <CotizacionesTable 
-        cotizaciones={cotizacionesFiltradas}
+        cotizaciones={cotizaciones}
         loading={loading}
         isAdmin={isAdmin}
         onView={handleView}
@@ -160,6 +97,7 @@ export function CotizacionesModule() {
         onEnviar={(c) => setSendModal(c)}
         onFacturar={handleFacturar}
       />
+
 
 
       {showFormModal && (
