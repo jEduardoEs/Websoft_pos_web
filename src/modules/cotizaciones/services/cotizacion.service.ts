@@ -383,7 +383,7 @@ export class CotizacionService {
           metodoPago: data.metodoPago || 'efectivo',
           montoRecibido,
           cambio,
-          notas: `Facturado desde cotización ${cotizacion.numero}`,
+          notas: `Facturado desde cotización ${cotizacion.numero} [Cotización COT-${cotizacion.id}]`,
           usuarioId: parseInt(user.id),
           usuarioNombre: user.name,
           items: {

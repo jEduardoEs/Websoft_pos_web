@@ -158,7 +158,7 @@ export class VentaService {
           metodoPago: dto.metodoPago,
           montoRecibido: dto.montoRecibido,
           cambio: dto.cambio,
-          notas: dto.notas,
+          notas: dto.cotizacionId ? `${dto.notas || ''} [Cotización COT-${dto.cotizacionId}]`.trim() : dto.notas,
           usuarioId: parseInt(userId),
           usuarioNombre: userName,
           items: {

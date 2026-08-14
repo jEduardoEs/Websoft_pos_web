@@ -51,6 +51,12 @@ export function PosModule() {
 
   const cargarCotizacion = async (cot: any) => {
     if (!cot) return;
+
+    if (cot.estado === 'facturada') {
+      toast.error(`La cotización ${cot.numero || ''} ya fue facturada anteriormente. No se puede volver a facturar.`);
+      return;
+    }
+
     let items = cot.items;
     if ((!items || items.length === 0) && cot.id) {
       try {

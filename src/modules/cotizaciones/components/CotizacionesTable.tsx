@@ -14,10 +14,11 @@ interface CotizacionesTableProps {
   onRevertir?: (c: Cotizacion) => void;
   onEnviar: (c: Cotizacion) => void;
   onFacturar: (c: Cotizacion) => void;
+  onVerFactura?: (c: Cotizacion) => void;
 }
 
 export function CotizacionesTable({ 
-  cotizaciones, loading, isAdmin, onView, onEdit, onDuplicate, onAnular, onRevertir, onEnviar, onFacturar 
+  cotizaciones, loading, isAdmin, onView, onEdit, onDuplicate, onAnular, onRevertir, onEnviar, onFacturar, onVerFactura 
 }: CotizacionesTableProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -64,7 +65,6 @@ export function CotizacionesTable({
                   {c.numero}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-
                   <div style={{ fontWeight: 600, color: '#0f172a' }}>{c.clienteNombre}</div>
                   <div style={{ fontSize: 11, color: '#64748b' }}>NIT: {c.clienteNit || 'CF'}</div>
                 </td>
@@ -130,6 +130,18 @@ export function CotizacionesTable({
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                         Imprimir PDF
                       </a>
+
+                      {c.estado === 'facturada' && onVerFactura && (
+                        <>
+                          <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                          <button onClick={() => { onVerFactura(c); setOpenMenuId(null); }}
+                            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, color: '#15803d', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 4, fontWeight: 700, transition: 'background .15s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#dcfce7')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            Ver Factura Emitida
+                          </button>
+                        </>
+                      )}
                       
                       {c.estado === 'aceptada' && onRevertir && (
                         <>
