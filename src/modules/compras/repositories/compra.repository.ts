@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { CreateCompraDto } from '../dto/create-compra.dto';
 import { Compra } from '../types/compra';
+import { calculateNewPricePreservingMargin } from '@/modules/productos/utils/producto-calc.helper';
 
 export class CompraRepository {
   
@@ -61,25 +62,30 @@ export class CompraRepository {
         include: { items: true },
       });
 
-      // 2. Update stock, cost, and register in Kardex for each item
+      // 2. Update stock, cost, sale price (preserving margin), and register in Kardex for each item
       for (const item of dto.items) {
         if (!item.productoId) continue;
         const qty = Number(item.cantidad);
         const unitCost = Number(item.precioUnitario);
 
-        const currentProd = await tx.producto.findUnique({ where: { id: item.productoId }, select: { stock: true, costo: true } });
+        const currentProd = await tx.producto.findUnique({ where: { id: item.productoId }, select: { stock: true, costo: true, precio: true } });
         const oldStock = currentProd?.stock || 0;
         const oldCost = currentProd?.costo || 0;
+        const oldPrice = currentProd?.precio || 0;
+
         const totalNewStock = oldStock + qty;
         const weightedCost = totalNewStock > 0 && unitCost > 0
           ? Number((((oldStock * oldCost) + (qty * unitCost)) / totalNewStock).toFixed(2))
           : unitCost;
 
+        // Calculate new sale price preserving the user's established margin ratio
+        const newPrice = calculateNewPricePreservingMargin(oldCost, oldPrice, weightedCost);
+
         const prod = await tx.producto.update({
           where: { id: item.productoId },
           data: {
             stock: { increment: qty },
-            ...(unitCost > 0 ? { costo: weightedCost } : {}),
+            ...(unitCost > 0 ? { costo: weightedCost, precio: newPrice } : {}),
           },
         });
 
