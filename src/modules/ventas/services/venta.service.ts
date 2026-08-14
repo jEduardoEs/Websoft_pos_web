@@ -276,6 +276,21 @@ export class VentaService {
         },
       });
 
+      // Auto-create project if sale contains an installation item
+      const hasInstalacion = processedItems.some(i => 
+        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
+        (i.dbProd?.categoria && i.dbProd.categoria.toLowerCase().includes('servicio'))
+      );
+
+      if (hasInstalacion || dto.cotizacionId) {
+        try {
+          const { ProyectoService } = await import('@/modules/proyectos/services/proyecto.service');
+          await ProyectoService.createFromSale(v.id);
+        } catch (err) {
+          console.error('[VentaService] Error auto-creating project from sale with installation:', err);
+        }
+      }
+
       // Añadir campos calculados al objeto de respuesta (sin persistir)
       const itemsConCalculos = v.items.map((it, idx) => {
         const original = dto.items[idx];

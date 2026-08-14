@@ -354,7 +354,7 @@ export class CotizacionService {
       }
     }
 
-    return prisma.$transaction(async (tx) => {
+    const resVenta = await prisma.$transaction(async (tx) => {
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });
       const num = parseInt(cfg?.valor || '1');
       const numero = `FAC-${String(num).padStart(6, '0')}`;
@@ -445,6 +445,15 @@ export class CotizacionService {
 
       return venta;
     });
+
+    try {
+      const { ProyectoService } = await import('@/modules/proyectos/services/proyecto.service');
+      await ProyectoService.createFromSale(resVenta.id);
+    } catch (err) {
+      console.error('[CotizacionService] Error auto-creating project from sale:', err);
+    }
+
+    return resVenta;
   }
 
   static async enviarCorreo(id: number, email: string) {

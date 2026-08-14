@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 
+import { RoutePermissionGuard } from './RoutePermissionGuard'
+
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
@@ -42,7 +44,9 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
               }
             </svg>
           </button>
-          {children}
+          <RoutePermissionGuard>
+            {children}
+          </RoutePermissionGuard>
         </main>
       </div>
 

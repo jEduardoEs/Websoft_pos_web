@@ -20,6 +20,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   // Clear form automatically whenever modal is closed
   useEffect(() => {
     if (!showModal) {
+      setClienteSearch('')
       setForm({
         nombre: '',
         clienteNombre: '',
@@ -37,6 +38,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   }, [showModal])
 
   const openModal = () => {
+    setClienteSearch('')
     setForm({
       nombre: '',
       clienteNombre: '',
@@ -55,6 +57,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
 
   const closeModal = () => {
     setShowModal(false)
+    setClienteSearch('')
     setForm({
       nombre: '',
       clienteNombre: '',
@@ -145,13 +148,21 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   }
 
   const [cotizacionesList, setCotizacionesList] = useState<any[]>([])
+  const [ventasList, setVentasList] = useState<any[]>([])
   const [clientesList, setClientesList] = useState<any[]>([])
+  const [clienteSearch, setClienteSearch] = useState('')
 
   useEffect(() => {
     if (showModal) {
+      setClienteSearch('')
       fetch('/api/cotizaciones')
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setCotizacionesList(data) })
+        .catch(() => {})
+
+      fetch('/api/ventas')
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setVentasList(data) })
         .catch(() => {})
 
       fetch('/api/clientes')
@@ -161,33 +172,128 @@ export function useProyectos(esAdminOSupervisor: boolean) {
     }
   }, [showModal])
 
+  const term = clienteSearch.trim().toLowerCase()
+
+  const asociados = term.length >= 2
+    ? [
+        ...cotizacionesList.filter(c => 
+          (c.clienteNombre && c.clienteNombre.toLowerCase().includes(term)) ||
+          (c.clienteNit && c.clienteNit.toLowerCase().includes(term) && c.clienteNit !== 'CF') ||
+          (c.numero && c.numero.toLowerCase().includes(term))
+        ).map(c => {
+          const hasInstalacion = (c.items || []).some((i: any) => 
+            (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
+            (i.descripcion && i.descripcion.toLowerCase().includes('instalac'))
+          )
+          return {
+            tipo: 'cotizacion' as const,
+            id: c.id,
+            numero: c.numero,
+            clienteNombre: c.clienteNombre,
+            clienteNit: c.clienteNit,
+            clienteTelefono: c.clienteTelefono,
+            clienteDireccion: c.clienteDireccion,
+            total: c.total,
+            hasInstalacion,
+            itemsText: c.items && c.items.length > 0 ? c.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ') : c.descripcion || '',
+            data: c,
+          }
+        }),
+        ...ventasList.filter(v => 
+          (v.clienteNombre && v.clienteNombre.toLowerCase().includes(term)) ||
+          (v.clienteNit && v.clienteNit.toLowerCase().includes(term) && v.clienteNit !== 'CF') ||
+          (v.numero && v.numero.toLowerCase().includes(term))
+        ).map(v => {
+          const hasInstalacion = (v.items || []).some((i: any) => 
+            (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
+            (i.descripcion && i.descripcion.toLowerCase().includes('instalac')) ||
+            (i.categoria && i.categoria.toLowerCase().includes('servicio'))
+          )
+          return {
+            tipo: 'venta' as const,
+            id: v.id,
+            numero: v.numero,
+            clienteNombre: v.clienteNombre,
+            clienteNit: v.clienteNit,
+            clienteTelefono: v.clienteTelefono,
+            clienteDireccion: v.clienteDireccion,
+            total: v.total,
+            hasInstalacion,
+            itemsText: v.items && v.items.length > 0 ? v.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ') : v.notas || '',
+            data: v,
+          }
+        })
+      ]
+    : []
+
+  const seleccionarAsociado = (item: any) => {
+    if (!item) return
+    setClienteSearch('')
+    setForm(prev => ({
+      ...prev,
+      clienteNombre: item.clienteNombre || prev.clienteNombre,
+      clienteNit: item.clienteNit || prev.clienteNit || 'CF',
+      clienteTelefono: item.clienteTelefono || prev.clienteTelefono || '',
+      clienteDireccion: item.clienteDireccion || prev.clienteDireccion || '',
+      cotizacionNumero: item.numero,
+      descripcion: item.itemsText || `Instalación / Trabajo para ${item.clienteNombre}`,
+      nombre: `Proyecto ${item.clienteNombre} (${item.numero})`,
+    }))
+    const labelTipo = item.tipo === 'cotizacion' ? 'Cotización' : 'Venta'
+    toast.success(`Datos cargados desde ${labelTipo} ${item.numero}${item.hasInstalacion ? ' (con instalación incluida)' : ''}`)
+  }
+
   const cargarDesdeCotizacion = async (cotNumero: string) => {
+    setClienteSearch('')
     if (!cotNumero || !cotNumero.trim()) {
-      toast.error('Ingresa o selecciona un número de cotización')
+      toast.error('Ingresa un número de cotización o venta vinculada')
       return
     }
 
-    let list = cotizacionesList
-    if (!list || list.length === 0) {
+    let cList = cotizacionesList
+    let vList = ventasList
+
+    if (!cList || cList.length === 0) {
       try {
         const res = await fetch('/api/cotizaciones')
         const data = await res.json()
         if (Array.isArray(data)) {
-          list = data
+          cList = data
           setCotizacionesList(data)
         }
       } catch (err) {}
     }
 
-    const term = cotNumero.trim().toLowerCase()
-    const cleanNum = term.replace(/\D/g, '')
+    if (!vList || vList.length === 0) {
+      try {
+        const res = await fetch('/api/ventas')
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          vList = data
+          setVentasList(data)
+        }
+      } catch (err) {}
+    }
 
-    const cot = list.find(c => {
+    const t = cotNumero.trim().toLowerCase()
+    const cleanNum = t.replace(/\D/g, '')
+
+    const cot = cList.find(c => {
       if (!c) return false
       const numStr = (c.numero || '').toLowerCase()
-      if (numStr === term) return true
-      if (term.includes('cot') && cleanNum.length > 0 && numStr.includes(cleanNum)) return true
-      if (String(c.id) === term || (cleanNum.length > 0 && String(c.id) === cleanNum)) return true
+      if (numStr === t) return true
+      if (t.includes('cot') && cleanNum.length > 0 && numStr.includes(cleanNum)) return true
+      if (String(c.id) === t || (cleanNum.length > 0 && String(c.id) === cleanNum)) return true
+      if (cleanNum.length > 0 && numStr.endsWith(cleanNum)) return true
+      return false
+    })
+
+    const venta = vList.find(v => {
+      if (!v) return false
+      const numStr = (v.numero || '').toLowerCase()
+      if (numStr === t) return true
+      if ((t.includes('fac') || t.includes('ven')) && cleanNum.length > 0 && numStr.includes(cleanNum)) return true
+      if (String(v.id) === t || (cleanNum.length > 0 && String(v.id) === cleanNum)) return true
       if (cleanNum.length > 0 && numStr.endsWith(cleanNum)) return true
       return false
     })
@@ -195,7 +301,12 @@ export function useProyectos(esAdminOSupervisor: boolean) {
     if (cot) {
       const itemsText = cot.items && cot.items.length > 0
         ? cot.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
-        : cot.descripcion || 'Instalación / Trabajo cotizado'
+        : cot.descripcion || ''
+
+      const hasInstalacion = (cot.items || []).some((i: any) => 
+        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
+        (i.descripcion && i.descripcion.toLowerCase().includes('instalac'))
+      )
 
       setForm(prev => ({
         ...prev,
@@ -205,16 +316,43 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         clienteTelefono: cot.clienteTelefono || prev.clienteTelefono || '',
         clienteDireccion: cot.clienteDireccion || prev.clienteDireccion || '',
         contactoNombre: cot.atencion || prev.contactoNombre || '',
-        descripcion: itemsText,
-        nombre: cot.descripcion || `Proyecto ${cot.clienteNombre} (${cot.numero})`,
+        descripcion: itemsText || prev.descripcion,
+        nombre: prev.nombre || `Proyecto ${cot.clienteNombre} (${cot.numero})`,
       }))
-      toast.success(`Datos cargados desde Cotización ${cot.numero}`)
-    } else {
-      toast.error(`No se encontró cotización "${cotNumero}"`)
+      toast.success(hasInstalacion ? `Cotización ${cot.numero} (con instalación) cargada` : `Cotización ${cot.numero} cargada`)
+      return
     }
+
+    if (venta) {
+      const itemsText = venta.items && venta.items.length > 0
+        ? venta.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ')
+        : venta.notas || ''
+
+      const hasInstalacion = (venta.items || []).some((i: any) => 
+        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
+        (i.descripcion && i.descripcion.toLowerCase().includes('instalac')) ||
+        (i.categoria && i.categoria.toLowerCase().includes('servicio'))
+      )
+
+      setForm(prev => ({
+        ...prev,
+        cotizacionNumero: venta.numero,
+        clienteNombre: venta.clienteNombre || prev.clienteNombre,
+        clienteNit: venta.clienteNit || prev.clienteNit || 'CF',
+        clienteTelefono: venta.clienteTelefono || prev.clienteTelefono || '',
+        clienteDireccion: venta.clienteDireccion || prev.clienteDireccion || '',
+        descripcion: itemsText || prev.descripcion,
+        nombre: prev.nombre || `Proyecto ${venta.clienteNombre} (${venta.numero})`,
+      }))
+      toast.success(hasInstalacion ? `Venta libre ${venta.numero} (con instalación) cargada` : `Venta ${venta.numero} cargada`)
+      return
+    }
+
+    toast.error(`No se encontró cotización o venta "${cotNumero}"`)
   }
 
   const cargarDesdeCliente = async (val: string) => {
+    setClienteSearch('')
     if (!val || !val.trim()) {
       toast.error('Ingresa el nombre o NIT del cliente')
       return
@@ -232,21 +370,56 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       } catch (err) {}
     }
 
-    const term = val.trim().toLowerCase()
+    const t = val.trim().toLowerCase()
     const cli = cList.find(c => 
-      (c.nombre && c.nombre.toLowerCase().includes(term)) ||
-      (c.nit && c.nit.toLowerCase().includes(term) && c.nit !== 'CF')
+      (c.nombre && c.nombre.toLowerCase().includes(t)) ||
+      (c.nit && c.nit.toLowerCase().includes(t) && c.nit !== 'CF')
     )
 
-    if (cli) {
+    const cotAssoc = cotizacionesList.find(c => 
+      (c.clienteNombre && c.clienteNombre.toLowerCase().includes(t)) ||
+      (c.clienteNit && c.clienteNit.toLowerCase().includes(t) && c.clienteNit !== 'CF')
+    )
+
+    const ventaAssoc = ventasList.find(v =>
+      (v.clienteNombre && v.clienteNombre.toLowerCase().includes(t)) ||
+      (v.clienteNit && v.clienteNit.toLowerCase().includes(t) && v.clienteNit !== 'CF')
+    )
+
+    const assocDoc = cotAssoc || ventaAssoc
+
+    if (cli || assocDoc) {
+      const nombreFinal = cli?.nombre || assocDoc?.clienteNombre || val
+      const nitFinal = cli?.nit || assocDoc?.clienteNit || 'CF'
+      const telFinal = cli?.telefono || assocDoc?.clienteTelefono || ''
+      const dirFinal = cli?.direccion || assocDoc?.clienteDireccion || ''
+      
+      let itemsText = ''
+      let docNum = ''
+
+      if (cotAssoc) {
+        docNum = cotAssoc.numero
+        itemsText = cotAssoc.items && cotAssoc.items.length > 0
+          ? cotAssoc.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
+          : cotAssoc.descripcion || ''
+      } else if (ventaAssoc) {
+        docNum = ventaAssoc.numero
+        itemsText = ventaAssoc.items && ventaAssoc.items.length > 0
+          ? ventaAssoc.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ')
+          : ventaAssoc.notas || ''
+      }
+
       setForm(prev => ({
         ...prev,
-        clienteNombre: cli.nombre || prev.clienteNombre,
-        clienteNit: cli.nit || prev.clienteNit || 'CF',
-        clienteTelefono: cli.telefono || prev.clienteTelefono || '',
-        clienteDireccion: cli.direccion || prev.clienteDireccion || '',
+        clienteNombre: nombreFinal,
+        clienteNit: nitFinal,
+        clienteTelefono: telFinal || prev.clienteTelefono || '',
+        clienteDireccion: dirFinal || prev.clienteDireccion || '',
+        cotizacionNumero: docNum || prev.cotizacionNumero || '',
+        descripcion: itemsText || prev.descripcion || '',
+        nombre: prev.nombre || `Proyecto ${nombreFinal}${docNum ? ` (${docNum})` : ''}`,
       }))
-      toast.success(`Datos personales del cliente ${cli.nombre} cargados`)
+      toast.success(`Datos del cliente ${nombreFinal} cargados`)
     } else {
       toast.error(`No se encontró cliente para "${val}"`)
     }
@@ -267,7 +440,10 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       showPinEliminar,
       pinInput,
       cotizacionesList,
-      clientesList
+      ventasList,
+      clientesList,
+      clienteSearch,
+      asociados
     },
     actions: {
       setTab,
@@ -283,6 +459,8 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       setPinInput,
       setShowPinEliminar,
       setOpenMenuId,
+      setClienteSearch,
+      seleccionarAsociado,
       cargarDesdeCotizacion,
       cargarDesdeCliente
     },

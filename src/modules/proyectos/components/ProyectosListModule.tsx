@@ -10,8 +10,8 @@ const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { 
 export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSupervisor: boolean }) {
   const router = useRouter()
   const { state, actions, utils, refs } = useProyectos(esAdminOSupervisor)
-  const { proyectos, alertas, tab, buscar, showModal, form, loading, openMenuId, showPinEliminar, pinInput, cotizacionesList, clientesList } = state
-  const { setTab, setBuscar, setShowModal, openModal, closeModal, setF, save, handleEliminar, eliminarProyecto, setPinInput, setShowPinEliminar, setOpenMenuId, cargarDesdeCotizacion, cargarDesdeCliente } = actions
+  const { proyectos, alertas, tab, buscar, showModal, form, loading, openMenuId, showPinEliminar, pinInput, cotizacionesList, clientesList, clienteSearch, asociados } = state
+  const { setTab, setBuscar, setShowModal, openModal, closeModal, setF, save, handleEliminar, eliminarProyecto, setPinInput, setShowPinEliminar, setOpenMenuId, setClienteSearch, seleccionarAsociado, cargarDesdeCotizacion, cargarDesdeCliente } = actions
   const { diasPara, getAlertaMant } = utils
   const { menuRef } = refs
 
@@ -139,55 +139,32 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
       {/* Modal Nuevo Proyecto */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 640, margin: 'auto', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 640, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Nuevo Proyecto</h3>
               <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              {/* SECCIÓN SUPERIOR: CARGAR INFORMACIÓN COMPLETA DESDE COTIZACIÓN EXACTA */}
-              <div style={{ gridColumn: '1/-1', background: '#f0f7ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: 14 }}>
-                <label style={{ ...lbl, color: '#1d4ed8' }}>No. Cotización Exacta (Cargar todo el Proyecto)</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    className="input"
-                    value={form.cotizacionNumero}
-                    onChange={e => setF('cotizacionNumero', e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        cargarDesdeCotizacion(form.cotizacionNumero);
-                      }
-                    }}
-                    placeholder="Escribe el No. exacto (Ej: COT-000001)..."
-                    style={{ flex: 1, background: '#fff' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => cargarDesdeCotizacion(form.cotizacionNumero)}
-                    style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
-                  >
-                    Cargar Cotización
-                  </button>
-                </div>
-                <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 6 }}>
-                  Ingresa el número de la cotización exacta y presiona &quot;Cargar Cotización&quot; para autocompletar cliente, productos y descripción.
-                </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <label style={lbl}>Nombre del proyecto *</label>
+                <input className="input" value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Ej: Sistema CCTV Farmacia San José" />
               </div>
-
-              {/* BÚSQUEDA ÚNICAMENTE DE DATOS PERSONALES DE CLIENTE O NIT */}
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label style={lbl}>Cliente / Empresa *</label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
                     className="input"
                     value={form.clienteNombre}
-                    onChange={e => setF('clienteNombre', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      setF('clienteNombre', val)
+                      setClienteSearch(val)
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
-                        e.preventDefault();
-                        cargarDesdeCliente(form.clienteNombre);
+                        e.preventDefault()
+                        cargarDesdeCliente(form.clienteNombre)
                       }
                     }}
                     placeholder="Nombre del cliente o empresa"
@@ -196,25 +173,56 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                   <button
                     type="button"
                     onClick={() => cargarDesdeCliente(form.clienteNombre)}
-                    style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 6, padding: '0 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                    title="Buscar únicamente datos personales del cliente"
+                    style={{ background: '#1581E3', color: '#fff', border: 'none', borderRadius: 6, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     Buscar
                   </button>
                 </div>
+                {asociados.length > 0 && clienteSearch.trim().length >= 2 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, boxShadow: '0 8px 20px rgba(0,0,0,.15)', zIndex: 1000, maxHeight: 160, overflowY: 'auto', marginTop: 2 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', padding: '6px 10px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                      Cotizaciones/Ventas encontradas ({asociados.length}):
+                    </div>
+                    {asociados.map(a => (
+                      <div
+                        key={`${a.tipo}-${a.id}`}
+                        onClick={() => {
+                          seleccionarAsociado(a)
+                          setClienteSearch('')
+                        }}
+                        style={{ padding: '8px 10px', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid #f8fafc' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f0f7ff')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                      >
+                        <div style={{ fontWeight: 700, color: '#1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{a.tipo === 'cotizacion' ? 'Cotización' : 'Venta'} {a.numero}</span>
+                          {a.hasInstalacion && (
+                            <span style={{ fontSize: 10, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                              Con instalación
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{a.clienteNombre} · Q {Number(a.total).toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label style={lbl}>NIT</label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
                     className="input"
                     value={form.clienteNit}
-                    onChange={e => setF('clienteNit', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      setF('clienteNit', val)
+                      setClienteSearch(val && val !== 'CF' ? val : '')
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
-                        e.preventDefault();
-                        cargarDesdeCliente(form.clienteNit);
+                        e.preventDefault()
+                        cargarDesdeCliente(form.clienteNit)
                       }
                     }}
                     placeholder="NIT del cliente"
@@ -223,27 +231,51 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                   <button
                     type="button"
                     onClick={() => cargarDesdeCliente(form.clienteNit)}
-                    style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 6, padding: '0 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                    title="Buscar por NIT"
+                    style={{ background: '#1581E3', color: '#fff', border: 'none', borderRadius: 6, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     Buscar
                   </button>
                 </div>
               </div>
 
-              {/* NOMBRE DEL PROYECTO */}
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Nombre del proyecto *</label>
-                <input className="input" value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Ej: Sistema CCTV Farmacia San José" />
+              {/* SECCIÓN MOVIDA JUSTO DEBAJO DE CLIENTE / EMPRESA: NO. COTIZACIÓN / VENTA VINCULADA */}
+              <div>
+                <label style={lbl}>No. Cotización / Venta vinculada</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    className="input"
+                    value={form.cotizacionNumero}
+                    onChange={e => setF('cotizacionNumero', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        cargarDesdeCotizacion(form.cotizacionNumero)
+                      }
+                    }}
+                    placeholder="COT-000001 o FAC-000001"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => cargarDesdeCotizacion(form.cotizacionNumero)}
+                    style={{ background: '#1581E3', color: '#fff', border: 'none', borderRadius: 6, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Buscar
+                  </button>
+                </div>
               </div>
 
               <div>
-                <label style={lbl}>Teléfono (8 dígitos)</label>
-                <input className="input" type="tel" maxLength={8} value={form.clienteTelefono || ''} onChange={e => setF('clienteTelefono', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Ej: 55554444" />
+                <label style={lbl}>Teléfono</label>
+                <input className="input" value={form.clienteTelefono} onChange={e => setF('clienteTelefono', e.target.value)} />
               </div>
               <div>
                 <label style={lbl}>Persona de contacto</label>
                 <input className="input" value={form.contactoNombre} onChange={e => setF('contactoNombre', e.target.value)} placeholder="Ej: Gerente, encargado..." />
+              </div>
+              <div>
+                <label style={lbl}>Fecha de instalación *</label>
+                <input className="input" type="date" value={form.fechaInicio} onChange={e => setF('fechaInicio', e.target.value)} />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Ubicación / Dirección</label>
@@ -256,10 +288,6 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Alcance / detalles técnicos adicionales</label>
                 <textarea className="input" rows={2} value={form.alcance} onChange={e => setF('alcance', e.target.value)} placeholder="Metraje de cable, configuración especial, equipos adicionales..." style={{ resize: 'vertical' }} />
-              </div>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Fecha de instalación *</label>
-                <input className="input" type="date" value={form.fechaInicio} onChange={e => setF('fechaInicio', e.target.value)} />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Notas internas</label>
