@@ -5,6 +5,7 @@ import { CreateCompraDto } from '../dto/create-compra.dto';
 import { useCompras } from '../hooks/use-compras';
 import { matchesSearchQuery } from '@/lib/search-utils';
 import { ProductoFormModal } from '@/modules/productos/components/ProductoFormModal';
+import { parseCompraXML } from '../utils/compra-xml.helper';
 
 interface CompraFormModalProps {
   onClose: () => void;
@@ -76,123 +77,20 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
     }
   };
 
-  const parseXML = async (file: File) => {
+  const handleParseXML = async (file: File) => {
     setXmlLoading(true);
     try {
-      const text = await file.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'application/xml');
+      const result = await parseCompraXML(file, productos);
+      setXmlParsed(result);
 
-      const getByLocal = (localName: string): Element | null => {
-        const all = xml.getElementsByTagName('*');
-        for (let i = 0; i < all.length; i++) {
-          if (all[i].localName === localName) return all[i];
-        }
-        return null;
-      };
+      if (result.numAutorizacion) setForm(p => ({ ...p, numeroFactura: result.numAutorizacion }));
+      if (result.serie) setForm(p => ({ ...p, serieFactura: result.serie }));
+      if (result.fechaEmision) setForm(p => ({ ...p, fecha: result.fechaEmision }));
 
-      const getAllByLocal = (localName: string): Element[] => {
-        const all = xml.getElementsByTagName('*');
-        const result: Element[] = [];
-        for (let i = 0; i < all.length; i++) {
-          if (all[i].localName === localName) result.push(all[i]);
-        }
-        return result;
-      };
-
-      const getAttrEl = (el: Element | null, attr: string) => el?.getAttribute(attr) || '';
-
-      const emisorEl = getByLocal('Emisor');
-      const nitEmisor = getAttrEl(emisorEl, 'NITEmisor');
-      const nombreEmisor = getAttrEl(emisorEl, 'NombreComercial') || getAttrEl(emisorEl, 'NombreEmisor');
-
-      const numAutEl = getByLocal('NumeroAutorizacion');
-      const numAutorizacion = numAutEl?.textContent?.trim() || '';
-      const serie = getAttrEl(numAutEl, 'Serie');
-
-      const datosEl = getByLocal('DatosGenerales');
-      const fechaEmision = getAttrEl(datosEl, 'FechaHoraEmision')?.slice(0, 10) || '';
-      const granTotal = getByLocal('GranTotal')?.textContent?.trim() || '';
-
-      const itemEls = getAllByLocal('Item');
-      const xmlItems: any[] = [];
-      for (const itemEl of itemEls) {
-        const getItemLocal = (ln: string) => {
-          const all = itemEl.getElementsByTagName('*');
-          for (let i = 0; i < all.length; i++) {
-            if (all[i].localName === ln) return all[i].textContent?.trim() || '';
-          }
-          return '';
-        };
-        const desc = getItemLocal('Descripcion');
-        const cantidad = +(getItemLocal('Cantidad') || '1');
-        const precioUnitarioVal = +(getItemLocal('PrecioUnitario') || '0');
-        const precioVal = +(getItemLocal('Precio') || '0');
-        const montoVal = +(getItemLocal('Monto') || '0');
-        const codigo = getItemLocal('Codigo') || getItemLocal('CodigoItem') || '';
-        
-        const costoUnit = precioUnitarioVal > 0 
-          ? precioUnitarioVal 
-          : precioVal > 0 
-            ? precioVal / cantidad 
-            : montoVal > 0 
-              ? montoVal / cantidad 
-              : 0;
-
-        if (desc) {
-          xmlItems.push({
-            nombre: desc,
-            cantidad,
-            precioUnitario: costoUnit.toFixed(2),
-            subtotal: (cantidad * costoUnit),
-            productoId: '',
-            codigo,
-          });
-        }
+      if (result.items.length > 0) {
+        setItems(result.items);
+        toast.success(`XML leido: ${result.nombreEmisor} · ${result.items.length} items · ${result.matchedCount} vinculados a inventario`);
       }
-
-      setXmlParsed({ nitEmisor, nombreEmisor, numAutorizacion, serie, fechaEmision, total: granTotal, items: xmlItems });
-
-      if (numAutorizacion) setForm(p => ({ ...p, numeroFactura: numAutorizacion }));
-      if (serie) setForm(p => ({ ...p, serieFactura: serie }));
-      if (fechaEmision) setForm(p => ({ ...p, fecha: fechaEmision }));
-
-      if (xmlItems.length > 0) {
-        setItems(xmlItems.map(xi => {
-          const match = productos.find(p => {
-            if (!p) return false;
-            const pCode = (p.codigo || '').toLowerCase().trim();
-            const xiCode = (xi.codigo || '').toLowerCase().trim();
-            if (pCode && xiCode && pCode === xiCode) return true;
-
-            const pName = (p.nombre || '').toLowerCase().trim();
-            const xiName = (xi.nombre || '').toLowerCase().trim();
-            if (pName && xiName) {
-              if (pName === xiName) return true;
-              if (pName.includes(xiName) || xiName.includes(pName)) return true;
-            }
-            return false;
-          });
-
-          return {
-            productoId: match ? String(match.id) : '',
-            nombre: match ? match.nombre : xi.nombre,
-            cantidad: String(xi.cantidad),
-            precioUnitario: xi.precioUnitario,
-            subtotal: xi.subtotal,
-            _xmlNombre: xi.nombre,
-            _xmlCodigo: xi.codigo || '',
-          };
-        }));
-      }
-
-      const matched = xmlItems.filter(xi =>
-        productos.some(p =>
-          p.nombre.toLowerCase().includes(xi.nombre.toLowerCase()) ||
-          xi.nombre.toLowerCase().includes(p.nombre.toLowerCase())
-        )
-      ).length;
-      toast.success(`XML leido: ${nombreEmisor} · ${xmlItems.length} items · ${matched} encontrados en inventario`);
     } catch (err) {
       console.error('XML parse error:', err);
       toast.error('Error al leer el XML. Verifica que sea un archivo FEL valido.');
@@ -303,7 +201,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
           {/* XML FEL */}
           <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>XML Factura SAT (FEL) — opcional</div>
-            <input type="file" accept=".xml" onChange={e => e.target.files?.[0] && parseXML(e.target.files[0])} style={{ fontSize: 12 }} />
+            <input type="file" accept=".xml" onChange={e => e.target.files?.[0] && handleParseXML(e.target.files[0])} style={{ fontSize: 12 }} />
             {xmlLoading && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 4 }}>Leyendo XML...</div>}
             {xmlParsed && (
               <div style={{ marginTop: 6, fontSize: 11, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 10px' }}>
@@ -331,7 +229,11 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
                   <option value="">Servicio / otro</option>
                   {prodFiltrados.map(p => <option key={p.id} value={p.id}>{p.codigo ? `[${p.codigo}] ` : ''}{p.nombre}</option>)}
                 </select>
-                {!item.productoId && (
+                {item.productoId ? (
+                  <div style={{ marginTop: 3, fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 5, textAlign: 'center' }}>
+                    En inventario (se sumará al stock)
+                  </div>
+                ) : (
                   <button onClick={() => {
                     setShowNuevoProd({
                       nombre: item._xmlNombre || item.nombre || '',

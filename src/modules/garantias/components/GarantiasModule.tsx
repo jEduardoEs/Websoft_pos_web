@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { fmtDate } from '@/lib/utils'
+import { fmtDate, diasRestantes } from '../utils/garantia-calc.helper'
 import { useGarantias } from '../hooks/use-garantias'
 import { printGarantia } from '../utils/pdfGenerators'
+import { GarantiaReclamoModal } from './GarantiaReclamoModal'
+import { GarantiaDetalleModal } from './GarantiaDetalleModal'
 
 export default function GarantiasModule() {
   const { state, actions } = useGarantias()
@@ -24,12 +26,6 @@ export default function GarantiasModule() {
     window.addEventListener('click', handleOutside)
     return () => window.removeEventListener('click', handleOutside)
   }, [])
-
-  const diasRestantes = (g: any) => {
-    if (!g?.fechaVencimiento) return 0
-    const venc = new Date(g.fechaVencimiento).getTime()
-    return isNaN(venc) ? 0 : Math.ceil((venc - Date.now()) / 86400000)
-  }
 
   const estadoBadge: any = { vigente: 'badge-green', vencida: 'badge-red', reclamada: 'badge-orange', anulada: 'badge-gray', facturada: 'badge-blue' }
   const estadoReclamoBadge: any = { recibido: 'badge-blue', en_revision: 'badge-orange', aprobado: 'badge-green', rechazado: 'badge-red', resuelto: 'badge-gray' }
@@ -519,208 +515,26 @@ export default function GarantiasModule() {
 
       {/* MODAL RECLAMO */}
       {showReclamo && selectedGarantia && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 680, margin: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '2px solid #dc2626' }}>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b' }}>Reclamo de Garantía</h3>
-                <p style={{ fontSize: 12, color: '#8a887e', marginTop: 2 }}>{selectedGarantia.numero} · {selectedGarantia.clienteNombre} · {selectedGarantia.productoNombre}</p>
-              </div>
-              <button onClick={() => setShowReclamo(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
-            </div>
-
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 12, marginBottom: 16, fontSize: 12 }}>
-              <div style={{ display: 'flex', gap: 20 }}>
-                <span> Vence: <strong>{fmtDate(selectedGarantia.fechaVencimiento)}</strong></span>
-                <span> {diasRestantes(selectedGarantia)} días restantes</span>
-                <span> Serie: <strong>{selectedGarantia.productoSerie || '—'}</strong></span>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-              <div>
-                <label style={lbl}>NIT del cliente</label>
-                <input className="input" value={reclamoForm.clienteNit} onChange={e => setRF('clienteNit', e.target.value)} placeholder="CF" />
-              </div>
-              <div>
-                <label style={lbl}>DPI del cliente</label>
-                <input className="input" value={reclamoForm.clienteDpi} onChange={e => setRF('clienteDpi', e.target.value)} placeholder="Número de DPI" />
-              </div>
-              <div>
-                <label style={lbl}>Teléfono</label>
-                <input className="input" value={reclamoForm.clienteTelefono} onChange={e => setRF('clienteTelefono', e.target.value)} />
-              </div>
-              <div>
-                <label style={lbl}>¿Presenta factura original?</label>
-                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="radio" checked={reclamoForm.tieneFactura} onChange={() => setRF('tieneFactura', true)} /> Sí
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="radio" checked={!reclamoForm.tieneFactura} onChange={() => setRF('tieneFactura', false)} /> No
-                  </label>
-                </div>
-              </div>
-              {reclamoForm.tieneFactura && (
-                <div>
-                  <label style={lbl}>Número de factura</label>
-                  <input className="input" value={reclamoForm.numeroFactura} onChange={e => setRF('numeroFactura', e.target.value)} />
-                </div>
-              )}
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Motivo del reclamo *</label>
-                <select className="input" value={reclamoForm.motivoReclamo} onChange={e => setRF('motivoReclamo', e.target.value)}>
-                  <option value="">Seleccionar motivo...</option>
-                  {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Descripción detallada del defecto *</label>
-                <textarea className="input" rows={3} value={reclamoForm.descripcionFalla} onChange={e => setRF('descripcionFalla', e.target.value)} placeholder="Describe con detalle el problema que presenta el producto..." />
-              </div>
-              <div style={{ gridColumn: '1/-1' }}>
-                <label style={lbl}>Notas internas</label>
-                <input className="input" value={reclamoForm.notas} onChange={e => setRF('notas', e.target.value)} placeholder="Observaciones del técnico al recibir el equipo" />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn-ghost" onClick={() => setShowReclamo(false)}>Cancelar</button>
-              <button onClick={saveReclamo} disabled={loading}
-                style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {loading ? 'Registrando...' : 'Registrar Reclamo e Imprimir'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <GarantiaReclamoModal
+          garantiasHook={{ ...state, ...actions }}
+          garantia={selectedGarantia}
+          onClose={() => setShowReclamo(false)}
+          onSuccess={() => setShowReclamo(false)}
+        />
       )}
 
       {/* ─── MODAL DETALLE GARANTÍA ─── */}
       {showDetalle && selectedGarantia && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 8, padding: 28, width: '100%', maxWidth: 680, margin: 'auto', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1.5px solid #d8d6cd' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#18181b', margin: 0 }}>Garantía {selectedGarantia.numero}</h3>
-                  <span className={estadoBadge[selectedGarantia.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>
-                    {selectedGarantia.estado}
-                  </span>
-                </div>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Detalles de la garantía y registro de cobertura</p>
-              </div>
-              <button onClick={() => setShowDetalle(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94a3b8' }}>×</button>
-            </div>
-
-            {/* Datos de la garantía */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#1581E3', textTransform: 'uppercase', marginBottom: 8 }}>Datos del Cliente</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{selectedGarantia.clienteNombre}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>NIT: {selectedGarantia.clienteNit || 'CF'}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Teléfono: {selectedGarantia.clienteTelefono || '—'}</div>
-              </div>
-
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#1581E3', textTransform: 'uppercase', marginBottom: 8 }}>Producto / Equipo</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{selectedGarantia.productoNombre}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
-                  No. Serie: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563eb' }}>{selectedGarantia.productoSerie || '—'}</span>
-                </div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Factura / Venta: <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedGarantia.ventaNumero || '—'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Cobertura y Fechas */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 6, padding: 14 }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase' }}>Fecha Venta / Emisión</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#18181b', marginTop: 4 }}>{fmtDate(selectedGarantia.fechaVenta)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase' }}>Vencimiento</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>{fmtDate(selectedGarantia.fechaVencimiento)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase' }}>Días Cobertura</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>{selectedGarantia.diasGarantia} días ({diasRestantes(selectedGarantia)} d restantes)</div>
-              </div>
-            </div>
-
-            {/* Condiciones */}
-            {selectedGarantia.condiciones && (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 12, marginBottom: 16, fontSize: 12, color: '#166534' }}>
-                <div style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 10, marginBottom: 4 }}>Condiciones de Cobertura</div>
-                <div>{selectedGarantia.condiciones}</div>
-              </div>
-            )}
-
-            {/* Notas */}
-            {(selectedGarantia as any).notas && (
-              <div style={{ marginBottom: 16, fontSize: 12, color: '#475569' }}>
-                <div style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 10, color: '#8a887e', marginBottom: 4 }}>Notas Registradas</div>
-                <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>{(selectedGarantia as any).notas}</div>
-              </div>
-            )}
-
-            {/* Historial de Reclamos */}
-            {reclamos && reclamos.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#18181b', marginBottom: 8, textTransform: 'uppercase' }}>Historial de Reclamos ({reclamos.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {reclamos.map(r => (
-                    <div key={r.id} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: 10, fontSize: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
-                        <span>{r.numero} · {r.motivoReclamo}</span>
-                        <span>{fmtDate(r.fecha)}</span>
-                      </div>
-                      <div style={{ color: '#475569' }}>{r.descripcionFalla}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Acciones */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20, paddingTop: 14, borderTop: '1px solid #e3e1d8' }}>
-              {selectedGarantia.estado === 'vigente' && (
-                <button
-                  onClick={() => { setShowDetalle(false); abrirReclamo(selectedGarantia); }}
-                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 16px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Registrar Reclamo
-                </button>
-              )}
-              <button
-                className="btn-ghost"
-                onClick={() => printGarantia(selectedGarantia)}
-                style={{ fontSize: 12, fontWeight: 600, padding: '8px 16px' }}
-              >
-                Imprimir Certificado
-              </button>
-              {isAdmin && selectedGarantia.estado !== 'anulada' && (
-                <button
-                  onClick={() => { setShowDetalle(false); anularGarantia(selectedGarantia); }}
-                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 16px', background: '#fff7ed', color: '#c2410c', border: '1px solid #ffedd5', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Anular
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => { setShowDetalle(false); eliminarGarantia(selectedGarantia); }}
-                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 16px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Eliminar
-                </button>
-              )}
-              
-              <button className="btn-secondary" onClick={() => setShowDetalle(false)}>Cerrar</button>
-            </div>
-          </div>
-        </div>
+        <GarantiaDetalleModal
+          garantia={selectedGarantia}
+          reclamos={reclamos}
+          isAdmin={isAdmin}
+          onClose={() => setShowDetalle(false)}
+          onAbrirReclamo={() => { setShowDetalle(false); abrirReclamo(selectedGarantia); }}
+          onPrintCertificado={() => printGarantia(selectedGarantia)}
+          onAnular={() => { setShowDetalle(false); anularGarantia(selectedGarantia); }}
+          onEliminar={() => { setShowDetalle(false); eliminarGarantia(selectedGarantia); }}
+        />
       )}
     </div>
   )

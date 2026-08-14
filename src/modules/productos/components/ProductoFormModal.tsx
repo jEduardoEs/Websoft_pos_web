@@ -32,7 +32,7 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
     unidad: 'unidad',
     imagenUrl: ''
   });
-  
+
   const [nuevaCategoria, setNuevaCategoria] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -142,9 +142,9 @@ export function ProductoFormModal({ producto, onClose, onSuccess, categorias }: 
             </select>
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <input className="input" value={nuevaCategoria} onChange={e => setNuevaCategoria(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && nuevaCategoria.trim()) { e.preventDefault(); setF('categoria', nuevaCategoria.trim()); setNuevaCategoria(''); }}}
+                onKeyDown={e => { if (e.key === 'Enter' && nuevaCategoria.trim()) { e.preventDefault(); setF('categoria', nuevaCategoria.trim()); setNuevaCategoria(''); } }}
                 placeholder="+ Nueva categoria..." style={{ flex: 1, fontSize: 12 }} />
-              <button type="button" onClick={() => { if (nuevaCategoria.trim()) { setF('categoria', nuevaCategoria.trim()); setNuevaCategoria(''); }}}
+              <button type="button" onClick={() => { if (nuevaCategoria.trim()) { setF('categoria', nuevaCategoria.trim()); setNuevaCategoria(''); } }}
                 style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                 Agregar
               </button>
