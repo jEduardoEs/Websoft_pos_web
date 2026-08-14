@@ -45,8 +45,9 @@ export class GarantiaBackendService {
     }
 
     return prisma.$transaction(async (tx) => {
-      const count = await tx.garantia.count();
-      const numero = `GAR-${String(count + 1).padStart(6, '0')}`;
+      const maxGar = await tx.garantia.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+      const nextId = (maxGar?.id || 0) + 1;
+      const numero = `GAR-${String(nextId).padStart(6, '0')}`;
 
       return tx.garantia.create({
         data: {

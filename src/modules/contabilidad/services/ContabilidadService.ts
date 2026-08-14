@@ -277,10 +277,17 @@ export class ContabilidadService {
       const ventas = await prisma.venta.aggregate({ where: { fecha: { gte: start, lte: end }, estado: 'completada' }, _sum: { total: true }, _count: true });
       const ingresos = (ventas._sum.total || 0) / 1.05; // sin IVA
 
-      const totalProductos = await prisma.producto.aggregate({ _sum: { costo: true, precio: true } });
-      const margenPct = totalProductos._sum.precio && totalProductos._sum.costo
-        ? 1 - (totalProductos._sum.costo / totalProductos._sum.precio) : 0.35;
-      const costoVentas = ingresos * (1 - margenPct);
+      const ventaItems = await prisma.ventaItem.findMany({
+        where: { venta: { fecha: { gte: start, lte: end }, estado: 'completada' } },
+        include: { producto: { select: { costo: true } } },
+      });
+
+      const costoVentasReal = ventaItems.reduce((sum, item) => {
+        const itemCost = item.producto?.costo || 0;
+        return sum + (itemCost * item.cantidad);
+      }, 0);
+
+      const costoVentas = costoVentasReal > 0 ? costoVentasReal : (ingresos * 0.65);
 
       const gastoAsientos = await prisma.partidaContable.aggregate({
         where: { cuenta: { tipo: 'gasto' }, asiento: { fecha: { gte: start, lte: end } } },

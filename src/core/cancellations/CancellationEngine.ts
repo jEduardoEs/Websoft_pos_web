@@ -60,11 +60,12 @@ export class CancellationEngine {
           await tx.kardex.create({
             data: {
               productoId: item.productoId,
-              tipo: 'ENTRADA',
+              tipo: 'entrada',
               cantidad: item.cantidad,
-              stockAnterior: prod.stock,
-              stockNuevo: newStock,
+              stockAntes: prod.stock,
+              stockDespues: newStock,
               motivo: `Anulación Venta ${venta.numero}: ${req.motivo}`,
+              referencia: venta.numero,
               usuarioNombre: req.usuarioNombre,
             },
           });

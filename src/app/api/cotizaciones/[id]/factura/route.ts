@@ -22,13 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const venta = await prisma.venta.findFirst({
       where: {
         OR: [
-          { notas: { contains: `COT-${cotId}` } },
+          { notas: { contains: `[Cotización COT-${cotId}]` } },
           { notas: { contains: `cotización ${cotizacion.numero}` } },
-          { notas: { contains: cotizacion.numero } },
-          {
-            clienteNombre: cotizacion.clienteNombre,
-            total: cotizacion.total,
-          },
         ],
       },
       orderBy: { id: 'desc' },

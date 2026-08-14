@@ -30,21 +30,36 @@ export class MetricsRepository {
 
   static async getVentasDiaLast7() {
     return logPerformance('getVentasDiaLast7', async () => {
+      const now = new Date();
+      const start7DaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+
+      const sales = await prisma.venta.findMany({
+        where: { fecha: { gte: start7DaysAgo }, estado: { not: 'anulada' } },
+        select: { fecha: true, total: true },
+      });
+
+      const dayMap = new Map<string, { total: number; count: number }>();
+
+      sales.forEach(s => {
+        const dt = new Date(s.fecha);
+        const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        const curr = dayMap.get(key) || { total: 0, count: 0 };
+        curr.total += s.total;
+        curr.count += 1;
+        dayMap.set(key, curr);
+      });
+
       const diasArray = Array.from({ length: 7 }, (_, idx) => 6 - idx);
-      return Promise.all(
-        diasArray.map(async (i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const inicio = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-          const fin = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-          const v = await prisma.venta.aggregate({
-            where: { fecha: { gte: inicio, lt: fin }, estado: { not: 'anulada' } },
-            _sum: { total: true },
-            _count: true,
-          });
-          return { dia: inicio.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric' }), total: v._sum.total || 0, ventas: v._count };
-        })
-      );
+      return diasArray.map(i => {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const entry = dayMap.get(key) || { total: 0, count: 0 };
+        return {
+          dia: d.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric' }),
+          total: Number(entry.total.toFixed(2)),
+          ventas: entry.count,
+        };
+      });
     });
   }
 

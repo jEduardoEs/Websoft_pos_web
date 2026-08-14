@@ -14,6 +14,16 @@ export class CajaBackendService {
       where: { fecha: { gte: start, lte: end }, estado: 'completada' },
       select: { total: true, metodoPago: true },
     });
+
+    const movimientos = await prisma.movimientoCaja.findMany({
+      where: { fecha: { gte: start, lte: end } },
+      select: { monto: true, tipo: true },
+    });
+
+    const netMovimientosEfectivo = movimientos.reduce((sum, m) => {
+      const isIngreso = m.tipo && m.tipo.toLowerCase().includes('ingreso');
+      return sum + (isIngreso ? m.monto : -m.monto);
+    }, 0);
     
     const totals = ventas.reduce(
       (acc, v) => {
@@ -23,7 +33,7 @@ export class CajaBackendService {
         else if (v.metodoPago === 'transferencia') acc.transferencia += v.total;
         return acc;
       },
-      { efectivo: 0, tarjeta: 0, transferencia: 0, granTotal: 0 }
+      { efectivo: netMovimientosEfectivo, tarjeta: 0, transferencia: 0, granTotal: netMovimientosEfectivo }
     );
 
     return prisma.cierre.create({
@@ -67,12 +77,15 @@ export class CajaBackendService {
     const activa = await this.getAperturaActiva();
     if (!activa) throw new Error('No hay caja abierta');
 
+    const nowIso = new Date().toISOString();
+    const infoCierre = `[Cierre: ${nowIso}]${notas ? ` — ${notas}` : ''}`;
+    const notasActualizadas = activa.notas ? `${activa.notas} | ${infoCierre}` : infoCierre;
+
     return prisma.aperturaCaja.update({
       where: { id: activa.id },
       data: {
         estado: 'cerrada',
-        fechaCierre: new Date(),
-        notas: notas ? `${activa.notas || ''} | Cierre: ${notas}` : activa.notas,
+        notas: notasActualizadas,
       },
     });
   }

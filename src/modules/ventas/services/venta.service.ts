@@ -65,43 +65,6 @@ export class VentaService {
       throw new Error('Sin items');
     }
 
-    // Verify stock in batch to avoid N sequential queries
-    const productIds = dto.items.map(it => it.productoId).filter(Boolean) as number[];
-    const productCodigos = dto.items.map(it => it.codigo).filter(Boolean) as string[];
-
-    const prodMapById = new Map<number, { id: number; stock: number; nombre: string }>();
-    const prodMapByCodigo = new Map<string, { id: number; stock: number; nombre: string }>();
-
-    if (productIds.length > 0 || productCodigos.length > 0) {
-      const prods = await prisma.producto.findMany({
-        where: {
-          OR: [
-            ...(productIds.length > 0 ? [{ id: { in: productIds } }] : []),
-            ...(productCodigos.length > 0 ? [{ codigo: { in: productCodigos, mode: 'insensitive' as const } }] : []),
-          ],
-          activo: true,
-        },
-        select: { id: true, codigo: true, stock: true, nombre: true },
-      });
-
-      prods.forEach(p => {
-        prodMapById.set(p.id, p);
-        if (p.codigo) prodMapByCodigo.set(p.codigo.trim().toUpperCase(), p);
-      });
-
-      for (const item of dto.items) {
-        let prod = item.productoId ? prodMapById.get(item.productoId) : undefined;
-        if (!prod && item.codigo) {
-          prod = prodMapByCodigo.get(item.codigo.trim().toUpperCase());
-        }
-        if (prod) {
-          if (prod.stock < item.cantidad) {
-            throw new Error(`Stock insuficiente para '${prod.nombre}'. Disponible: ${prod.stock} unidades, Solicitado: ${item.cantidad} unidades`);
-          }
-        }
-      }
-    }
-
     if (dto.cotizacionId) {
       const ventaPrevia = await prisma.venta.findFirst({
         where: { cotizacionId: dto.cotizacionId }
@@ -118,32 +81,68 @@ export class VentaService {
       const num = parseInt(cfg?.valor || '1');
       numeroVenta = `FAC-${String(num).padStart(6, '0')}`;
 
-      // Compute each item's price, profit, and IVA based on purchase cost and selected margin
+      // Fetch products inside transaction to guarantee real-time stock and prices
+      const productIds = dto.items.map(it => it.productoId).filter(Boolean) as number[];
+      const productCodigos = dto.items.map(it => it.codigo).filter(Boolean) as string[];
+
+      const dbProducts = await tx.producto.findMany({
+        where: {
+          OR: [
+            ...(productIds.length > 0 ? [{ id: { in: productIds } }] : []),
+            ...(productCodigos.length > 0 ? [{ codigo: { in: productCodigos, mode: 'insensitive' as const } }] : []),
+          ],
+          activo: true,
+        },
+      });
+
+      const prodMapById = new Map<number, typeof dbProducts[0]>();
+      const prodMapByCodigo = new Map<string, typeof dbProducts[0]>();
+      dbProducts.forEach(p => {
+        prodMapById.set(p.id, p);
+        if (p.codigo) prodMapByCodigo.set(p.codigo.trim().toUpperCase(), p);
+      });
+
+      // Verify stock and build items using authoritative catalog data
       const processedItems = dto.items.map(item => {
-        const cost = item.costo ?? 0;
-        const margin = item.margin ?? PROFIT_RATE; // default to 30% if not provided
-        const profit = Number((cost * margin).toFixed(2));
-        const basePrice = Number((cost + profit).toFixed(2)); // price before IVA
-        const iva = calculateIVA(basePrice);
+        let dbProd = item.productoId ? prodMapById.get(item.productoId) : undefined;
+        if (!dbProd && item.codigo) {
+          dbProd = prodMapByCodigo.get(item.codigo.trim().toUpperCase());
+        }
+
+        if (dbProd) {
+          if (dbProd.stock < item.cantidad) {
+            throw new Error(`Stock insuficiente para '${dbProd.nombre}'. Disponible: ${dbProd.stock} unidades, Solicitado: ${item.cantidad} unidades`);
+          }
+        }
+
+        const cost = dbProd ? dbProd.costo : (item.costo ?? 0);
+        // Use catalog price if available, fallback to DTO price for custom unlisted items
+        const catalogPrice = dbProd && dbProd.precio > 0 ? dbProd.precio : item.precioUnitario;
+        const itemDiscount = item.descuento || 0;
+        const netUnitPrice = Math.max(0, catalogPrice - itemDiscount);
+        const itemSubtotal = Number((netUnitPrice * item.cantidad).toFixed(2));
+        const iva = calculateIVA(itemSubtotal);
+        const ganancia = Number((itemSubtotal - (cost * item.cantidad)).toFixed(2));
+
         return {
-          productoId: item.productoId,
-          codigo: item.codigo || '',
-          nombre: item.nombre,
+          productoId: dbProd ? dbProd.id : (item.productoId || null),
+          codigo: item.codigo || dbProd?.codigo || '',
+          nombre: item.nombre || dbProd?.nombre || 'Producto',
           cantidad: item.cantidad,
-          precioUnitario: basePrice,
-          descuento: item.descuento || 0,
-          subtotal: basePrice,
+          precioUnitario: catalogPrice,
+          descuento: itemDiscount,
+          subtotal: itemSubtotal,
           costo: cost,
-          margin: margin,
+          margin: item.margin ?? PROFIT_RATE,
           iva: iva,
-          ganancia: profit,
+          ganancia: ganancia,
+          dbProd: dbProd,
         };
       });
 
-      // Recalculate totals from processed items to ensure consistency
       const saleSubtotal = processedItems.reduce((sum, i) => sum + i.subtotal, 0);
       const saleIVA = processedItems.reduce((sum, i) => sum + (i.iva ?? 0), 0);
-      const saleTotal = Number((saleSubtotal + saleIVA).toFixed(2));
+      const saleTotal = Number((saleSubtotal + saleIVA - (dto.descuento || 0)).toFixed(2));
 
       const v = await tx.venta.create({
         data: {
@@ -152,23 +151,24 @@ export class VentaService {
           clienteNombre: dto.clienteNombre || 'Consumidor Final',
           clienteNit: dto.clienteNit || 'CF',
           subtotal: saleSubtotal,
-          descuento: dto.descuento,
+          descuento: dto.descuento || 0,
           impuesto: saleIVA,
           total: saleTotal,
           metodoPago: dto.metodoPago,
           montoRecibido: dto.montoRecibido,
           cambio: dto.cambio,
+          cotizacionId: dto.cotizacionId ? Number(dto.cotizacionId) : null,
           notas: dto.cotizacionId ? `${dto.notas || ''} [Cotización COT-${dto.cotizacionId}]`.trim() : dto.notas,
           usuarioId: parseInt(userId),
           usuarioNombre: userName,
           items: {
             create: processedItems.map(i => ({
-              productoId: i.productoId ? Number(i.productoId) : null,
-              codigo: i.codigo || '',
+              productoId: i.productoId,
+              codigo: i.codigo,
               nombre: i.nombre,
               cantidad: i.cantidad,
               precioUnitario: i.precioUnitario,
-              descuento: i.descuento || 0,
+              descuento: i.descuento,
               subtotal: i.subtotal,
             })),
           },
@@ -176,14 +176,17 @@ export class VentaService {
         include: { items: true },
       });
 
-      // Update stock & kardex
-      for (const item of dto.items) {
-        if (!item.productoId) continue;
-        const prod = prodMapById.get(item.productoId);
-        const stockAntes = prod?.stock ?? 0;
+      // Update stock atomically & log kardex
+      for (const item of processedItems) {
+        if (!item.productoId || !item.dbProd) continue;
+        const stockAntes = item.dbProd.stock;
         const newStock = stockAntes - item.cantidad;
 
-        await tx.producto.update({ where: { id: item.productoId }, data: { stock: newStock } });
+        await tx.producto.update({
+          where: { id: item.productoId },
+          data: { stock: { decrement: item.cantidad } },
+        });
+
         await tx.kardex.create({
           data: {
             productoId: item.productoId,
@@ -194,6 +197,41 @@ export class VentaService {
             motivo: `Venta ${numeroVenta}`,
             referencia: numeroVenta,
             usuarioId: parseInt(userId),
+            usuarioNombre: userName,
+          },
+        });
+      }
+
+      // Increment usage counter on discount coupon if used
+      if (dto.descuento && dto.descuento > 0 && dto.notas) {
+        const couponMatch = dto.notas.match(/CÓDIGO:\s*([A-Z0-9_-]+)/i);
+        if (couponMatch && couponMatch[1]) {
+          await tx.descuento.updateMany({
+            where: { codigo: { equals: couponMatch[1].trim(), mode: 'insensitive' } },
+            data: { usosActuales: { increment: 1 } },
+          });
+        }
+      }
+
+      // Automatically register CuentaCobrar for credit sales
+      if (dto.metodoPago === 'credito') {
+        const maxCc = await tx.cuentaCobrar.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+        const nextCcId = (maxCc?.id || 0) + 1;
+        const numCc = `CC-${String(nextCcId).padStart(6, '0')}`;
+        const fechaVenc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+        await tx.cuentaCobrar.create({
+          data: {
+            numero: numCc,
+            fecha: new Date(),
+            fechaVencimiento: fechaVenc,
+            clienteNombre: dto.clienteNombre || 'Consumidor Final',
+            clienteNit: dto.clienteNit || 'CF',
+            ventaNumero: numeroVenta,
+            concepto: `Venta a crédito ${numeroVenta}`,
+            monto: saleTotal,
+            montoPagado: 0,
+            estado: 'pendiente',
             usuarioNombre: userName,
           },
         });

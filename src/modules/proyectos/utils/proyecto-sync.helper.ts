@@ -76,8 +76,9 @@ export async function syncProyectoDesdeCotizacion(
   }
 
   // 3. Create new project if none exists
-  const count = await tx.proyecto.count();
-  const numero = `PRY-${String(count + 1).padStart(6, '0')}`;
+  const maxProject = await tx.proyecto.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+  const nextId = (maxProject?.id || 0) + 1;
+  const numero = `PRY-${String(nextId).padStart(6, '0')}`;
 
   const itemsText = cotizacion.items && cotizacion.items.length > 0
     ? cotizacion.items.map((i: any) => `${i.cantidad}x ${i.descripcion}`).join(', ')

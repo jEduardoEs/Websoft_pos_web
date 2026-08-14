@@ -28,24 +28,31 @@ export class TiendaBackendService {
       throw new Error('El carrito está vacío');
     }
 
-    // Validate stock
-    for (const item of items) {
-      if (!item.productoId) continue;
-      const prod = await prisma.producto.findUnique({
-        where: { id: Number(item.productoId) },
-        select: { stock: true, nombre: true },
+    // Validate stock in batch
+    const pIds = items.map((i: any) => Number(i.productoId)).filter(Boolean);
+    if (pIds.length > 0) {
+      const prods = await prisma.producto.findMany({
+        where: { id: { in: pIds } },
+        select: { id: true, stock: true, nombre: true },
       });
-      if (!prod) throw new Error('Producto no encontrado');
-      if (prod.stock < item.cantidad) {
-        throw new Error(`Sin stock suficiente para: ${prod.nombre} (disponible: ${prod.stock})`);
+      const prodMap = new Map<number, typeof prods[0]>(prods.map(p => [p.id, p]));
+
+      for (const item of items) {
+        if (!item.productoId) continue;
+        const prod = prodMap.get(Number(item.productoId));
+        if (!prod) throw new Error('Producto no encontrado');
+        if (prod.stock < item.cantidad) {
+          throw new Error(`Sin stock suficiente para: ${prod.nombre} (disponible: ${prod.stock})`);
+        }
       }
     }
 
     const subtotal = items.reduce((s: number, i: any) => s + (+i.precio * +i.cantidad), 0);
     const total = subtotal;
 
-    const count = await prisma.pedidoWeb.count();
-    const numero = `PW-${String(count + 1).padStart(6, '0')}`;
+    const maxPedido = await prisma.pedidoWeb.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+    const nextId = (maxPedido?.id || 0) + 1;
+    const numero = `PW-${String(nextId).padStart(6, '0')}`;
 
     return prisma.pedidoWeb.create({
       data: {
@@ -209,25 +216,29 @@ export class TiendaBackendService {
   }
 
   static async handleStripeWebhook(body: string, signature: string | null, webhookSecret: string | undefined) {
-    let event: any;
-
-    if (webhookSecret && signature) {
-      const parts = signature.split(',');
-      const ts = parts.find((p: string) => p.startsWith('t='))?.split('=')[1];
-      const v1 = parts.find((p: string) => p.startsWith('v1='))?.split('=')[1];
-
-      if (ts && v1) {
-        const signed = `${ts}.${body}`;
-        const expected = crypto
-          .createHmac('sha256', webhookSecret)
-          .update(signed, 'utf8')
-          .digest('hex');
-        if (expected !== v1) {
-          throw new Error('Signature invalid');
-        }
-      }
+    if (!webhookSecret || !signature) {
+      throw new Error('Signature missing or webhook secret not configured');
     }
 
+    const parts = signature.split(',');
+    const ts = parts.find((p: string) => p.startsWith('t='))?.split('=')[1];
+    const v1 = parts.find((p: string) => p.startsWith('v1='))?.split('=')[1];
+
+    if (!ts || !v1) {
+      throw new Error('Signature invalid');
+    }
+
+    const signed = `${ts}.${body}`;
+    const expected = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(signed, 'utf8')
+      .digest('hex');
+
+    if (expected !== v1) {
+      throw new Error('Signature invalid');
+    }
+
+    let event: any;
     try {
       event = JSON.parse(body);
     } catch {

@@ -31,12 +31,13 @@ export class ServicioBackendService {
       throw new Error('Cliente, equipo y falla son requeridos');
     }
 
-    const count = await prisma.ordenTrabajo.count();
-    const numero = `OT-${String(count + 1).padStart(6, '0')}`;
+    const maxOt = await prisma.ordenTrabajo.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+    const nextOtId = (maxOt?.id || 0) + 1;
+    const numero = `OT-${String(nextOtId).padStart(6, '0')}`;
 
     const total = (+data.costoReparacion || 0) + (+data.costoRepuestos || 0);
 
-    return prisma.ordenTrabajo.create({
+    const orden = await prisma.ordenTrabajo.create({
       data: {
         numero,
         clienteNombre: data.clienteNombre,
@@ -72,6 +73,36 @@ export class ServicioBackendService {
       },
       include: { repuestos: true, historial: true },
     });
+
+    // Deduct stock for assigned repuestos if product exists
+    if (data.repuestos && data.repuestos.length > 0) {
+      for (const r of data.repuestos) {
+        if (!r.productoId) continue;
+        const qty = +r.cantidad;
+        try {
+          const prod = await prisma.producto.update({
+            where: { id: Number(r.productoId) },
+            data: { stock: { decrement: qty } },
+          });
+
+          await prisma.kardex.create({
+            data: {
+              productoId: Number(r.productoId),
+              tipo: 'salida',
+              cantidad: qty,
+              stockAntes: prod.stock + qty,
+              stockDespues: prod.stock,
+              motivo: `Repuesto en Orden de Trabajo ${numero}`,
+              referencia: numero,
+              usuarioId: parseInt(user.id),
+              usuarioNombre: user.name,
+            },
+          });
+        } catch { /* if product not found, continue */ }
+      }
+    }
+
+    return orden;
   }
 
   static async findById(id: number) {

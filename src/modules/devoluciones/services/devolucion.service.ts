@@ -48,11 +48,52 @@ export class DevolucionService {
     }, { maxWait: 10000, timeout: 30000 });
   }
 
-  /** Approve a devolucion (change estado) */
+  /** Approve a devolucion (change estado, restore inventory stock & log kardex) */
   static async aprobar(id: number) {
-    return prisma.devolucion.update({
+    const devolucion = await prisma.devolucion.findUnique({
       where: { id },
-      data: { estado: 'aprobada' },
+      include: { items: true },
+    });
+
+    if (!devolucion) {
+      throw new Error('Devolución no encontrada');
+    }
+
+    if (devolucion.estado === 'aprobada') {
+      return devolucion;
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.devolucion.update({
+        where: { id },
+        data: { estado: 'aprobada' },
+        include: { items: true },
+      });
+
+      for (const item of devolucion.items) {
+        if (!item.productoId) continue;
+
+        const prod = await tx.producto.update({
+          where: { id: item.productoId },
+          data: { stock: { increment: item.cantidad } },
+        });
+
+        await tx.kardex.create({
+          data: {
+            productoId: item.productoId,
+            tipo: 'entrada',
+            cantidad: item.cantidad,
+            stockAntes: prod.stock - item.cantidad,
+            stockDespues: prod.stock,
+            motivo: `Devolución aprobada DEV-${devolucion.id}`,
+            referencia: devolucion.ventaNumero || `DEV-${devolucion.id}`,
+            usuarioId: devolucion.usuarioId,
+            usuarioNombre: devolucion.usuarioNombre,
+          },
+        });
+      }
+
+      return updated;
     });
   }
 

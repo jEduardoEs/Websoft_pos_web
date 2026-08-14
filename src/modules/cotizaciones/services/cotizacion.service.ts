@@ -62,10 +62,10 @@ export class CotizacionService {
     }
 
     const res = await prisma.$transaction(async (tx) => {
-      // Get the next sequence number for the quotation
-      const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente_cotizacion' } });
-      const num = parseInt(cfg?.valor || '1');
-      const numero = `COT-${String(num).padStart(6, '0')}`;
+      // Get the next sequence number for the quotation using max ID
+      const maxCot = await tx.cotizacion.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
+      const nextId = (maxCot?.id || 0) + 1;
+      const numero = `COT-${String(nextId).padStart(6, '0')}`;
 
       // Create the quotation
       const cotizacion = await tx.cotizacion.create({
@@ -104,8 +104,8 @@ export class CotizacionService {
       // Increment sequence
       await tx.config.upsert({
         where: { clave: 'numero_siguiente_cotizacion' },
-        update: { valor: String(num + 1) },
-        create: { clave: 'numero_siguiente_cotizacion', valor: String(num + 1) },
+        update: { valor: String(nextId + 1) },
+        create: { clave: 'numero_siguiente_cotizacion', valor: String(nextId + 1) },
       });
 
       // Auto-save client as prospect if valid
@@ -412,12 +412,17 @@ export class CotizacionService {
           },
         });
         if (prod && prod.stock >= item.cantidad) {
-          const newStock = prod.stock - item.cantidad;
-          await tx.producto.update({ where: { id: prod.id }, data: { stock: newStock } });
+          const updatedProd = await tx.producto.update({
+            where: { id: prod.id },
+            data: { stock: { decrement: item.cantidad } },
+          });
+          const stockDespues = updatedProd.stock;
+          const stockAntes = stockDespues + item.cantidad;
+
           await tx.kardex.create({
             data: {
               productoId: prod.id, tipo: 'salida', cantidad: item.cantidad,
-              stockAntes: prod.stock, stockDespues: newStock,
+              stockAntes, stockDespues,
               motivo: `Venta ${numero} (desde cotización ${cotizacion.numero})`,
               referencia: numero,
               usuarioId: parseInt(user.id), usuarioNombre: user.name,
