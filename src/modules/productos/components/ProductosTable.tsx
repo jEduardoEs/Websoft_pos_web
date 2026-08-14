@@ -23,7 +23,7 @@ export function ProductosTable({ productos, onEdit, onKardex, onDelete }: Produc
         <table>
           <thead>
             <tr>
-              <th style={{ width: 50 }}>ID</th>
+              <th style={{ width: 120 }}>Código</th>
               <th>Producto</th>
               <th>Categoria</th>
               <th style={{ textAlign: 'right' }}>Precio</th>
@@ -44,7 +44,7 @@ export function ProductosTable({ productos, onEdit, onKardex, onDelete }: Produc
             ) : (
               productos.map(p => (
                 <tr key={p.id}>
-                  <td style={{ color: '#8a887e', fontSize: 11 }}>#{p.id}</td>
+                  <td style={{ color: '#1581E3', fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>{p.codigo || '-'}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {p.imagenUrl ? (
@@ -54,7 +54,6 @@ export function ProductosTable({ productos, onEdit, onKardex, onDelete }: Produc
                       )}
                       <div>
                         <div style={{ fontWeight: 600, color: '#18181b' }}>{p.nombre}</div>
-                        <div style={{ fontSize: 11, color: '#8a887e', marginTop: 1 }}>{p.codigo}</div>
                       </div>
                     </div>
                   </td>

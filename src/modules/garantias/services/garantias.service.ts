@@ -89,4 +89,11 @@ export class GarantiasService {
     })
     return res.json()
   }
+
+  static async eliminarGarantia(id: number): Promise<any> {
+    const res = await fetch(`/api/garantias/${id}`, {
+      method: 'DELETE',
+    })
+    return res.json()
+  }
 }

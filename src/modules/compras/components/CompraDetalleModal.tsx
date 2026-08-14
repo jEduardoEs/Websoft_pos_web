@@ -23,8 +23,8 @@ export function CompraDetalleModal({ compra, onClose }: CompraDetalleModalProps)
               Registrada por <b>{compra.usuarioNombre}</b> el {fmtDate(compra.fecha.toString())}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontWeight: 700, color: '#64748b' }}>
-            
+          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontWeight: 700, color: '#64748b', fontSize: 18 }}>
+            &times;
           </button>
         </div>
 

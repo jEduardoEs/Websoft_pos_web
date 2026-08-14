@@ -10,8 +10,8 @@ const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { 
 export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSupervisor: boolean }) {
   const router = useRouter()
   const { state, actions, utils, refs } = useProyectos(esAdminOSupervisor)
-  const { proyectos, alertas, tab, buscar, showModal, form, loading, openMenuId, showPinEliminar, pinInput } = state
-  const { setTab, setBuscar, setShowModal, setF, save, handleEliminar, eliminarProyecto, setPinInput, setShowPinEliminar, setOpenMenuId } = actions
+  const { proyectos, alertas, tab, buscar, showModal, form, loading, openMenuId, showPinEliminar, pinInput, cotizacionesList, clientesList } = state
+  const { setTab, setBuscar, setShowModal, openModal, closeModal, setF, save, handleEliminar, eliminarProyecto, setPinInput, setShowPinEliminar, setOpenMenuId, cargarDesdeCotizacion, cargarDesdeCliente } = actions
   const { diasPara, getAlertaMant } = utils
   const { menuRef } = refs
 
@@ -27,7 +27,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Proyectos</h1>
           <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Gestión de proyectos instalados con control de mantenimientos de garantía</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Proyecto</button>
+        <button className="btn-primary" onClick={openModal}>+ Nuevo Proyecto</button>
       </div>
 
       {/* Alertas */}
@@ -142,22 +142,101 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
           <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 640, margin: 'auto', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #e2e8f0' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Nuevo Proyecto</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+              <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              {/* SECCIÓN SUPERIOR: CARGAR INFORMACIÓN COMPLETA DESDE COTIZACIÓN EXACTA */}
+              <div style={{ gridColumn: '1/-1', background: '#f0f7ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: 14 }}>
+                <label style={{ ...lbl, color: '#1d4ed8' }}>No. Cotización Exacta (Cargar todo el Proyecto)</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="input"
+                    value={form.cotizacionNumero}
+                    onChange={e => setF('cotizacionNumero', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        cargarDesdeCotizacion(form.cotizacionNumero);
+                      }
+                    }}
+                    placeholder="Escribe el No. exacto (Ej: COT-000001)..."
+                    style={{ flex: 1, background: '#fff' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => cargarDesdeCotizacion(form.cotizacionNumero)}
+                    style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                  >
+                    Cargar Cotización
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 6 }}>
+                  Ingresa el número de la cotización exacta y presiona &quot;Cargar Cotización&quot; para autocompletar cliente, productos y descripción.
+                </div>
+              </div>
+
+              {/* BÚSQUEDA ÚNICAMENTE DE DATOS PERSONALES DE CLIENTE O NIT */}
+              <div>
+                <label style={lbl}>Cliente / Empresa *</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    className="input"
+                    value={form.clienteNombre}
+                    onChange={e => setF('clienteNombre', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        cargarDesdeCliente(form.clienteNombre);
+                      }
+                    }}
+                    placeholder="Nombre del cliente o empresa"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => cargarDesdeCliente(form.clienteNombre)}
+                    style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 6, padding: '0 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                    title="Buscar únicamente datos personales del cliente"
+                  >
+                    Buscar
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={lbl}>NIT</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    className="input"
+                    value={form.clienteNit}
+                    onChange={e => setF('clienteNit', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        cargarDesdeCliente(form.clienteNit);
+                      }
+                    }}
+                    placeholder="NIT del cliente"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => cargarDesdeCliente(form.clienteNit)}
+                    style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 6, padding: '0 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                    title="Buscar por NIT"
+                  >
+                    Buscar
+                  </button>
+                </div>
+              </div>
+
+              {/* NOMBRE DEL PROYECTO */}
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Nombre del proyecto *</label>
                 <input className="input" value={form.nombre} onChange={e => setF('nombre', e.target.value)} placeholder="Ej: Sistema CCTV Farmacia San José" />
               </div>
-              <div>
-                <label style={lbl}>Cliente / Empresa *</label>
-                <input className="input" value={form.clienteNombre} onChange={e => setF('clienteNombre', e.target.value)} placeholder="Nombre del cliente o empresa" />
-              </div>
-              <div>
-                <label style={lbl}>NIT</label>
-                <input className="input" value={form.clienteNit} onChange={e => setF('clienteNit', e.target.value)} placeholder="NIT del cliente" />
-              </div>
+
               <div>
                 <label style={lbl}>Teléfono (8 dígitos)</label>
                 <input className="input" type="tel" maxLength={8} value={form.clienteTelefono || ''} onChange={e => setF('clienteTelefono', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Ej: 55554444" />
@@ -178,13 +257,9 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                 <label style={lbl}>Alcance / detalles técnicos adicionales</label>
                 <textarea className="input" rows={2} value={form.alcance} onChange={e => setF('alcance', e.target.value)} placeholder="Metraje de cable, configuración especial, equipos adicionales..." style={{ resize: 'vertical' }} />
               </div>
-              <div>
+              <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Fecha de instalación *</label>
                 <input className="input" type="date" value={form.fechaInicio} onChange={e => setF('fechaInicio', e.target.value)} />
-              </div>
-              <div>
-                <label style={lbl}>No. Cotización / Venta vinculada</label>
-                <input className="input" value={form.cotizacionNumero} onChange={e => setF('cotizacionNumero', e.target.value)} placeholder="COT-000001 o FAC-000001" />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Notas internas</label>
@@ -197,7 +272,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+              <button className="btn-ghost" onClick={closeModal}>Cancelar</button>
               <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Guardando...' : 'Crear proyecto'}</button>
             </div>
           </div>

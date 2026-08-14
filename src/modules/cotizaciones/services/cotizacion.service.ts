@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import { CreateCotizacionDto } from '../dto/create-cotizacion.dto';
-import { syncProyectoDesdeCotizacion } from '@/modules/proyectos/utils/proyecto-sync.helper';
 
 export class CotizacionService {
   /**
@@ -234,13 +233,6 @@ export class CotizacionService {
       } catch (err) {
         console.error('[CotizacionService] Error publishing CotizacionAprobada:', err);
       }
-    } else if (estado === 'pendiente' || estado === 'anulada' || estado === 'rechazada') {
-      try {
-        const { handleReversionProyectoDesdeCotizacion } = await import('@/modules/proyectos/utils/proyecto-sync.helper');
-        await handleReversionProyectoDesdeCotizacion(prisma, id, estado, user.name);
-      } catch (err) {
-        console.error('[CotizacionService] Error syncing proyecto reversion:', err);
-      }
     }
     return updated;
 
@@ -435,13 +427,6 @@ export class CotizacionService {
         where: { id: cotizacion.id },
         data: { estado: 'facturada' },
       });
-
-      // Synchronize project to 'planificado' upon billing
-      try {
-        await syncProyectoDesdeCotizacion(tx, cotizacion.id, 'planificado', user.name, numero);
-      } catch (err) {
-        console.error('[CotizacionService.facturar] Error syncing proyecto:', err);
-      }
 
       await tx.config.update({
         where: { clave: 'numero_siguiente' },

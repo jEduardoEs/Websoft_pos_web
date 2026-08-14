@@ -3,7 +3,6 @@ import { emitirFEL, FELResponse } from '@/lib/fel';
 import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura';
 import { CreateVentaDto } from '../dto/create-venta.dto';
 import { Venta } from '../types/venta';
-import { syncProyectoDesdeCotizacion } from '@/modules/proyectos/utils/proyecto-sync.helper';
 
 // Helper functions for calculations (IVA 5% and profit 30%)
 const IVA_RATE = 0.05;
@@ -237,13 +236,12 @@ export class VentaService {
         });
       }
 
-      // Marcar cotización como facturada y sincronizar avance a Proyecto en ejecucion
+      // Marcar cotización como facturada
       if (dto.cotizacionId) {
         try {
           await tx.cotizacion.update({ where: { id: dto.cotizacionId }, data: { estado: 'facturada' } });
-          await syncProyectoDesdeCotizacion(tx, dto.cotizacionId, 'planificado', userName, numeroVenta);
         } catch (err) {
-          console.error('[VentaService] Error sync cotizacion/proyecto:', err);
+          console.error('[VentaService] Error actualizando estado de cotizacion:', err);
         }
       }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
 import { fmtDate } from '@/lib/utils'
 import { useGarantias } from '../hooks/use-garantias'
 import { printGarantia } from '../utils/pdfGenerators'
@@ -8,13 +9,21 @@ export default function GarantiasModule() {
   const { state, actions } = useGarantias()
   const {
     garantias, buscar, showModal, showReclamo, showDetalle, selectedGarantia,
-    reclamos, todosReclamos, form, reclamoForm, loading, ventas, tab
+    reclamos, todosReclamos, form, reclamoForm, loading, ventas, tab, isAdmin
   } = state
   const {
     setBuscar, setShowModal, setShowReclamo, setShowDetalle, setTab,
     setForm, setF, setRF, selVenta, verDetalle,
-    saveGarantia, abrirReclamo, saveReclamo, resolverReclamo, anularGarantia, emptyForm
+    saveGarantia, abrirReclamo, saveReclamo, resolverReclamo, anularGarantia, eliminarGarantia, emptyForm
   } = actions
+
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const handleOutside = () => setOpenMenuId(null)
+    window.addEventListener('click', handleOutside)
+    return () => window.removeEventListener('click', handleOutside)
+  }, [])
 
   const diasRestantes = (g: any) => {
     if (!g?.fechaVencimiento) return 0
@@ -96,7 +105,7 @@ export default function GarantiasModule() {
                       <th style={{ ...thS, width: 100 }}>Vencimiento</th>
                       <th style={{ ...thS, width: 90 }}>Días</th>
                       <th style={{ ...thS, width: 100 }}>Estado</th>
-                      <th style={{ ...thS, width: 130, textAlign: 'right' }}>Acciones</th>
+                      <th style={{ ...thS, width: 60, textAlign: 'right' }}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -130,24 +139,84 @@ export default function GarantiasModule() {
                                 {g.estado}
                               </span>
                             </td>
-                            <td style={{ ...tdS, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                                {g.estado === 'vigente' && (
-                                  <button
-                                    onClick={() => abrirReclamo(g)}
-                                    style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                  >
-                                    Reclamar
-                                  </button>
-                                )}
+                            <td style={{ ...tdS, textAlign: 'right', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                 <button
-                                  className="btn-ghost btn-sm"
-                                  onClick={() => printGarantia(g)}
-                                  style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(openMenuId === g.id ? null : g.id);
+                                  }}
+                                  style={{
+                                    background: '#f8fafc',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: 6,
+                                    width: 30,
+                                    height: 30,
+                                    cursor: 'pointer',
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: '#475569',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    lineHeight: 1
+                                  }}
+                                  title="Opciones"
                                 >
-                                  Imprimir
+                                  &#8942;
                                 </button>
-                                
+                                {openMenuId === g.id && (
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      right: 14,
+                                      top: '100%',
+                                      marginTop: 4,
+                                      background: '#ffffff',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: 8,
+                                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+                                      zIndex: 100,
+                                      minWidth: 140,
+                                      padding: '6px 0',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      textAlign: 'left'
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    {g.estado === 'vigente' && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); abrirReclamo(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#dc2626', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Reclamar
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => { setOpenMenuId(null); printGarantia(g); }}
+                                      style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#334155', textAlign: 'left', width: '100%' }}
+                                    >
+                                      Imprimir
+                                    </button>
+                                    {isAdmin && g.estado !== 'anulada' && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); anularGarantia(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#c2410c', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Anular
+                                      </button>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); eliminarGarantia(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#b91c1c', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Eliminar
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -204,7 +273,7 @@ export default function GarantiasModule() {
                         <th style={{ ...thS, width: 100 }}>Vencimiento</th>
                         <th style={{ ...thS, width: 90 }}>Días</th>
                         <th style={{ ...thS, width: 100 }}>Estado</th>
-                        <th style={{ ...thS, width: 130, textAlign: 'right' }}>Acciones</th>
+                        <th style={{ ...thS, width: 60, textAlign: 'right' }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -231,16 +300,84 @@ export default function GarantiasModule() {
                                 {g.estado}
                               </span>
                             </td>
-                            <td style={{ ...tdS, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <td style={{ ...tdS, textAlign: 'right', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                 <button
-                                  className="btn-ghost btn-sm"
-                                  onClick={() => printGarantia(g)}
-                                  style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(openMenuId === g.id ? null : g.id);
+                                  }}
+                                  style={{
+                                    background: '#f8fafc',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: 6,
+                                    width: 30,
+                                    height: 30,
+                                    cursor: 'pointer',
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: '#475569',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    lineHeight: 1
+                                  }}
+                                  title="Opciones"
                                 >
-                                  Imprimir
+                                  &#8942;
                                 </button>
-                                
+                                {openMenuId === g.id && (
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      right: 14,
+                                      top: '100%',
+                                      marginTop: 4,
+                                      background: '#ffffff',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: 8,
+                                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+                                      zIndex: 100,
+                                      minWidth: 140,
+                                      padding: '6px 0',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      textAlign: 'left'
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    {g.estado === 'vigente' && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); abrirReclamo(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#dc2626', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Reclamar
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => { setOpenMenuId(null); printGarantia(g); }}
+                                      style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#334155', textAlign: 'left', width: '100%' }}
+                                    >
+                                      Imprimir
+                                    </button>
+                                    {isAdmin && g.estado !== 'anulada' && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); anularGarantia(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#c2410c', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Anular
+                                      </button>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => { setOpenMenuId(null); eliminarGarantia(g); }}
+                                        style={{ padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#b91c1c', textAlign: 'left', width: '100%' }}
+                                      >
+                                        Eliminar
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -563,6 +700,22 @@ export default function GarantiasModule() {
               >
                 Imprimir Certificado
               </button>
+              {isAdmin && selectedGarantia.estado !== 'anulada' && (
+                <button
+                  onClick={() => { setShowDetalle(false); anularGarantia(selectedGarantia); }}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 16px', background: '#fff7ed', color: '#c2410c', border: '1px solid #ffedd5', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Anular
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => { setShowDetalle(false); eliminarGarantia(selectedGarantia); }}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 16px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Eliminar
+                </button>
+              )}
               
               <button className="btn-secondary" onClick={() => setShowDetalle(false)}>Cerrar</button>
             </div>

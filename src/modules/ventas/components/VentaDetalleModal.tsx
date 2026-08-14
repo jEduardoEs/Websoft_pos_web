@@ -18,7 +18,7 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
               {fmtDateTime(venta.fecha)} por {venta.usuarioNombre || 'Sistema'}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
         </div>
 
         {venta.estado === 'anulada' && (
