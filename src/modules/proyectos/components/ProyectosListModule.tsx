@@ -39,7 +39,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
       {/* Filtros + Búsqueda */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
-          {(['todos', 'planificado', 'en_ejecucion', 'completado'] as const).map(t => (
+          {(['todos', 'planificado', 'en_ejecucion', 'completado', 'cancelado'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#0f172a' : '#64748b', boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,.1)' : 'none' }}>
               {t === 'todos' ? 'Todos' : ESTADO_LABEL[t]}
             </button>

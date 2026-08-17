@@ -23,7 +23,7 @@ export class VentaService {
     const { fechaIni, fechaFin, estado, buscar } = params;
 
     const where: any = {};
-    if (estado && estado.trim() !== '') {
+    if (estado && estado.trim() !== '' && estado !== 'todos') {
       where.estado = estado;
     }
 

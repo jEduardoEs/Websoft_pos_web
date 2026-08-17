@@ -65,19 +65,23 @@ export default function GarantiasModule() {
             g.numero?.toLowerCase().includes(buscar.toLowerCase()) ||
             g.clienteNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
             g.productoNombre?.toLowerCase().includes(buscar.toLowerCase()) ||
-            g.productoSerie?.toLowerCase().includes(buscar.toLowerCase())
+            g.productoSerie?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.clienteNit?.toLowerCase().includes(buscar.toLowerCase()) ||
+            g.ventaNumero?.toLowerCase().includes(buscar.toLowerCase())
           )
-          const estadoLow = (g.estado || '').toLowerCase()
+          const estadoLow = (g.estado || '').toLowerCase().trim()
           const dias = diasRestantes(g)
           let matchTab = false
           if (tab === 'todas') {
             matchTab = true
           } else if (tab === 'vigente') {
-            matchTab = estadoLow === 'vigente' && dias > 0
+            matchTab = (estadoLow === 'vigente' || estadoLow === 'activa' || estadoLow === 'valida') && dias > 0
           } else if (tab === 'vencida') {
-            matchTab = estadoLow === 'vencida' || (estadoLow === 'vigente' && dias <= 0)
+            matchTab = estadoLow === 'vencida' || ((estadoLow === 'vigente' || estadoLow === 'activa' || estadoLow === 'valida') && dias <= 0)
           } else if (tab === 'anulada') {
-            matchTab = estadoLow === 'anulada'
+            matchTab = estadoLow === 'anulada' || estadoLow === 'cancelada'
+          } else if (tab === 'reclamada') {
+            matchTab = estadoLow === 'reclamada' || estadoLow === 'reclamo' || estadoLow === 'en_reclamo' || (todosReclamos && todosReclamos.some((r: any) => r.garantiaId === g.id || r.garantiaNumero === g.numero))
           } else {
             matchTab = estadoLow === tab
           }

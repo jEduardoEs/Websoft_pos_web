@@ -24,7 +24,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   const [pinInput, setPinInput] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [alertas, setAlertas] = useState({ proximos: 0, vencidos: 0 })
-  const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'>('todos')
+  const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'|'cancelado'>('todos')
   const [buscar, setBuscar] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -223,16 +223,12 @@ export function useProyectos(esAdminOSupervisor: boolean) {
     const matchCotId = item.data?.notas ? String(item.data.notas).match(/COT-(\d+)/i) : null
     const resolvedCotId = item.tipo === 'cotizacion' ? item.id : (matchCotId ? Number(matchCotId[1]) : null)
 
-    if (item.tipo === 'cotizacion' && item.estado !== 'facturada') {
-      const msg = `La cotización ${item.numero} no ha sido facturada aún (Estado: ${item.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`
-      setFormError(msg)
-      return
-    }
-
+    const isFacturada = item.tipo === 'venta' || item.estado === 'facturada'
+    
     setForm(prev => ({
       ...prev,
-      cotizacionId: resolvedCotId,
-      cotizacionNumero: item.numero,
+      cotizacionId: isFacturada ? resolvedCotId : null,
+      cotizacionNumero: isFacturada ? item.numero : '',
       clienteNombre: item.clienteNombre || prev.clienteNombre,
       clienteNit: item.clienteNit || prev.clienteNit || 'CF',
       clienteTelefono: item.clienteTelefono || prev.clienteTelefono || '',
@@ -242,7 +238,11 @@ export function useProyectos(esAdminOSupervisor: boolean) {
     }))
     
     if (item.tipo === 'cotizacion') {
-      toast.success(`Cotización ${item.numero} (Facturada) cargada correctamente`)
+      if (isFacturada) {
+        toast.success(`Cotización ${item.numero} (Facturada) cargada correctamente`)
+      } else {
+        setFormError(`Datos de ${item.numero} cargados. Nota: La cotización está ${item.estado || 'Pendiente'} (No facturada), por lo que el proyecto se creará como manual.`)
+      }
     } else {
       toast.success(`Factura ${item.numero} cargada correctamente`)
     }
@@ -357,20 +357,15 @@ export function useProyectos(esAdminOSupervisor: boolean) {
     }
 
     if (matchedCot) {
-      if (matchedCot.estado !== 'facturada') {
-        const msg = `La cotización ${matchedCot.numero} no ha sido facturada aún (Estado: ${matchedCot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`
-        setFormError(msg)
-        return
-      }
-
+      const isFacturada = matchedCot.estado === 'facturada'
       const itemsText = matchedCot.items && matchedCot.items.length > 0
         ? matchedCot.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
         : matchedCot.descripcion || ''
 
       setForm(prev => ({
         ...prev,
-        cotizacionId: matchedCot.id,
-        cotizacionNumero: matchedCot.numero,
+        cotizacionId: isFacturada ? matchedCot.id : null,
+        cotizacionNumero: isFacturada ? matchedCot.numero : '',
         clienteNombre: matchedCot.clienteNombre || prev.clienteNombre,
         clienteNit: matchedCot.clienteNit || prev.clienteNit || 'CF',
         clienteTelefono: matchedCot.clienteTelefono || prev.clienteTelefono || '',
@@ -380,7 +375,11 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         nombre: prev.nombre || `Proyecto ${matchedCot.clienteNombre} (${matchedCot.numero})`,
       }))
       
-      toast.success(`Cotización ${matchedCot.numero} (Facturada) cargada correctamente`)
+      if (isFacturada) {
+        toast.success(`Cotización ${matchedCot.numero} (Facturada) cargada correctamente`)
+      } else {
+        setFormError(`Datos de ${matchedCot.numero} cargados. Nota: La cotización está ${matchedCot.estado || 'Pendiente'} (No facturada), por lo que el proyecto se creará de forma manual.`)
+      }
       return
     }
 
@@ -437,7 +436,9 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       let docNum = ''
 
       if (cotAssoc) {
-        docNum = cotAssoc.numero
+        if (cotAssoc.estado === 'facturada') {
+          docNum = cotAssoc.numero
+        }
         itemsText = cotAssoc.items && cotAssoc.items.length > 0
           ? cotAssoc.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
           : cotAssoc.descripcion || ''

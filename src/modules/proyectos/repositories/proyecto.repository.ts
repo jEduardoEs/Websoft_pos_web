@@ -17,13 +17,45 @@ export class ProyectoRepository {
     en15dias.setDate(hoy.getDate() + 15);
 
     const where: any = {};
-    if (estado) where.estado = estado;
-    if (buscar) {
-      where.OR = [
-        { nombre: { contains: buscar, mode: 'insensitive' } },
-        { clienteNombre: { contains: buscar, mode: 'insensitive' } },
-        { numero: { contains: buscar, mode: 'insensitive' } },
-      ];
+    const andConditions: any[] = [];
+
+    if (estado && estado !== 'todos') {
+      const norm = estado.toLowerCase().trim();
+      if (norm.includes('ejecuc')) {
+        andConditions.push({
+          OR: [
+            { estado: { equals: 'en_ejecucion', mode: 'insensitive' } },
+            { estado: { equals: 'en ejecucion', mode: 'insensitive' } },
+            { estado: { equals: 'ejecucion', mode: 'insensitive' } },
+          ]
+        });
+      } else if (norm.includes('planif')) {
+        andConditions.push({
+          OR: [
+            { estado: { equals: 'planificado', mode: 'insensitive' } },
+            { estado: { equals: 'planificacion', mode: 'insensitive' } },
+          ]
+        });
+      } else {
+        andConditions.push({ estado: { equals: norm, mode: 'insensitive' } });
+      }
+    }
+
+    if (buscar && buscar.trim() !== '') {
+      const q = buscar.trim();
+      andConditions.push({
+        OR: [
+          { nombre: { contains: q, mode: 'insensitive' } },
+          { clienteNombre: { contains: q, mode: 'insensitive' } },
+          { numero: { contains: q, mode: 'insensitive' } },
+          { clienteNit: { contains: q, mode: 'insensitive' } },
+          { cotizacionNumero: { contains: q, mode: 'insensitive' } },
+        ]
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const proyectos = await prisma.proyecto.findMany({

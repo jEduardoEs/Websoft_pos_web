@@ -35,6 +35,18 @@ export function CotizacionesModule() {
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [facturaModal, setFacturaModal] = useState<any>(null);
   const [facturaLoading, setFacturaLoading] = useState(false);
+  const [buscar, setBuscar] = useState('');
+
+  const cotizacionesFiltradas = cotizaciones.filter(c => {
+    if (!buscar) return true;
+    const q = buscar.toLowerCase();
+    return (
+      (c.numero && c.numero.toLowerCase().includes(q)) ||
+      (c.clienteNombre && c.clienteNombre.toLowerCase().includes(q)) ||
+      (c.clienteNit && c.clienteNit.toLowerCase().includes(q)) ||
+      (c.estado && c.estado.toLowerCase().includes(q))
+    );
+  });
 
   const handleVerFactura = async (c: Cotizacion) => {
     setFacturaLoading(true);
@@ -108,8 +120,18 @@ export function CotizacionesModule() {
         <button className="btn-primary" onClick={() => { setFormInitial(null); setIsDuplicate(false); setShowFormModal(true); }}>+ Nueva Cotización</button>
       </div>
 
+      <div style={{ marginTop: 16 }}>
+        <input
+          className="input"
+          placeholder="Buscar por cliente, NIT, número de cotización (COT-...), estado..."
+          value={buscar}
+          onChange={e => setBuscar(e.target.value)}
+          style={{ width: '100%' }}
+        />
+      </div>
+
       <CotizacionesTable 
-        cotizaciones={cotizaciones}
+        cotizaciones={cotizacionesFiltradas}
         loading={loading || facturaLoading}
         isAdmin={isAdmin}
         onView={handleView}
