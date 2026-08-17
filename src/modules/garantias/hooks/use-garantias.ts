@@ -60,14 +60,6 @@ export function useGarantias() {
   }, [load, loadReclamos])
 
   useEffect(() => {
-    if (tab === 'reclamada') {
-      loadReclamos()
-    } else {
-      load()
-    }
-  }, [tab, load, loadReclamos])
-
-  useEffect(() => {
     GarantiasService.getVentas().then(setVentas).catch(() => {})
   }, [])
 
