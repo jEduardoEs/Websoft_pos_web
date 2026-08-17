@@ -91,25 +91,50 @@ export class ProyectoRepository {
             ]
           }
         });
-        if (venta?.cotizacionId) {
-          linkedCotId = venta.cotizacionId;
-          const cot = await prisma.cotizacion.findUnique({ where: { id: venta.cotizacionId } });
-          if (cot) linkedCotNumero = cot.numero;
+        if (venta) {
+          const matchCotId = (venta.notas || '').match(/COT-(\d+)/i);
+          if (matchCotId) {
+            linkedCotId = Number(matchCotId[1]);
+            const cot = await prisma.cotizacion.findUnique({ where: { id: linkedCotId } });
+            if (cot) linkedCotNumero = cot.numero;
+          }
         }
       } else if (rawCotNum.toUpperCase().startsWith('COT')) {
         linkedCotNumero = rawCotNum;
         const cot = await prisma.cotizacion.findFirst({ where: { numero: { equals: rawCotNum, mode: 'insensitive' } } });
         if (cot) {
+          if (cot.estado !== 'facturada') {
+            throw new Error(`La cotización "${cot.numero}" no ha sido facturada aún (Estado actual: ${cot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`);
+          }
           linkedCotId = cot.id;
-          const venta = await prisma.venta.findFirst({ where: { cotizacionId: cot.id } });
+          const venta = await prisma.venta.findFirst({
+            where: {
+              OR: [
+                { notas: { contains: cot.numero, mode: 'insensitive' } },
+                { notas: { contains: `[Cotización COT-${cot.id}]`, mode: 'insensitive' } }
+              ]
+            }
+          });
           if (venta) linkedVentaNumero = venta.numero;
+        } else {
+          throw new Error(`La cotización "${rawCotNum}" no fue encontrada en el sistema. Verifica el número e intenta de nuevo.`);
         }
       }
     } else if (rawCotId) {
       const cot = await prisma.cotizacion.findUnique({ where: { id: rawCotId } });
       if (cot) {
+        if (cot.estado !== 'facturada') {
+          throw new Error(`La cotización "${cot.numero}" no ha sido facturada aún (Estado actual: ${cot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`);
+        }
         linkedCotNumero = cot.numero;
-        const venta = await prisma.venta.findFirst({ where: { cotizacionId: cot.id } });
+        const venta = await prisma.venta.findFirst({
+          where: {
+            OR: [
+              { notas: { contains: cot.numero, mode: 'insensitive' } },
+              { notas: { contains: `[Cotización COT-${cot.id}]`, mode: 'insensitive' } }
+            ]
+          }
+        });
         if (venta) linkedVentaNumero = venta.numero;
       }
     }
@@ -135,7 +160,7 @@ export class ProyectoRepository {
 
       if (existe) {
         const refLabel = rawCotNum || linkedCotNumero || linkedVentaNumero || `ID ${linkedCotId}`;
-        throw new Error(`La cotización o factura "${refLabel}" ya posee un proyecto registrado (${existe.numero})`);
+        throw new Error(`La cotización o factura "${refLabel}" ya posee un proyecto registrado (${existe.numero} — "${existe.nombre}"). No es posible vincularla a más de un proyecto.`);
       }
     }
 
@@ -156,8 +181,8 @@ export class ProyectoRepository {
           contactoNombre: data.contactoNombre,
           descripcion: data.descripcion,
           alcance: data.alcance,
-          cotizacionId: data.cotizacionId ? Number(data.cotizacionId) : null,
-          cotizacionNumero: data.cotizacionNumero,
+          cotizacionId: linkedCotId || (data.cotizacionId ? Number(data.cotizacionId) : null),
+          cotizacionNumero: linkedCotNumero || data.cotizacionNumero || null,
           fechaInicio: inicio,
           fechaFin: data.fechaFin ? new Date(data.fechaFin) : null,
           notas: data.notas,

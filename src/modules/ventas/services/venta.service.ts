@@ -74,8 +74,8 @@ export class VentaService {
         const ventaPrevia = await prisma.venta.findFirst({
           where: {
             OR: [
-              { cotizacionId: cotIdNum },
-              { notas: { contains: `[Cotización COT-${cotIdNum}]` } }
+              { notas: { contains: `[Cotización COT-${cotIdNum}]` } },
+              ...(cot?.numero ? [{ notas: { contains: cot.numero } }] : [])
             ]
           }
         });
@@ -172,7 +172,6 @@ export class VentaService {
           metodoPago: dto.metodoPago,
           montoRecibido: dto.montoRecibido || saleTotal,
           cambio: calculatedCambio,
-          cotizacionId: dto.cotizacionId ? Number(dto.cotizacionId) : null,
           notas: dto.cotizacionId ? `${dto.notas || ''} [Cotización COT-${dto.cotizacionId}]`.trim() : dto.notas,
           usuarioId: parsedUserId,
           usuarioNombre: userName,

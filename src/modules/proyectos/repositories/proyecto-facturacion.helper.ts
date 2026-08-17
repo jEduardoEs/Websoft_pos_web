@@ -27,7 +27,12 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
     });
 
     const ventaExistente = await prisma.venta.findFirst({
-      where: { cotizacionId: proyecto.cotizacionId }
+      where: {
+        OR: [
+          ...(cotizacion?.numero ? [{ notas: { contains: cotizacion.numero, mode: 'insensitive' as const } }] : []),
+          { notas: { contains: `[Cotización COT-${proyecto.cotizacionId}]`, mode: 'insensitive' as const } }
+        ]
+      }
     });
     if (ventaExistente) {
       throw new Error(`La cotización vinculada al proyecto ya fue facturada con la venta ${ventaExistente.numero}.`);
@@ -90,7 +95,7 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
         metodoPago: data.metodoPago || 'efectivo',
         montoRecibido: total,
         cambio: 0,
-        notas: `Facturado desde proyecto ${proyecto.numero}`,
+        notas: `Facturado desde proyecto ${proyecto.numero}${proyecto.cotizacionNumero ? ` [Cotización ${proyecto.cotizacionNumero}]` : ''}`,
         usuarioId: isNaN(Number(userId)) || !userId ? 1 : Number(userId),
         usuarioNombre: userName,
         items: {
@@ -106,6 +111,17 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
       },
       include: { items: true },
     });
+
+    if (proyecto.cotizacionId) {
+      try {
+        await tx.cotizacion.update({
+          where: { id: proyecto.cotizacionId },
+          data: { estado: 'facturada' },
+        });
+      } catch (errCot) {
+        console.error('[ProyectoFacturacionHelper] Error actualizando estado de cotización:', errCot);
+      }
+    }
 
     const updatedProyecto = await tx.proyecto.update({
       where: { id },

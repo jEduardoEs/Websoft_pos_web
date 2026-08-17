@@ -50,12 +50,15 @@ export class ProyectoService {
     });
     if (!venta) throw new Error('Venta no encontrada');
 
+    const matchCotId = (venta.notas || '').match(/COT-(\d+)/i);
+    const resolvedCotId = matchCotId ? matchCotId[1] : undefined;
+
     const dto: CreateProyectoDto = {
       nombre: `Proyecto Venta ${venta.numero}`,
       clienteNombre: venta.clienteNombre,
       clienteNit: venta.clienteNit,
       descripcion: `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
-      cotizacionId: venta.cotizacionId ? String(venta.cotizacionId) : undefined,
+      cotizacionId: resolvedCotId,
       cotizacionNumero: venta.numero,
     };
 

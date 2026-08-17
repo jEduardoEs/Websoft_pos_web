@@ -10,7 +10,7 @@ const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('es-GT', { 
 export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSupervisor: boolean }) {
   const router = useRouter()
   const { state, actions, utils, refs } = useProyectos(esAdminOSupervisor)
-  const { proyectos, alertas, tab, buscar, showModal, form, loading, openMenuId, showPinEliminar, pinInput, cotizacionesList, clientesList, clienteSearch, asociados } = state
+  const { proyectos, alertas, tab, buscar, showModal, form, loading, formError, openMenuId, showPinEliminar, pinInput, cotizacionesList, clientesList, clienteSearch, asociados } = state
   const { setTab, setBuscar, setShowModal, openModal, closeModal, setF, save, handleEliminar, eliminarProyecto, setPinInput, setShowPinEliminar, setOpenMenuId, setClienteSearch, seleccionarAsociado, cargarDesdeCotizacion, cargarDesdeCliente } = actions
   const { diasPara, getAlertaMant } = utils
   const { menuRef } = refs
@@ -24,119 +24,108 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Proyectos</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Proyectos e Instalaciones</h1>
           <p style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Gestión de proyectos instalados con control de mantenimientos de garantía</p>
         </div>
-        <button className="btn-primary" onClick={openModal}>+ Nuevo Proyecto</button>
+        <button className="btn-primary" onClick={openModal}>+ Nuevo proyecto</button>
       </div>
 
-      {/* Alertas */}
-      {(alertas.vencidos > 0 || alertas.proximos > 0) && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {alertas.vencidos > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}> {alertas.vencidos} proyecto(s) con mantenimiento vencido</div>}
-          {alertas.proximos > 0 && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#92400e', fontWeight: 600 }}> {alertas.proximos} mantenimiento(s) en los próximos 15 días</div>}
-        </div>
-      )}
+      {/* Alertas globales */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        {alertas.vencidos > 0 && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#dc2626', fontWeight: 600 }}> {alertas.vencidos} proyecto(s) con mantenimiento vencido</div>}
+        {alertas.proximos > 0 && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#d97706', fontWeight: 600 }}> {alertas.proximos} proyecto(s) con mantenimiento próximo</div>}
+      </div>
 
-      {/* Tabs + Buscar */}
+      {/* Filtros + Búsqueda */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 2, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
           {(['todos', 'planificado', 'en_ejecucion', 'completado'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              style={{ padding: '7px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: tab === t ? '#1581E3' : 'transparent', color: tab === t ? '#fff' : '#64748b' }}>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#0f172a' : '#64748b', boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,.1)' : 'none' }}>
               {t === 'todos' ? 'Todos' : ESTADO_LABEL[t]}
             </button>
           ))}
         </div>
-        <input className="input" style={{ flex: 1, maxWidth: 280 }} placeholder="Buscar por cliente, nombre o número..." value={buscar} onChange={e => setBuscar(e.target.value)} />
+        <input className="input" style={{ width: 260 }} value={buscar} onChange={e => setBuscar(e.target.value)} placeholder="Buscar por cliente, nombre o número..." />
       </div>
 
-      {/* Tabla */}
-      <div className="card" style={{ overflow: 'visible' }}>
-        <div style={{ overflowX: 'visible' }}>
+      {/* Tabla de proyectos */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>{['#', 'Proyecto / Cliente', 'Descripción', 'Cotización', 'Estado', 'Inicio', 'Mantenimientos', ''].map(h => <th key={h} style={thS}>{h}</th>)}</tr>
+              <tr>
+                <th style={thS}>Número</th>
+                <th style={thS}>Nombre / Cliente</th>
+                <th style={thS}>Contacto</th>
+                <th style={thS}>Instalación</th>
+                <th style={thS}>Estado</th>
+                <th style={thS}>Mantenimientos</th>
+                <th style={thS}>Próximo Maint.</th>
+                <th style={{ ...thS, textAlign: 'right' }}>Acciones</th>
+              </tr>
             </thead>
             <tbody>
               {proyectos.length === 0
                 ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: 50, color: '#94a3b8', fontSize: 13 }}>Sin proyectos. Crea el primero.</td></tr>
                 : proyectos.map(p => {
-                  const alerta = getAlertaMant(p.mantenimientos)
-                  const realizados = p.mantenimientos.filter(m => m.realizado).length
-                  return (
-                    <tr key={p.id} onClick={() => router.push(`/proyectos/${p.id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#1581E3', fontSize: 12 }}>{p.numero}</td>
-                      <td style={tdS}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{p.nombre}</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>{p.clienteNombre}</div>
-                        {p.clienteTelefono && <div style={{ fontSize: 11, color: '#94a3b8' }}>{p.clienteTelefono}</div>}
-                      </td>
-                      <td style={{ ...tdS, maxWidth: 200, color: '#475569', fontSize: 12 }}>{p.descripcion.substring(0, 80)}{p.descripcion.length > 80 ? '...' : ''}</td>
-                      <td style={{ ...tdS, fontSize: 12, color: '#64748b' }}>{p.cotizacionNumero || '—'}</td>
-                      <td style={tdS}>
-                        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${ESTADO_COLOR[p.estado]}18`, color: ESTADO_COLOR[p.estado], border: `1px solid ${ESTADO_COLOR[p.estado]}40`, textTransform: 'capitalize' }}>
-                          {ESTADO_LABEL[p.estado] || p.estado}
-                        </span>
-                      </td>
-                      <td style={{ ...tdS, fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>{fmt(p.fechaInicio)}</td>
-                      <td style={tdS}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: 3 }}>
-                            {p.mantenimientos.map(m => (
-                              <div key={m.id} title={`Mant. ${m.numero} — ${fmt(m.fechaProgramada)}`}
-                                style={{ width: 16, height: 16, borderRadius: '50%', background: m.realizado ? '#16a34a' : diasPara(m.fechaProgramada) < 0 ? '#dc2626' : diasPara(m.fechaProgramada) <= 15 ? '#d97706' : '#e2e8f0', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.realizado ? '#fff' : diasPara(m.fechaProgramada) < 0 || diasPara(m.fechaProgramada) <= 15 ? '#fff' : '#94a3b8', fontWeight: 700 }}>
-                                {m.numero}
-                              </div>
-                            ))}
-                          </div>
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{realizados}/3</span>
-                          {alerta && (
-                            <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 10, background: alerta.tipo === 'vencido' ? '#fef2f2' : '#fffbeb', color: alerta.tipo === 'vencido' ? '#dc2626' : '#d97706', fontWeight: 700 }}>
-                              {alerta.tipo === 'vencido' ? ` M${alerta.num} vencido` : ` M${alerta.num} en ${alerta.dias}d`}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={tdS} onClick={e => e.stopPropagation()}>
-                        <div ref={openMenuId === p.id ? menuRef : null} style={{ display: 'flex', position: 'relative' }}>
-                          <button onClick={() => router.push(`/proyectos/${p.id}`)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', background: '#fff', border: '1.5px solid #d8d6cd', borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', color: '#52524d' }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                          </button>
-                          <button onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '5px 7px', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: '0 4px 4px 0', cursor: 'pointer', color: '#52524d' }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                          </button>
-                          {openMenuId === p.id && (
-                            <div
-                              style={{ position: 'absolute', right: 0, top: '110%', background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,.15)', zIndex: 999, minWidth: 150, overflow: 'hidden' }}>
-                              <button onClick={() => { router.push(`/proyectos/${p.id}`); setOpenMenuId(null) }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#18181b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                                onMouseEnter={e => (e.currentTarget.style.background = '#f4f3ef')}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                                Ver Detalle
-                              </button>
-                              <button onClick={() => handleEliminar(p.id)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#b13a2e', background: 'none', border: 'none', borderTop: '1px solid #f1f5f9', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                                onMouseEnter={e => (e.currentTarget.style.background = '#fef2f2')}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                                Eliminar
-                              </button>
+                    const alerta = getAlertaMant(p.mantenimientos)
+                    const mCompletados = p.mantenimientos.filter(m => m.realizado).length
+                    return (
+                      <tr key={p.id} onClick={() => router.push(`/proyectos/${p.id}`)} style={{ cursor: 'pointer' }}>
+                        <td style={tdS}><span style={{ fontWeight: 700, color: '#1581E3', fontFamily: 'monospace' }}>{p.numero}</span></td>
+                        <td style={tdS}>
+                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{p.nombre}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{p.clienteNombre} {p.clienteNit ? `· NIT ${p.clienteNit}` : ''}</div>
+                        </td>
+                        <td style={tdS}>
+                          <div style={{ fontSize: 12, color: '#334155' }}>{p.contactoNombre || '—'}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{p.clienteTelefono || '—'}</div>
+                        </td>
+                        <td style={tdS}>{fmt(p.fechaInicio)}</td>
+                        <td style={tdS}>
+                          <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: `${ESTADO_COLOR[p.estado]}18`, color: ESTADO_COLOR[p.estado] }}>
+                            {ESTADO_LABEL[p.estado] || p.estado}
+                          </span>
+                        </td>
+                        <td style={tdS}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1, background: '#e2e8f0', borderRadius: 4, height: 6, width: 60, overflow: 'hidden' }}>
+                              <div style={{ width: `${(mCompletados / 3) * 100}%`, background: '#16a34a', height: '100%' }} />
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              }
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{mCompletados}/3</span>
+                          </div>
+                        </td>
+                        <td style={tdS}>
+                          {alerta ? (
+                            <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: alerta.tipo === 'vencido' ? '#fef2f2' : '#fffbeb', color: alerta.tipo === 'vencido' ? '#dc2626' : '#d97706' }}>
+                              {alerta.tipo === 'vencido' ? `M${alerta.num} vencido hace ${alerta.dias}d` : `M${alerta.num} en ${alerta.dias}d`}
+                            </span>
+                          ) : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}
+                        </td>
+                        <td style={{ ...tdS, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#64748b', padding: '4px 8px' }}>⋮</button>
+                            {openMenuId === p.id && (
+                              <div ref={menuRef} style={{ position: 'absolute', right: 0, top: '100%', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.15)', zIndex: 100, minWidth: 140, overflow: 'hidden' }}>
+                                <button onClick={() => router.push(`/proyectos/${p.id}`)} style={{ width: '100%', textAlign: 'left', padding: '9px 14px', background: 'none', border: 'none', fontSize: 12, cursor: 'pointer', color: '#334155' }}>
+                                  Ver Detalle
+                                </button>
+                                <button onClick={() => handleEliminar(p.id)} style={{ width: '100%', textAlign: 'left', padding: '9px 14px', background: 'none', border: 'none', fontSize: 12, cursor: 'pointer', color: '#dc2626' }}>
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal Nuevo Proyecto */}
+      {/* Modal Crear Proyecto */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 640, margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
@@ -144,6 +133,12 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Nuevo Proyecto</h3>
               <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
             </div>
+
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626', fontWeight: 600, marginBottom: 16 }}>
+                {formError}
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: '1/-1' }}>
@@ -195,7 +190,22 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                         onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                       >
                         <div style={{ fontWeight: 700, color: '#1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>{a.tipo === 'cotizacion' ? 'Cotización' : 'Venta'} {a.numero}</span>
+                          <span>
+                            {a.tipo === 'cotizacion' ? 'Cotización' : 'Venta'} {a.numero}
+                            {a.tipo === 'cotizacion' && (
+                              <span style={{
+                                fontSize: 10,
+                                background: a.estado === 'facturada' ? '#dcfce7' : '#fee2e2',
+                                color: a.estado === 'facturada' ? '#15803d' : '#b91c1c',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                fontWeight: 600,
+                                marginLeft: 6
+                              }}>
+                                {a.estado === 'facturada' ? 'Facturada' : 'No Facturada (Requiere POS)'}
+                              </span>
+                            )}
+                          </span>
                           {a.hasInstalacion && (
                             <span style={{ fontSize: 10, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
                               Con instalación
@@ -238,7 +248,7 @@ export default function ProyectosListModule({ esAdminOSupervisor }: { esAdminOSu
                 </div>
               </div>
 
-              {/* SECCIÓN MOVIDA JUSTO DEBAJO DE CLIENTE / EMPRESA: NO. COTIZACIÓN / VENTA VINCULADA */}
+              {/* SECCIÓN NO. COTIZACIÓN / VENTA VINCULADA */}
               <div>
                 <label style={lbl}>No. Cotización / Venta vinculada</label>
                 <div style={{ display: 'flex', gap: 6 }}>

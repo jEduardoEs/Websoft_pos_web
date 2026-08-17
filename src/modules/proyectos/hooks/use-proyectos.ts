@@ -2,7 +2,20 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { ProyectosService, Proyecto, Mant } from '../services/proyectos.service'
 
-const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteDireccion: '', clienteNit: '', contactoNombre: '', descripcion: '', alcance: '', cotizacionNumero: '', fechaInicio: new Date().toISOString().split('T')[0], notas: '' }
+const emptyForm = {
+  nombre: '',
+  clienteNombre: '',
+  clienteTelefono: '',
+  clienteDireccion: '',
+  clienteNit: '',
+  contactoNombre: '',
+  descripcion: '',
+  alcance: '',
+  cotizacionId: null as number | null,
+  cotizacionNumero: '',
+  fechaInicio: new Date().toISOString().split('T')[0],
+  notas: ''
+}
 
 export function useProyectos(esAdminOSupervisor: boolean) {
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
@@ -16,61 +29,29 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   // Clear form automatically whenever modal is closed
   useEffect(() => {
     if (!showModal) {
       setClienteSearch('')
-      setForm({
-        nombre: '',
-        clienteNombre: '',
-        clienteTelefono: '',
-        clienteDireccion: '',
-        clienteNit: '',
-        contactoNombre: '',
-        descripcion: '',
-        alcance: '',
-        cotizacionNumero: '',
-        fechaInicio: new Date().toISOString().split('T')[0],
-        notas: '',
-      })
+      setFormError(null)
+      setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
     }
   }, [showModal])
 
   const openModal = () => {
     setClienteSearch('')
-    setForm({
-      nombre: '',
-      clienteNombre: '',
-      clienteTelefono: '',
-      clienteDireccion: '',
-      clienteNit: '',
-      contactoNombre: '',
-      descripcion: '',
-      alcance: '',
-      cotizacionNumero: '',
-      fechaInicio: new Date().toISOString().split('T')[0],
-      notas: '',
-    })
+    setFormError(null)
+    setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
     setShowModal(true)
   }
 
   const closeModal = () => {
     setShowModal(false)
     setClienteSearch('')
-    setForm({
-      nombre: '',
-      clienteNombre: '',
-      clienteTelefono: '',
-      clienteDireccion: '',
-      clienteNit: '',
-      contactoNombre: '',
-      descripcion: '',
-      alcance: '',
-      cotizacionNumero: '',
-      fechaInicio: new Date().toISOString().split('T')[0],
-      notas: '',
-    })
+    setFormError(null)
+    setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
   }
 
   const load = useCallback(async () => {
@@ -95,8 +76,10 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   }, [])
 
   const save = async () => {
+    setFormError(null)
     if (!form.nombre || !form.clienteNombre || !form.descripcion) { 
-      toast.error('Nombre, cliente y descripción requeridos')
+      const msg = 'Nombre del proyecto, cliente y descripción son requeridos'
+      setFormError(msg)
       return 
     }
     setLoading(true)
@@ -108,7 +91,8 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       closeModal()
       load() 
     } else {
-      toast.error(data.error || 'Error al crear proyecto')
+      const msg = data.error || 'Error al crear proyecto'
+      setFormError(msg)
     }
   }
 
@@ -192,6 +176,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         clienteTelefono: c.clienteTelefono || '',
         clienteDireccion: c.clienteDireccion || '',
         total: c.total || 0,
+        estado: c.estado || 'pendiente',
         hasInstalacion: (c.items || []).some((i: any) => 
           (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
           (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac'))
@@ -218,6 +203,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         clienteTelefono: v.clienteTelefono || '',
         clienteDireccion: v.clienteDireccion || '',
         total: v.total || 0,
+        estado: 'facturada',
         hasInstalacion: (v.items || []).some((i: any) => 
           (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
           (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac')) ||
@@ -233,24 +219,41 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   const seleccionarAsociado = (item: any) => {
     if (!item) return
     setClienteSearch('')
+    setFormError(null)
+    const matchCotId = item.data?.notas ? String(item.data.notas).match(/COT-(\d+)/i) : null
+    const resolvedCotId = item.tipo === 'cotizacion' ? item.id : (matchCotId ? Number(matchCotId[1]) : null)
+
+    if (item.tipo === 'cotizacion' && item.estado !== 'facturada') {
+      const msg = `La cotización ${item.numero} no ha sido facturada aún (Estado: ${item.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`
+      setFormError(msg)
+      return
+    }
+
     setForm(prev => ({
       ...prev,
+      cotizacionId: resolvedCotId,
+      cotizacionNumero: item.numero,
       clienteNombre: item.clienteNombre || prev.clienteNombre,
       clienteNit: item.clienteNit || prev.clienteNit || 'CF',
       clienteTelefono: item.clienteTelefono || prev.clienteTelefono || '',
       clienteDireccion: item.clienteDireccion || prev.clienteDireccion || '',
-      cotizacionNumero: item.numero,
       descripcion: item.itemsText || `Instalación / Trabajo para ${item.clienteNombre}`,
       nombre: `Proyecto ${item.clienteNombre} (${item.numero})`,
     }))
-    const labelTipo = item.tipo === 'cotizacion' ? 'Cotización' : 'Factura'
-    toast.success(`Datos cargados desde ${labelTipo} ${item.numero}${item.hasInstalacion ? ' (con instalación incluida)' : ''}`)
+    
+    if (item.tipo === 'cotizacion') {
+      toast.success(`Cotización ${item.numero} (Facturada) cargada correctamente`)
+    } else {
+      toast.success(`Factura ${item.numero} cargada correctamente`)
+    }
   }
 
   const cargarDesdeCotizacion = async (cotNumero: string) => {
     setClienteSearch('')
+    setFormError(null)
     if (!cotNumero || !cotNumero.trim()) {
-      toast.error('Ingresa un número de cotización o factura vinculada')
+      const msg = 'Ingresa un número de cotización o factura vinculada'
+      setFormError(msg)
       return
     }
 
@@ -335,14 +338,12 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         ? matchedVenta.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ')
         : matchedVenta.notas || ''
 
-      const hasInstalacion = (matchedVenta.items || []).some((i: any) => 
-        (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
-        (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac')) ||
-        (i.categoria && String(i.categoria).toLowerCase().includes('servicio'))
-      )
+      const matchCotId = (matchedVenta.notas || '').match(/COT-(\d+)/i)
+      const vCotId = matchCotId ? Number(matchCotId[1]) : null
 
       setForm(prev => ({
         ...prev,
+        cotizacionId: vCotId,
         cotizacionNumero: matchedVenta.numero,
         clienteNombre: matchedVenta.clienteNombre || prev.clienteNombre,
         clienteNit: matchedVenta.clienteNit || prev.clienteNit || 'CF',
@@ -351,22 +352,24 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         descripcion: itemsText || prev.descripcion,
         nombre: prev.nombre || `Proyecto ${matchedVenta.clienteNombre} (${matchedVenta.numero})`,
       }))
-      toast.success(hasInstalacion ? `Factura ${matchedVenta.numero} (con instalación) cargada` : `Factura ${matchedVenta.numero} cargada`)
+      toast.success(`Factura ${matchedVenta.numero} cargada correctamente`)
       return
     }
 
     if (matchedCot) {
+      if (matchedCot.estado !== 'facturada') {
+        const msg = `La cotización ${matchedCot.numero} no ha sido facturada aún (Estado: ${matchedCot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`
+        setFormError(msg)
+        return
+      }
+
       const itemsText = matchedCot.items && matchedCot.items.length > 0
         ? matchedCot.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
         : matchedCot.descripcion || ''
 
-      const hasInstalacion = (matchedCot.items || []).some((i: any) => 
-        (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
-        (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac'))
-      )
-
       setForm(prev => ({
         ...prev,
+        cotizacionId: matchedCot.id,
         cotizacionNumero: matchedCot.numero,
         clienteNombre: matchedCot.clienteNombre || prev.clienteNombre,
         clienteNit: matchedCot.clienteNit || prev.clienteNit || 'CF',
@@ -376,17 +379,21 @@ export function useProyectos(esAdminOSupervisor: boolean) {
         descripcion: itemsText || prev.descripcion,
         nombre: prev.nombre || `Proyecto ${matchedCot.clienteNombre} (${matchedCot.numero})`,
       }))
-      toast.success(hasInstalacion ? `Cotización ${matchedCot.numero} (con instalación) cargada` : `Cotización ${matchedCot.numero} cargada`)
+      
+      toast.success(`Cotización ${matchedCot.numero} (Facturada) cargada correctamente`)
       return
     }
 
-    toast.error(`No se encontró cotización o factura "${rawInput}"`)
+    const msg = `No se encontró cotización o factura "${rawInput}". Verifica el número.`
+    setFormError(msg)
   }
 
   const cargarDesdeCliente = async (val: string) => {
     setClienteSearch('')
+    setFormError(null)
     if (!val || !val.trim()) {
-      toast.error('Ingresa el nombre o NIT del cliente')
+      const msg = 'Ingresa el nombre o NIT del cliente'
+      setFormError(msg)
       return
     }
 
@@ -453,11 +460,15 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       }))
       toast.success(`Datos del cliente ${nombreFinal} cargados`)
     } else {
-      toast.error(`No se encontró cliente para "${val}"`)
+      const msg = `No se encontró cliente para "${val}"`
+      setFormError(msg)
     }
   }
 
-  const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const setF = (k: string, v: string) => {
+    setFormError(null)
+    setForm(p => ({ ...p, [k]: v }))
+  }
 
   return {
     state: {
@@ -468,6 +479,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       showModal,
       form,
       loading,
+      formError,
       openMenuId,
       showPinEliminar,
       pinInput,
@@ -485,6 +497,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       closeModal,
       setForm,
       setF,
+      setFormError,
       save,
       handleEliminar,
       eliminarProyecto,

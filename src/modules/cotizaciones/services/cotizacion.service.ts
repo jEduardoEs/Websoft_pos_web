@@ -337,8 +337,8 @@ export class CotizacionService {
     const ventaExistente = await prisma.venta.findFirst({
       where: {
         OR: [
-          { cotizacionId: cotizacion.id },
-          { notas: { contains: `[Cotización COT-${cotizacion.id}]` } }
+          { notas: { contains: cotizacion.numero, mode: 'insensitive' } },
+          { notas: { contains: `[Cotización COT-${cotizacion.id}]`, mode: 'insensitive' } }
         ]
       }
     });
@@ -381,8 +381,8 @@ export class CotizacionService {
       const ventaPreviaTx = await tx.venta.findFirst({
         where: {
           OR: [
-            { cotizacionId: cotizacion.id },
-            { notas: { contains: `[Cotización COT-${cotizacion.id}]` } }
+            { notas: { contains: cotizacion.numero, mode: 'insensitive' } },
+            { notas: { contains: `[Cotización COT-${cotizacion.id}]`, mode: 'insensitive' } }
           ]
         }
       });
