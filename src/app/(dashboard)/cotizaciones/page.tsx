@@ -250,10 +250,10 @@ export default function CotizacionesPage() {
   const addItem = (tipo: LineItem['tipo']) => setItems(p => [...p, newItem(tipo)])
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i))
 
-  // Totals — IVA solo al final
-  const baseTotal = items.reduce((s, i) => s + i.total, 0)
-  const iva = baseTotal * IVA
-  const totalFinal = baseTotal + iva
+  // Totals — IVA incluido en el total final
+  const totalFinal = items.reduce((s, i) => s + i.total, 0)
+  const iva = Math.round((totalFinal - (totalFinal / 1.05)) * 100) / 100
+  const baseTotal = Math.round((totalFinal - iva) * 100) / 100
   const descuentoTotal = items.reduce((s, i) => s + i.descuento, 0)
 
   const save = async () => {
@@ -888,7 +888,7 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
               <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '14px 20px', minWidth: 250 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 5 }}>
-                  <span>Base</span><span>Q {baseTotal.toFixed(2)}</span>
+                  <span>Subtotal (Base sin IVA)</span><span>Q {baseTotal.toFixed(2)}</span>
                 </div>
                 {descuentoTotal > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#dc2626', marginBottom: 5 }}>
@@ -896,10 +896,10 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#d97706', fontWeight: 600, marginBottom: 10 }}>
-                  <span>IVA (5%)</span><span>Q {iva.toFixed(2)}</span>
+                  <span>IVA (5% Incluido)</span><span>Q {iva.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 19, fontWeight: 800, color: '#2563eb', borderTop: '2px solid #bfdbfe', paddingTop: 10 }}>
-                  <span>TOTAL</span><span>Q {totalFinal.toFixed(2)}</span>
+                  <span>TOTAL A PAGAR</span><span>Q {totalFinal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

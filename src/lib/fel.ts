@@ -59,7 +59,7 @@ async function getApiKey(): Promise<string | null> {
   try {
     const row = await prisma.config.findUnique({ where: { clave: 'dtevia_api_key' } })
     if (row?.valor) return row.valor
-  } catch {}
+  } catch { }
   return process.env.DTEVIA_API_KEY || null
 }
 

@@ -4,7 +4,7 @@ import { Compra } from '../types/compra';
 import { calculateNewPricePreservingMargin } from '@/modules/productos/utils/producto-calc.helper';
 
 export class CompraRepository {
-  
+
   async findAll(limit = 100): Promise<Compra[]> {
     const compras = await prisma.compra.findMany({
       orderBy: { id: 'desc' },
@@ -14,7 +14,7 @@ export class CompraRepository {
         proveedor: { select: { nombre: true } },
       },
     });
-    
+
     return compras.map(c => ({
       ...c,
       items: c.items.map(i => ({

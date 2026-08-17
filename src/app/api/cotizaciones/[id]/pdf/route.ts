@@ -107,17 +107,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 <body>
   <div class="header">
     <div class="logo-wrap">
-      <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
+      <img class="logo-img" src="/logo.png" alt="Logo" onerror="this.style.display='none'"/>
       <div>
-        <div class="brand-name">${configData.empresa_nombre ? configData.empresa_nombre.replace('WebSoft', 'Web<span>Soft</span>') : 'Web<span>Soft</span> Solutions'}</div>
-        <div class="brand-sub">${configData.empresa_direccion || 'Guastatoya · El Progreso · Guatemala'}</div>
+        <div class="brand-name">${configData.empresa_nombre || 'Sistema POS'}</div>
+        <div class="brand-sub">${configData.empresa_direccion || ''}</div>
       </div>
     </div>
     <div class="co-info">
-      <strong>${configData.empresa_nombre || 'WEBSOFT SOLUTIONS'}</strong>
-      ${configData.empresa_direccion || 'Barrio el Calvario, Guastatoya, El Progreso'}<br>
-      TEL: ${configData.empresa_telefono || '(502) 3836-1044 / 3671-4377'}<br>
-      ${configData.empresa_nit ? `NIT: ${configData.empresa_nit}` : 'www.websoftsolutions.com.gt'}
+      <strong>${configData.empresa_nombre || 'POS System'}</strong>
+      ${configData.empresa_direccion || ''}<br>
+      ${configData.empresa_telefono ? `TEL: ${configData.empresa_telefono}<br>` : ''}
+      ${configData.empresa_nit ? `NIT: ${configData.empresa_nit}` : ''}
     </div>
   </div>
 
@@ -188,8 +188,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   </div>
 
   <div class="footer">
-    <span>WebSoft Solutions · Sistema POS</span>
-    <span>Tel: 3836-1044 / 3671-4377 · Guastatoya, El Progreso</span>
+    <span>${configData.empresa_nombre || 'Sistema POS'}</span>
+    <span>${configData.empresa_telefono ? `Tel: ${configData.empresa_telefono}` : ''} ${configData.empresa_direccion ? `· ${configData.empresa_direccion}` : ''}</span>
   </div>
 
   <script>

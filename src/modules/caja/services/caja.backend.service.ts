@@ -36,6 +36,8 @@ export class CajaBackendService {
       { efectivo: netMovimientosEfectivo, tarjeta: 0, transferencia: 0, granTotal: netMovimientosEfectivo }
     );
 
+    const parsedUserId = isNaN(parseInt(user?.id)) ? 1 : parseInt(user.id);
+
     return prisma.cierre.create({
       data: {
         fechaInicio: start,
@@ -45,8 +47,8 @@ export class CajaBackendService {
         totalTarjeta: totals.tarjeta,
         totalTransferencia: totals.transferencia,
         granTotal: totals.granTotal,
-        usuarioId: parseInt(user.id),
-        usuarioNombre: user.name,
+        usuarioId: parsedUserId,
+        usuarioNombre: user?.name || 'Sistema',
         notas,
       },
     });
@@ -63,11 +65,13 @@ export class CajaBackendService {
     const activa = await this.getAperturaActiva();
     if (activa) throw new Error('Ya hay una caja abierta');
 
+    const parsedUserId = isNaN(parseInt(user?.id)) ? 1 : parseInt(user.id);
+
     return prisma.aperturaCaja.create({
       data: {
         fondoInicial: fondo || 0,
-        usuarioId: parseInt(user.id),
-        usuarioNombre: user.name,
+        usuarioId: parsedUserId,
+        usuarioNombre: user?.name || 'Sistema',
         notas,
       },
     });

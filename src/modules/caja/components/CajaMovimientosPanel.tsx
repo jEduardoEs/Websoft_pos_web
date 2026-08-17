@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CajaResumen } from '../types/caja';
+import { fmt, fmtDateTime } from '@/lib/utils';
 
 interface CajaMovimientosPanelProps {
   data: CajaResumen;
@@ -66,17 +67,17 @@ export function CajaMovimientosPanel({ data, loading, onRegistrarMovimiento }: C
             <tbody>
               {data.movimientos.length === 0
                 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Sin movimientos en este turno</td></tr>
-                : data.movimientos.map((m: any) => (
-                  <tr key={m.id}>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>
-                      {new Date(m.fecha).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                : data.movimientos.map((m: any, i: number) => (
+                  <tr key={i}>
+                    <td style={{ padding: '9px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{fmtDateTime(m.fecha)}</td>
+                    <td style={{ padding: '9px 14px', borderBottom: '1px solid #f1f5f9' }}>
+                      <span className={m.tipo === 'inyeccion' ? 'badge-blue' : 'badge-orange'}>{m.tipo === 'inyeccion' ? '↓ Inyección' : '↑ Retiro'}</span>
                     </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>
-                      <span className={m.tipo === 'inyeccion' ? 'badge-blue' : 'badge-orange'} style={{ fontSize: 10, textTransform: 'capitalize' }}>{m.tipo}</span>
+                    <td style={{ padding: '9px 14px', fontWeight: 700, fontSize: 13, borderBottom: '1px solid #f1f5f9', color: m.tipo === 'inyeccion' ? '#2563eb' : '#d97706' }}>
+                      {m.tipo === 'retiro' ? '-' : '+'}{fmt(m.monto)}
                     </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 700 }}>Q{m.monto.toFixed(2)}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', color: '#475569', fontSize: 13 }}>{m.motivo || '—'}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: 12 }}>{m.usuarioNombre || '—'}</td>
+                    <td style={{ padding: '9px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#475569' }}>{m.motivo || '—'}</td>
+                    <td style={{ padding: '9px 14px', fontSize: 12, borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{m.usuarioNombre}</td>
                   </tr>
                 ))
               }

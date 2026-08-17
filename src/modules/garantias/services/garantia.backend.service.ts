@@ -31,17 +31,22 @@ export class GarantiaBackendService {
 
     let resolvedProyectoId: number | null = data.proyectoId ? Number(data.proyectoId) : null;
     if (!resolvedProyectoId) {
-      const proyecto = await prisma.proyecto.findFirst({
-        where: {
-          OR: [
-            data.ventaNumero ? { cotizacionNumero: data.ventaNumero } : {},
-            data.ventaNumero ? { numero: data.ventaNumero } : {},
-            data.clienteNombre ? { clienteNombre: { contains: data.clienteNombre, mode: 'insensitive' } } : {},
-          ].filter(c => Object.keys(c).length > 0),
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (proyecto) resolvedProyectoId = proyecto.id;
+      const conditions: any[] = [];
+      if (data.ventaNumero) {
+        conditions.push({ cotizacionNumero: data.ventaNumero });
+        conditions.push({ numero: data.ventaNumero });
+      }
+      if (data.clienteNombre && data.clienteNombre.trim()) {
+        conditions.push({ clienteNombre: { contains: data.clienteNombre.trim(), mode: 'insensitive' } });
+      }
+
+      if (conditions.length > 0) {
+        const proyecto = await prisma.proyecto.findFirst({
+          where: { OR: conditions },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (proyecto) resolvedProyectoId = proyecto.id;
+      }
     }
 
     return prisma.$transaction(async (tx) => {
@@ -79,7 +84,7 @@ export class GarantiaBackendService {
   }
 
   static async update(id: number, data: any) {
-    const d: any = { ...data };
+    const { id: _, createdAt, updatedAt, reclamos, proyecto, venta, ...d } = data;
     if (d.fechaVenta) d.fechaVenta = new Date(d.fechaVenta);
     if (d.fechaVencimiento) d.fechaVencimiento = new Date(d.fechaVencimiento);
 

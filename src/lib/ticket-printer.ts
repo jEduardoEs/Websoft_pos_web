@@ -41,7 +41,7 @@ export interface TicketData {
   ivaPct?: number
 }
 
-const HR  = `<div class="hr"></div>`
+const HR = `<div class="hr"></div>`
 const HR2 = `<div class="hr2"></div>`
 
 const fmt = (n: number) => `Q${n.toFixed(2)}`
@@ -52,15 +52,15 @@ const trunc = (s: string, max = 22) => s.length > max ? s.slice(0, max - 1) + 'â
 export function buildTicketHTML(d: TicketData): string {
   const fecha = new Date(d.fecha)
   const fechaStr = fecha.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  const horaStr  = fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const horaStr = fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   const ivaPct = d.ivaPct ?? 12
 
   // Filas de items â€” formato compacto
   const itemRows = d.items.map(it => {
     const nombre = trunc(it.nombre, 26)
-    const cant   = it.cantidad % 1 === 0 ? String(it.cantidad) : it.cantidad.toFixed(2)
-    const total  = it.subtotal - (it.descuento || 0)
+    const cant = it.cantidad % 1 === 0 ? String(it.cantidad) : it.cantidad.toFixed(2)
+    const total = it.subtotal - (it.descuento || 0)
     const descLine = it.descuento > 0
       ? `<div class="item-desc">  Descuento: -${fmt(it.descuento)}</div>`
       : ''

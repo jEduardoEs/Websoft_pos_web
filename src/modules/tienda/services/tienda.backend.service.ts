@@ -108,9 +108,8 @@ export class TiendaBackendService {
             metodoPago: 'online',
             montoRecibido: pedido.total,
             cambio: 0,
-            notas: `Pedido web ${pedido.numero}`,
-            usuarioId: parseInt(user.id),
-            usuarioNombre: user.name,
+            usuarioId: isNaN(parseInt(user?.id)) ? 1 : parseInt(user.id),
+            usuarioNombre: user?.name || 'Sistema',
             items: {
               create: pedido.items.map(item => ({
                 nombre: item.nombre,

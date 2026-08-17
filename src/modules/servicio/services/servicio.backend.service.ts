@@ -37,6 +37,8 @@ export class ServicioBackendService {
 
     const total = (+data.costoReparacion || 0) + (+data.costoRepuestos || 0);
 
+    const parsedUserId = isNaN(parseInt(user?.id)) ? 1 : parseInt(user.id);
+
     const orden = await prisma.ordenTrabajo.create({
       data: {
         numero,
@@ -57,8 +59,8 @@ export class ServicioBackendService {
         costoRepuestos: +data.costoRepuestos || 0,
         total,
         notas: data.notas,
-        usuarioId: parseInt(user.id),
-        usuarioNombre: user.name,
+        usuarioId: parsedUserId,
+        usuarioNombre: user?.name || 'Sistema',
         repuestos: data.repuestos?.length > 0 ? {
           create: data.repuestos.map((r: any) => ({
             nombre: r.nombre,
@@ -68,7 +70,7 @@ export class ServicioBackendService {
           }))
         } : undefined,
         historial: {
-          create: { estadoNuevo: 'recibido', comentario: 'Orden creada', usuarioNombre: user.name }
+          create: { estadoNuevo: 'recibido', comentario: 'Orden creada', usuarioNombre: user?.name || 'Sistema' }
         },
       },
       include: { repuestos: true, historial: true },
@@ -94,8 +96,8 @@ export class ServicioBackendService {
               stockDespues: prod.stock,
               motivo: `Repuesto en Orden de Trabajo ${numero}`,
               referencia: numero,
-              usuarioId: parseInt(user.id),
-              usuarioNombre: user.name,
+              usuarioId: parsedUserId,
+              usuarioNombre: user?.name || 'Sistema',
             },
           });
         } catch { /* if product not found, continue */ }

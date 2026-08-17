@@ -11,21 +11,21 @@ export default function Topbar({ user }: TopbarProps) {
   const ADMIN_TIMEOUT = 30 * 60 * 1000 // 30 min inactivity for admin
 
   const handleSignOut = async () => {
-    try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
+    try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch { }
     signOut({ callbackUrl: '/login' })
   }
 
   useEffect(() => {
     // Ping server every 3 minutes to keep session alive
     const ping = setInterval(() => {
-      fetch('/api/sesion', { method: 'POST' }).catch(() => {})
+      fetch('/api/sesion', { method: 'POST' }).catch(() => { })
     }, 3 * 60 * 1000)
 
     // Cerrar sesion automaticamente al cerrar la pestaña/navegador
     const handleUnload = () => {
       try {
         navigator.sendBeacon('/api/sesion/cerrar', new Blob([], { type: 'application/json' }))
-      } catch {}
+      } catch { }
     }
     window.addEventListener('pagehide', handleUnload)
     window.addEventListener('beforeunload', handleUnload)
@@ -35,7 +35,7 @@ export default function Topbar({ user }: TopbarProps) {
       const resetTimer = () => {
         if (inactivityRef.current) clearTimeout(inactivityRef.current)
         inactivityRef.current = setTimeout(async () => {
-          try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch {}
+          try { await fetch('/api/sesion/cerrar', { method: 'POST' }) } catch { }
           signOut({ callbackUrl: '/login' })
         }, ADMIN_TIMEOUT)
       }

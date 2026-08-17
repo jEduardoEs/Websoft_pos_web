@@ -26,7 +26,7 @@ export interface FacturaEmailData {
 }
 export type EmailResult = { ok: boolean; error?: string }
 
-export function buildFacturaHTML(d: FacturaEmailData): string {
+export function buildFacturaHTML(d: FacturaEmailData, config?: Record<string, string>): string {
   const fmt = (n: number) => `Q ${n.toFixed(2)}`
   const fecha = new Date(d.fecha)
   const fechaStr = fecha.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -35,6 +35,12 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
   const uuidDisplay = d.uuid || '—'
   const serieNum = d.serie || '—'
   const correlNum = d.numero ? String(d.numero) : d.numeroInterno
+
+  const emisorNombre = config?.emisor_nombre || process.env.EMISOR_NOMBRE || 'WebSoft Solutions'
+  const emisorNit = config?.emisor_nit || process.env.EMISOR_NIT || 'CF'
+  const emisorDireccion = config?.emisor_direccion || process.env.EMISOR_DIRECCION || 'Guatemala'
+  const emisorTelefono = config?.emisor_telefono || process.env.EMISOR_TELEFONO || ''
+  const emisorWeb = config?.emisor_web || process.env.EMISOR_WEB || ''
 
   const rows = d.items.map((it, i) => `
     <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f0f6ff'}">
@@ -64,14 +70,12 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="vertical-align:middle;width:50%">
-            <img src="https://websoftsolutions.com.gt/logo.png" width="56" height="56" style="display:block;border-radius:10px" alt="Logo">
-            <div style="margin-top:10px;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">WebSoft Solutions</div>
+            <div style="font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">${emisorNombre}</div>
             <div style="font-size:10px;color:#64748b;line-height:1.8;margin-top:3px">
-              NIT: 115471413<br>
-              Barrio el Calvario, Guastatoya<br>
-              El Progreso, Guatemala<br>
-              Tel: 3836-1044 | Cel: 3671-4377<br>
-              <span style="color:#1581E3">websoftsolutions.com.gt</span>
+              NIT: ${emisorNit}<br>
+              ${emisorDireccion}<br>
+              ${emisorTelefono ? `Tel: ${emisorTelefono}<br>` : ''}
+              ${emisorWeb ? `<span style="color:#1581E3">${emisorWeb}</span>` : ''}
             </div>
           </td>
           <td style="vertical-align:top;text-align:right;width:50%">
@@ -199,10 +203,10 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
           </td>
           <td style="padding:20px 24px;text-align:right">
             <div style="font-size:10px;color:#64748b;line-height:1.8">
-              <strong style="color:#0f172a">WebSoft Solutions</strong><br>
-              NIT: 115471413<br>
-              Tel: 3836-1044 | Cel: 3671-4377<br>
-              websoftsolutions.com.gt
+              <strong style="color:#0f172a">${emisorNombre}</strong><br>
+              NIT: ${emisorNit}<br>
+              ${emisorTelefono ? `Tel: ${emisorTelefono}<br>` : ''}
+              ${emisorWeb}
             </div>
           </td>
         </tr>
@@ -213,7 +217,7 @@ export function buildFacturaHTML(d: FacturaEmailData): string {
   <!-- FOOTER -->
   <tr>
     <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 24px;text-align:center">
-      <div style="font-size:11px;color:#64748b">¡Gracias por su compra! · <strong style="color:#0f172a">WebSoft Solutions</strong> · Guastatoya, El Progreso</div>
+      <div style="font-size:11px;color:#64748b">¡Gracias por su compra! · <strong style="color:#0f172a">${emisorNombre}</strong> · ${emisorDireccion}</div>
     </td>
   </tr>
 

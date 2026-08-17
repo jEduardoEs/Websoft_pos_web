@@ -6,6 +6,8 @@ import { useGarantias } from '../hooks/use-garantias'
 import { printGarantia } from '../utils/pdfGenerators'
 import { GarantiaReclamoModal } from './GarantiaReclamoModal'
 import { GarantiaDetalleModal } from './GarantiaDetalleModal'
+import { GarantiaFormModal } from './GarantiaFormModal'
+import { GarantiaReclamosTabla } from './GarantiaReclamosTabla'
 
 export default function GarantiasModule() {
   const { state, actions } = useGarantias()
@@ -388,130 +390,26 @@ export default function GarantiasModule() {
         }
 
         return (
-          <>
-            <div className="card" style={{ padding: 14 }}>
-              <input className="input" placeholder="Buscar reclamo por cliente, garantía, motivo, número..." value={buscar} onChange={e => setBuscar(e.target.value)} style={{ width: '100%' }} />
-            </div>
-
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
-                      <th style={{ ...thS, width: 110 }}>No. Reclamo</th>
-                      <th style={{ ...thS, width: 100 }}>Fecha</th>
-                      <th style={{ ...thS, width: 110 }}>Garantía</th>
-                      <th style={{ ...thS, width: 170 }}>Cliente</th>
-                      <th style={{ ...thS, minWidth: 180 }}>Motivo</th>
-                      <th style={{ ...thS, width: 110 }}>Decisión</th>
-                      <th style={{ ...thS, width: 100 }}>Estado</th>
-                      <th style={{ ...thS, width: 230, textAlign: 'right' }}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reclamosFiltrados.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: 48, color: '#8a887e', fontSize: 13 }}>
-                          Sin reclamos registrados
-                        </td>
-                      </tr>
-                    ) : (
-                      reclamosFiltrados.map(r => (
-                        <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color .15s' }}>
-                          <td style={{ ...tdS, fontWeight: 700, color: '#dc2626', whiteSpace: 'nowrap' }}>{r.numero}</td>
-                          <td style={{ ...tdS, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(r.fecha)}</td>
-                          <td style={{ ...tdS, color: '#2563eb', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.garantiaNumero}</td>
-                          <td style={{ ...tdS, fontWeight: 600, color: '#18181b', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.clienteNombre}</td>
-                          <td style={{ ...tdS, color: '#334155', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.motivoReclamo}</td>
-                          <td style={tdS}>
-                            {r.decision ? (
-                              <span className="badge-blue" style={{ textTransform: 'capitalize' }}>
-                                {r.decision}
-                              </span>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: 12 }}>Pendiente</span>
-                            )}
-                          </td>
-                          <td style={tdS}>
-                            <span className={estadoReclamoBadge[r.estado] || 'badge-gray'} style={{ textTransform: 'capitalize' }}>
-                              {r.estado}
-                            </span>
-                          </td>
-                          <td style={{ ...tdS, textAlign: 'right' }}>
-                            {r.estado === 'recibido' ? (
-                              <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
-                                <button
-                                  onClick={() => resolverReclamo(r, 'reparar', 'En reparación')}
-                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                >
-                                  Reparar
-                                </button>
-                                <button
-                                  onClick={() => resolverReclamo(r, 'reemplazar', 'Producto reemplazado')}
-                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                >
-                                  Reemplazar
-                                </button>
-                                <button
-                                  onClick={() => resolverReclamo(r, 'rechazar', 'No cubre garantía')}
-                                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-                                >
-                                  Rechazar
-                                </button>
-                              </div>
-                            ) : r.ordenTrabajoId ? (
-                              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>OT #{r.ordenTrabajoId}</span>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
+          <GarantiaReclamosTabla
+            buscar={buscar}
+            reclamosFiltrados={reclamosFiltrados}
+            onSetBuscar={setBuscar}
+            onResolverReclamo={resolverReclamo}
+          />
         )
       })()}
 
       {/* MODAL NUEVA GARANTIA */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-          <div style={{ background: '#fff', border: '1.5px solid #d8d6cd', borderRadius: 6, padding: 28, width: '100%', maxWidth: 680, margin: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 14, borderBottom: '1.5px solid #d8d6cd' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181b' }}>Nueva Garantía</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={lbl}>Vincular a factura de venta (opcional)</label>
-              <select className="input" onChange={e => selVenta(e.target.value)}>
-                <option value="">Seleccionar venta...</option>
-                {ventas.slice(0, 50).map((v: any) => <option key={v.id} value={v.id}>{v.numero} — {v.clienteNombre}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              {[
-                { label: 'Nombre cliente *', key: 'clienteNombre', full: true },
-                { label: 'NIT', key: 'clienteNit' }, { label: 'Teléfono', key: 'clienteTelefono' },
-                { label: 'Producto *', key: 'productoNombre', full: true },
-                { label: 'No. Serie', key: 'productoSerie' }, { label: 'No. Factura', key: 'ventaNumero' },
-                { label: 'Fecha de venta', key: 'fechaVenta', type: 'date' },
-                { label: 'Días de garantía', key: 'diasGarantia', type: 'number' },
-                { label: 'Condiciones', key: 'condiciones', full: true },
-              ].map((f: any) => (
-                <div key={f.key} style={{ gridColumn: f.full ? '1/-1' : 'auto' }}>
-                  <label style={lbl}>{f.label}</label>
-                  <input className="input" type={f.type || 'text'} value={(form as any)[f.key]} onChange={e => setF(f.key, e.target.value)} />
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={saveGarantia} disabled={loading}>{loading ? 'Guardando...' : 'Crear e Imprimir'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <GarantiaFormModal
+        showModal={showModal}
+        form={form}
+        ventas={ventas}
+        loading={loading}
+        onClose={() => setShowModal(false)}
+        onSelVenta={selVenta}
+        onSetField={setF}
+        onSave={saveGarantia}
+      />
 
       {/* MODAL RECLAMO */}
       {showReclamo && selectedGarantia && (
