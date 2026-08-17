@@ -56,6 +56,7 @@ export class ProyectoService {
       clienteNit: venta.clienteNit,
       descripcion: `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
       cotizacionId: venta.cotizacionId ? String(venta.cotizacionId) : undefined,
+      cotizacionNumero: venta.numero,
     };
 
     const proyecto = await this.create(dto, 1, 'System');

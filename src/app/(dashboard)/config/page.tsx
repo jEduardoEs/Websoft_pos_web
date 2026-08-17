@@ -102,7 +102,7 @@ export default function ConfigPage() {
     { id: 'facturacion',  label: 'Facturación' },
     { id: 'productos',    label: 'Productos' },
     { id: 'ventas',       label: 'Ventas y Tickets' },
-    { id: 'fel',          label: '🇬🇹 FEL / SAT' },
+    { id: 'fel',          label: 'FEL / SAT' },
     { id: 'alertas',      label: 'Alertas' },
     { id: 'tienda',       label: 'Tienda Online' },
     { id: 'cuentas',      label: 'Cuentas Bancarias' },
@@ -299,7 +299,7 @@ export default function ConfigPage() {
             </div>
           </div>
 
-          <SECTION title="Factura Electrónica FEL — SAT Guatemala" icon="🇬🇹">
+          <SECTION title="Factura Electrónica FEL — SAT Guatemala" icon="FEL">
             <FIELD label="Estado de FEL" full>
               {toggle('fel_activo')}
             </FIELD>

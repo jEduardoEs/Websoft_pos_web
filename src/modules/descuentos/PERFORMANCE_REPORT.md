@@ -8,7 +8,7 @@
 
 ```text
 Route (app)                              Size     First Load JS
-├ 🟢 /(dashboard)/descuentos            3.75 kB         104 kB
+├ [OK] /(dashboard)/descuentos            3.75 kB         104 kB
 ```
 
 - **Tamaño de la Ruta (`/descuentos`)**: **3.75 kB** (Ultra-liviano).

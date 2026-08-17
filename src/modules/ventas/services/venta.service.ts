@@ -64,11 +64,24 @@ export class VentaService {
     }
 
     if (dto.cotizacionId) {
-      const ventaPrevia = await prisma.venta.findFirst({
-        where: { cotizacionId: dto.cotizacionId }
-      });
-      if (ventaPrevia) {
-        throw new Error(`La cotización ya fue facturada previamente en el sistema con el comprobante ${ventaPrevia.numero}`);
+      const cotIdNum = Number(dto.cotizacionId);
+      if (!isNaN(cotIdNum) && cotIdNum > 0) {
+        const cot = await prisma.cotizacion.findUnique({ where: { id: cotIdNum } });
+        if (cot && cot.estado === 'facturada') {
+          throw new Error(`La cotización ${cot.numero} ya fue facturada anteriormente. No se permite facturación doble.`);
+        }
+
+        const ventaPrevia = await prisma.venta.findFirst({
+          where: {
+            OR: [
+              { cotizacionId: cotIdNum },
+              { notas: { contains: `[Cotización COT-${cotIdNum}]` } }
+            ]
+          }
+        });
+        if (ventaPrevia) {
+          throw new Error(`La cotización ya fue facturada previamente en el sistema con el comprobante ${ventaPrevia.numero}`);
+        }
       }
     }
 
@@ -202,6 +215,17 @@ export class VentaService {
             usuarioNombre: userName,
           },
         });
+      }
+
+      // Update quotation state to 'facturada' if billed from a quotation
+      if (dto.cotizacionId) {
+        const cotIdNum = Number(dto.cotizacionId);
+        if (!isNaN(cotIdNum) && cotIdNum > 0) {
+          await tx.cotizacion.update({
+            where: { id: cotIdNum },
+            data: { estado: 'facturada' },
+          });
+        }
       }
 
       // Increment usage counter on discount coupon if used

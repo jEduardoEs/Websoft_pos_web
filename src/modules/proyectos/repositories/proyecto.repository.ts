@@ -72,9 +72,71 @@ export class ProyectoRepository {
   }
 
   async create(data: CreateProyectoDto, userId: number, userName: string) {
-    if (data.cotizacionId) {
-      const existe = await prisma.proyecto.findUnique({ where: { cotizacionId: Number(data.cotizacionId) } });
-      if (existe) throw new Error('Ya existe un proyecto para esta cotización');
+    const rawCotId = data.cotizacionId ? Number(data.cotizacionId) : null;
+    const rawCotNum = data.cotizacionNumero ? String(data.cotizacionNumero).trim() : null;
+
+    let linkedCotId: number | null = rawCotId;
+    let linkedCotNumero: string | null = null;
+    let linkedVentaNumero: string | null = null;
+
+    if (rawCotNum) {
+      if (rawCotNum.toUpperCase().startsWith('FAC') || rawCotNum.toUpperCase().startsWith('VEN')) {
+        linkedVentaNumero = rawCotNum;
+        const cleanDigits = rawCotNum.replace(/\D/g, '');
+        const venta = await prisma.venta.findFirst({
+          where: {
+            OR: [
+              { numero: { equals: rawCotNum, mode: 'insensitive' } },
+              ...(cleanDigits ? [{ felNumero: Number(cleanDigits) }] : [])
+            ]
+          }
+        });
+        if (venta?.cotizacionId) {
+          linkedCotId = venta.cotizacionId;
+          const cot = await prisma.cotizacion.findUnique({ where: { id: venta.cotizacionId } });
+          if (cot) linkedCotNumero = cot.numero;
+        }
+      } else if (rawCotNum.toUpperCase().startsWith('COT')) {
+        linkedCotNumero = rawCotNum;
+        const cot = await prisma.cotizacion.findFirst({ where: { numero: { equals: rawCotNum, mode: 'insensitive' } } });
+        if (cot) {
+          linkedCotId = cot.id;
+          const venta = await prisma.venta.findFirst({ where: { cotizacionId: cot.id } });
+          if (venta) linkedVentaNumero = venta.numero;
+        }
+      }
+    } else if (rawCotId) {
+      const cot = await prisma.cotizacion.findUnique({ where: { id: rawCotId } });
+      if (cot) {
+        linkedCotNumero = cot.numero;
+        const venta = await prisma.venta.findFirst({ where: { cotizacionId: cot.id } });
+        if (venta) linkedVentaNumero = venta.numero;
+      }
+    }
+
+    const orConditions: any[] = [];
+    if (linkedCotId) {
+      orConditions.push({ cotizacionId: linkedCotId });
+    }
+    if (rawCotNum) {
+      orConditions.push({ cotizacionNumero: { equals: rawCotNum, mode: 'insensitive' } });
+    }
+    if (linkedCotNumero && linkedCotNumero.toLowerCase() !== rawCotNum?.toLowerCase()) {
+      orConditions.push({ cotizacionNumero: { equals: linkedCotNumero, mode: 'insensitive' } });
+    }
+    if (linkedVentaNumero && linkedVentaNumero.toLowerCase() !== rawCotNum?.toLowerCase()) {
+      orConditions.push({ cotizacionNumero: { equals: linkedVentaNumero, mode: 'insensitive' } });
+    }
+
+    if (orConditions.length > 0) {
+      const existe = await prisma.proyecto.findFirst({
+        where: { OR: orConditions }
+      });
+
+      if (existe) {
+        const refLabel = rawCotNum || linkedCotNumero || linkedVentaNumero || `ID ${linkedCotId}`;
+        throw new Error(`La cotización o factura "${refLabel}" ya posee un proyecto registrado (${existe.numero})`);
+      }
     }
 
     const inicio = data.fechaInicio ? new Date(data.fechaInicio) : new Date();

@@ -330,6 +330,22 @@ export class CotizacionService {
     });
     if (!cotizacion) throw new Error('Cotización no encontrada');
 
+    if (cotizacion.estado === 'facturada') {
+      throw new Error(`La cotización ${cotizacion.numero} ya fue facturada previamente. No se permite facturación doble.`);
+    }
+
+    const ventaExistente = await prisma.venta.findFirst({
+      where: {
+        OR: [
+          { cotizacionId: cotizacion.id },
+          { notas: { contains: `[Cotización COT-${cotizacion.id}]` } }
+        ]
+      }
+    });
+    if (ventaExistente) {
+      throw new Error(`La cotización ${cotizacion.numero} ya tiene la factura ${ventaExistente.numero} registrada.`);
+    }
+
     const { WorkflowEngine, CotizacionState } = await import('@/core/state');
     WorkflowEngine.validateTransition('cotizacion', cotizacion.estado, CotizacionState.FACTURADA);
 
@@ -357,6 +373,23 @@ export class CotizacionService {
     const parsedUserId = isNaN(parseInt(user?.id)) ? 1 : parseInt(user.id);
 
     const resVenta = await prisma.$transaction(async (tx) => {
+      const cotTx = await tx.cotizacion.findUnique({ where: { id: cotizacionId } });
+      if (cotTx && cotTx.estado === 'facturada') {
+        throw new Error(`La cotización ${cotizacion.numero} ya fue facturada previamente.`);
+      }
+
+      const ventaPreviaTx = await tx.venta.findFirst({
+        where: {
+          OR: [
+            { cotizacionId: cotizacion.id },
+            { notas: { contains: `[Cotización COT-${cotizacion.id}]` } }
+          ]
+        }
+      });
+      if (ventaPreviaTx) {
+        throw new Error(`La cotización ${cotizacion.numero} ya fue facturada en el comprobante ${ventaPreviaTx.numero}`);
+      }
+
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });
       const num = parseInt(cfg?.valor || '1');
       const numero = `FAC-${String(num).padStart(6, '0')}`;
