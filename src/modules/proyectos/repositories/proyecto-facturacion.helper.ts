@@ -247,8 +247,8 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
     await eventBus.publish(new FacturaEmitida({
       proyectoId: result.updatedProyecto.id,
       ventaId: result.venta.id,
-      numeroFactura: felResult?.numero || result.venta.numero,
-      uuid: felResult?.uuid,
+      numeroFactura: felResult?.numero ? String(felResult.numero) : result.venta.numero,
+      uuid: felResult?.uuid || '',
       clienteNombre,
       total: result.venta.total,
       usuarioNombre: userName,

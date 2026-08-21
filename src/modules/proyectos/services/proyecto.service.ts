@@ -51,15 +51,26 @@ export class ProyectoService {
     if (!venta) throw new Error('Venta no encontrada');
 
     const matchCotId = (venta.notas || '').match(/COT-(\d+)/i);
-    const resolvedCotId = matchCotId ? matchCotId[1] : undefined;
+    const resolvedCotId = matchCotId ? Number(matchCotId[1]) : undefined;
+
+    let cot: any = null;
+    if (resolvedCotId) {
+      cot = await prisma.cotizacion.findUnique({
+        where: { id: resolvedCotId },
+      });
+    }
 
     const dto: CreateProyectoDto = {
-      nombre: `Proyecto Venta ${venta.numero}`,
-      clienteNombre: venta.clienteNombre,
-      clienteNit: venta.clienteNit,
-      descripcion: `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
+      nombre: cot?.descripcion?.trim() ? cot.descripcion.trim() : `Proyecto Venta ${venta.numero}`,
+      clienteNombre: cot?.clienteNombre || venta.clienteNombre,
+      clienteNit: cot?.clienteNit || venta.clienteNit,
+      clienteTelefono: cot?.clienteTelefono || undefined,
+      clienteDireccion: cot?.clienteDireccion || undefined,
+      contactoNombre: cot?.atencion || undefined,
+      descripcion: cot?.descripcion || `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
+      notas: cot?.notas || undefined,
       cotizacionId: resolvedCotId,
-      cotizacionNumero: venta.numero,
+      cotizacionNumero: cot?.numero || venta.numero,
     };
 
     const proyecto = await this.create(dto, 1, 'System');

@@ -77,8 +77,11 @@ export function PosModule() {
     const nuevos: any[] = items.map((it: any) => {
       const match = productos.find(p => p.id === it.productoId || (p.codigo && it.codigo && p.codigo.trim().toUpperCase() === it.codigo.trim().toUpperCase()));
       const realStock = match ? match.stock : 99999;
-      const cant = Math.max(1, Math.round(Number(it.cantidad) || 1));
+      const cant = Math.max(0.01, parseFloat(String(it.cantidad || 1)) || 1);
       const itemNombre = it.descripcion || it.nombre || 'Item sin nombre';
+      const precioU = Number(it.precioUnitario) || 0;
+      const descItem = Number(it.descuento) || 0;
+      const grossSub = Math.round((cant * precioU) * 100) / 100;
 
       if (match && realStock < cant) {
         toast.warning(`Atención: '${itemNombre}' solo posee ${realStock} unidades en inventario`);
@@ -90,21 +93,24 @@ export function PosModule() {
         codigo: it.codigo || (match ? match.codigo || '' : ''),
         nombre: itemNombre,
         cantidad: cant,
-        precioUnitario: Number(it.precioUnitario) || 0,
+        precioUnitario: precioU,
         stock: realStock,
-        descuento: Number(it.descuento) || 0,
-        subtotal: Number(it.totalItem || it.subtotal || (Number(it.precioUnitario || 0) * cant)) || 0,
+        descuento: descItem,
+        subtotal: grossSub,
       };
     });
     setCart(nuevos);
     setClienteNombre(cot.clienteNombre || 'Consumidor Final');
     setClienteNit(cot.clienteNit || 'CF');
+    if (cot.clienteCorreo) setClienteCorreo(cot.clienteCorreo);
     setCotizacionId(cot.id);
     setTab('inventario');
     
-    // Si la cotización ya trae un descuento explícito en monto
-    if (cot.descuento && Number(cot.descuento) > 0) {
-      setDescMontoExacto(Number(cot.descuento));
+    // Si la cotización ya trae un descuento explícito adicional a los de los ítems
+    const sumLineDescuentos = nuevos.reduce((sum, i) => sum + i.descuento, 0);
+    const cotHeaderDesc = Number(cot.descuento) || 0;
+    if (cotHeaderDesc > sumLineDescuentos) {
+      setDescMontoExacto(cotHeaderDesc - sumLineDescuentos);
     } else {
       setDescMontoExacto(null);
     }
@@ -128,10 +134,12 @@ export function PosModule() {
     }
   }, []);
 
-  const subtotalCart = Math.round(cart.reduce((s, i) => s + i.subtotal, 0) * 100) / 100;
+  const itemsBrutoCart = Math.round(cart.reduce((s, i) => s + (i.precioUnitario * i.cantidad), 0) * 100) / 100;
+  const itemsDescuentoCart = Math.round(cart.reduce((s, i) => s + (i.descuento || 0), 0) * 100) / 100;
+  const subtotalCart = itemsBrutoCart;
   const descuentoCart = descMontoExacto !== null 
-    ? Math.min(subtotalCart, descMontoExacto)
-    : Math.round((subtotalCart * (descPct / 100)) * 100) / 100;
+    ? Math.min(subtotalCart, itemsDescuentoCart + descMontoExacto)
+    : Math.round((itemsDescuentoCart + (subtotalCart * (descPct / 100))) * 100) / 100;
   const totalCart = Math.round(Math.max(0, subtotalCart - descuentoCart) * 100) / 100;
 
   const validarDescuento = async () => {

@@ -133,7 +133,7 @@ export function usePos() {
   const addLibre = () => {
     if (!libreForm.nombre || !libreForm.precio) { toast.error('Descripción y precio requeridos'); return; }
     const precio = parseFloat(libreForm.precio) || 0;
-    const cantidad = parseInt(libreForm.cantidad) || 1;
+    const cantidad = parseFloat(libreForm.cantidad) || 1;
     const sub = Number((precio * cantidad).toFixed(2));
     setCart(prev => [...prev, { tipo: 'libre', productoId: null, codigo: libreForm.codigo, nombre: libreForm.nombre, cantidad, precioUnitario: precio, stock: 99999, descuento: 0, subtotal: sub }]);
     setLibreForm({ codigo: '', nombre: '', precio: '', cantidad: '1' });
@@ -144,15 +144,15 @@ export function usePos() {
   
   const changeQty = (i: number, d: number) => setCart(prev => prev.map((item, idx) => {
     if (idx !== i) return item;
-    const q = Math.max(1, item.tipo === 'libre' ? item.cantidad + d : Math.min(item.stock, item.cantidad + d));
-    const sub = Number((q * item.precioUnitario - item.descuento).toFixed(2));
+    const q = Math.max(0.01, item.tipo === 'libre' ? item.cantidad + d : Math.min(item.stock, item.cantidad + d));
+    const sub = Number((q * item.precioUnitario).toFixed(2));
     return { ...item, cantidad: q, subtotal: sub };
   }));
   
   const changePrice = (i: number, val: string) => setCart(prev => prev.map((item, idx) => {
     if (idx !== i) return item;
     const p = parseFloat(val) || 0;
-    const sub = Number((item.cantidad * p - item.descuento).toFixed(2));
+    const sub = Number((item.cantidad * p).toFixed(2));
     return { ...item, precioUnitario: p, subtotal: sub };
   }));
 
