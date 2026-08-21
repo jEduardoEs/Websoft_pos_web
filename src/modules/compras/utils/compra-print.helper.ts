@@ -29,10 +29,10 @@ export function printCompraHTML(compra: Compra) {
   body{font-family:'Inter',sans-serif;font-size:11px;color:#0f172a;padding:24px 28px;background:#fff}
   .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
   .logo-wrap{display:flex;align-items:center;gap:12px}
-  .logo-img{width:56px;height:56px;border-radius:10px;object-fit:contain}
-  .brand-name{font-size:20px;font-weight:700;color:#0f172a;line-height:1}
+  .logo-img{height:52px;object-fit:contain;border-radius:8px}
+  .brand-name{font-size:20px;font-weight:800;color:#0f172a;line-height:1;letter-spacing:-0.5px}
   .brand-name span{color:#2563eb}
-  .brand-sub{font-size:8px;letter-spacing:2px;color:#64748b;font-weight:600;margin-top:2px;text-transform:uppercase}
+  .brand-sub{font-size:8px;letter-spacing:2px;color:#64748b;font-weight:600;margin-top:3px;text-transform:uppercase}
   .co-info{text-align:right;font-size:10px;color:#475569;line-height:1.7}
   .co-info strong{font-size:14px;font-weight:700;color:#0f172a;display:block;margin-bottom:2px}
   .banner{background:#0f172a;color:#fff;text-align:center;padding:9px;font-size:15px;font-weight:700;letter-spacing:4px;border-radius:6px;margin-bottom:14px;text-transform:uppercase}
@@ -60,7 +60,7 @@ export function printCompraHTML(compra: Compra) {
 </head><body>
 <div class="header">
   <div class="logo-wrap">
-    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
+    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo WebSoft" onerror="this.onerror=null;this.src='/logo.png';" />
     <div>
       <div class="brand-name">Web<span>Soft</span> Solutions</div>
       <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>

@@ -69,7 +69,7 @@ export function printCotizacionHTML(cot: any) {
 </head><body>
 <div class="header">
   <div class="logo-wrap">
-    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
+    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo WebSoft" onerror="this.onerror=null;this.src='/logo.png';" />
     <div>
       <div class="brand-name">Web<span>Soft</span> Solutions</div>
       <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
