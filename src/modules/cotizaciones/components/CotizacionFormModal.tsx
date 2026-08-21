@@ -232,20 +232,20 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
                       )}
                     </td>
 
-                    <td style={{ padding: 8 }}><input className="input" type="number" min="0.01" step="any" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.cantidad} onChange={e => updItem(i, 'cantidad', +e.target.value)} /></td>
+                    <td style={{ padding: 8 }}><input className="input" type="number" min="0.01" step="any" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.cantidad} onChange={e => updItem(i, 'cantidad', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} /></td>
 
                     <td style={{ padding: 8 }}>
                       {it.tipo === 'instalacion' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <div style={{ fontSize: 10, color: 'var(--ws-text2, #52524d)', textAlign: 'right' }}>Tarifa: {fmt(it.zonaTarifa)}</div>
-                          <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} placeholder="+ Cargo Extra" value={it.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', +e.target.value)} />
+                          <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} placeholder="+ Cargo Extra" value={it.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} />
                         </div>
                       ) : (
-                        <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.precioVenta} onChange={e => updItem(i, 'precioVenta', +e.target.value)} />
+                        <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.precioVenta === 0 ? '' : it.precioVenta} onChange={e => updItem(i, 'precioVenta', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="0.00" />
                       )}
                     </td>
 
-                    <td style={{ padding: 8 }}><input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.descuento || ''} onChange={e => updItem(i, 'descuento', +e.target.value)} /></td>
+                    <td style={{ padding: 8 }}><input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.descuento || ''} onChange={e => updItem(i, 'descuento', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="0.00" /></td>
 
                     <td style={{ padding: 8, textAlign: 'right', fontWeight: 700, fontSize: 13, color: 'var(--ws-text, #18181b)' }}>{fmt(it.total)}</td>
                     <td style={{ padding: 8, textAlign: 'center' }}>

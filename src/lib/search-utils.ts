@@ -40,6 +40,11 @@ export function matchesSearchQuery(targetText: string, searchQuery: string): boo
 
   return tokens.every(token => {
     const normToken = removeAccents(token).toLowerCase();
+    // Para digitos (ej. '2', '4', '8'), exige limites de palabra exactos para no coincidir '2' dentro de 'WSP-0209'
+    if (/^\d+$/.test(normToken)) {
+      const regex = new RegExp(`(?:^|[^0-9a-z])${normToken}(?:$|[^0-9a-z])`, 'i');
+      return regex.test(normTarget);
+    }
     return normTarget.includes(normToken);
   });
 }

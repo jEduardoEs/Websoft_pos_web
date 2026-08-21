@@ -4,6 +4,11 @@ import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
 import { calculateGravable, calculateIVA } from '@/shared/money'
+import { createNewCotizacionItem, recalcLineItem, calculateCotizacionTotals } from '@/modules/cotizaciones/utils/cotizacion-calc.helper'
+import { printCotizacionHTML } from '@/modules/cotizaciones/utils/cotizacion-print.helper'
+import { CotizacionPreviewModal } from '@/modules/cotizaciones/components/CotizacionPreviewModal'
+import { CotizacionPinModal } from '@/modules/cotizaciones/components/CotizacionPinModal'
+import { CotizacionSendModal } from '@/modules/cotizaciones/components/CotizacionSendModal'
 
 const IVA = 0.05
 
@@ -58,27 +63,8 @@ interface Cotizacion {
   items: any[]
 }
 
-function calcInstalacion(item: LineItem) {
-  return (item.zonaTarifa || 0) + (item.cargoAdicional || 0)
-}
-
-function recalc(item: LineItem): LineItem {
-  let precio = item.precioVenta
-  if (item.tipo === 'instalacion') {
-    precio = calcInstalacion(item)
-    item = { ...item, precioVenta: precio }
-  }
-  const sub = Number((precio * item.cantidad).toFixed(2))
-  const descTotalLine = Math.max(0, item.descuento || 0)
-  const total = Number(Math.max(0, sub - descTotalLine).toFixed(2))
-  return { ...item, subtotal: sub, total }
-}
-
-function newItem(tipo: LineItem['tipo']): LineItem {
-  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, cargoAdicional: 0, notaAdicional: '' }
-  if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' }
-  return base
-}
+const newItem = createNewCotizacionItem
+const recalc = recalcLineItem
 
 const emptyForm = {
   clienteNombre: '', clienteDireccion: '', clienteTelefono: '',
@@ -89,8 +75,6 @@ const emptyForm = {
 
 export default function CotizacionesPage() {
   const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([])
-
-
 
   const [showModal, setShowModal] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -245,11 +229,7 @@ export default function CotizacionesPage() {
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i))
 
   // Totals — IVA incluido en el total final
-  const itemsSubtotalBruto = Number(items.reduce((s, i) => s + (i.subtotal || 0), 0).toFixed(2))
-  const itemsDescuentoTotal = Number(items.reduce((s, i) => s + (i.descuento || 0), 0).toFixed(2))
-  const totalFinal = Number(Math.max(0, itemsSubtotalBruto - itemsDescuentoTotal).toFixed(2))
-  const baseTotal = calculateGravable(totalFinal, 0.05)
-  const iva = calculateIVA(totalFinal, 0.05)
+  const { itemsSubtotalBruto, itemsDescuentoTotal, totalFinal, baseTotal, ivaCalculado: iva } = calculateCotizacionTotals(items)
 
   const save = async () => {
     if (!form.clienteNombre.trim()) { toast.error('Nombre del cliente requerido'); return }
@@ -399,157 +379,7 @@ export default function CotizacionesPage() {
     else toast.error(d.error || 'Error al enviar')
   }
 
-  const imprimir = (cot: Cotizacion) => {
-    const w = window.open('', '_blank', 'width=900,height=700')
-    if (!w) return
-    const totalNum = Number(cot.total) || 0
-    const descuentoNum = Number(cot.descuento) || 0
-    const subtotalBruto = Number(cot.subtotal) || (totalNum + descuentoNum)
-    const baseAmt = calculateGravable(totalNum, 0.05)
-    const ivaAmt = calculateIVA(totalNum, 0.05)
-    const rows = cot.items.map(it => `
-      <tr>
-        <td class="code">${it.codigo || ''}</td>
-        <td>${it.descripcion}</td>
-        <td class="center">${it.cantidad}</td>
-        <td class="right">Q ${Number(it.precioUnitario).toFixed(2)}</td>
-        <td class="right">Q ${Number(it.subtotal).toFixed(2)}</td>
-        <td class="right">${it.descuento > 0 ? `Q ${Number(it.descuento).toFixed(2)}` : 'Q 0.00'}</td>
-        <td class="right bold">Q ${Number(it.totalItem).toFixed(2)}</td>
-      </tr>`).join('')
-
-    w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;font-size:11px;color:#0f172a;padding:24px 28px;background:#fff}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
-  .logo-wrap{display:flex;align-items:center;gap:12px}
-  .logo-img{width:56px;height:56px;border-radius:10px;object-fit:contain}
-  .brand-name{font-size:20px;font-weight:700;color:#0f172a;line-height:1}
-  .brand-name span{color:#2563eb}
-  .brand-sub{font-size:8px;letter-spacing:2px;color:#64748b;font-weight:600;margin-top:2px;text-transform:uppercase}
-  .co-info{text-align:right;font-size:10px;color:#475569;line-height:1.7}
-  .co-info strong{font-size:14px;font-weight:700;color:#0f172a;display:block;margin-bottom:2px}
-  .banner{background:#2563eb;color:#fff;text-align:center;padding:9px;font-size:16px;font-weight:700;letter-spacing:5px;border-radius:6px;margin-bottom:14px}
-  hr.blue{border:none;border-top:2px solid #2563eb;margin:10px 0}
-  hr.light{border:none;border-top:1px solid #e2e8f0;margin:8px 0}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:10px}
-  .row{display:flex;gap:6px;margin-bottom:3px}
-  .lbl{font-weight:700;color:#374151;min-width:75px;flex-shrink:0}
-  .val{color:#475569}
-  .fp{font-size:10px;margin-bottom:10px}.fp strong{color:#2563eb}
-  table{width:100%;border-collapse:collapse;margin-bottom:12px}
-  thead tr{background:#eff6ff}
-  thead th{padding:7px 9px;font-size:10px;font-weight:700;text-align:left;color:#1e40af;border-bottom:2px solid #bfdbfe}
-  tbody tr:nth-child(even){background:#f8fafc}
-  tbody td{padding:6px 9px;border-bottom:1px solid #f1f5f9;font-size:10px}
-  .code{font-family:monospace;font-size:9px;color:#2563eb;font-weight:700}
-  .center{text-align:center}.right{text-align:right}.bold{font-weight:700}
-  .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:12px}
-  .totals{background:#f8fafc;border:1.5px solid #bfdbfe;border-radius:8px;padding:11px 16px;min-width:230px}
-  .t-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:#475569}
-  .t-iva{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:#d97706;font-weight:600}
-  .t-final{font-size:15px;font-weight:800;color:#2563eb;border-top:2px solid #bfdbfe;padding-top:7px;margin-top:5px;display:flex;justify-content:space-between}
-  .notice{font-size:9px;font-weight:700;color:#dc2626;margin-bottom:7px;line-height:1.6}
-  .conds{font-size:8.5px;color:#64748b;line-height:1.6;margin-bottom:10px}
-  .conds strong{color:#374151}
-  .highlight-block{font-size:10px;font-weight:700;color:#0f172a;background:#f0f9ff;border-left:3px solid #2563eb;padding:7px 12px;margin-bottom:7px;border-radius:0 6px 6px 0;line-height:1.6}
-  .highlight-block strong{color:#1e40af;font-size:11px}
-  .signs{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px}
-  .sign-line{border-top:1.5px solid #0f172a;padding-top:4px;font-size:10px;font-weight:700}
-  .footer{margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
-  @media print{body{padding:12px}@page{margin:8mm;size:A4}}
-</style>
-</head><body>
-<div class="header">
-  <div class="logo-wrap">
-    <img class="logo-img" src="https://websoftsolutions.com.gt/logo.png" alt="Logo" onerror="this.style.display='none'"/>
-    <div>
-      <div class="brand-name">Web<span>Soft</span> Solutions</div>
-      <div class="brand-sub">Guastatoya · El Progreso · Guatemala</div>
-    </div>
-  </div>
-  <div class="co-info">
-    <strong>WEBSOFT SOLUTIONS</strong>
-    Barrio el Calvario, Guastatoya, El Progreso<br>
-    TEL: (502) 3836-1044 / 3671-4377<br>
-    www.websoftsolutions.com.gt
-  </div>
-</div>
-
-<div class="banner">C O T I Z A C I O N</div>
-<hr class="blue">
-
-<div class="grid2">
-  <div>
-    <div class="row"><span class="lbl">Nombre:</span><span class="val">${cot.clienteNombre}</span></div>
-    <div class="row"><span class="lbl">Direccion:</span><span class="val">${cot.clienteDireccion || ''}</span></div>
-    <div class="row"><span class="lbl">Telefono:</span><span class="val">${cot.clienteTelefono || ''}</span></div>
-    <div class="row"><span class="lbl">NIT:</span><span class="val">${cot.clienteNit || 'CF'}</span></div>
-  </div>
-  <div>
-    <div class="row"><span class="lbl">Atencion a:</span><span class="val">${cot.atencion || ''}</span></div>
-    <div class="row"><span class="lbl">Fecha:</span><span class="val">${new Date(cot.fecha).toLocaleDateString('es-GT')}</span></div>
-    <div class="row"><span class="lbl">No. Cotizacion:</span><span class="val"><b>${cot.numero}</b></span></div>
-    <div class="row"><span class="lbl">Validez:</span><span class="val">${cot.validezDias} dias</span></div>
-  </div>
-</div>
-<hr class="blue">
-
-<div class="fp"><strong>Forma de Pago:</strong> ${cot.formaPago || ''}</div>
-${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8px;color:#1e40af">${cot.descripcion}</div>` : ''}
-
-<table>
-  <thead><tr>
-    <th style="width:72px">Codigo</th>
-    <th>Descripcion</th>
-    <th style="width:48px;text-align:center">Cant.</th>
-    <th style="width:78px;text-align:right">P/Unit.</th>
-    <th style="width:78px;text-align:right">Subtotal</th>
-    <th style="width:72px;text-align:right">Descuento</th>
-    <th style="width:82px;text-align:right">Total</th>
-  </tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-
-<div class="totals-wrap">
-  <div class="totals">
-    <div class="t-row"><span>Subtotal</span><span>Q ${subtotalBruto.toFixed(2)}</span></div>
-    ${descuentoNum > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${descuentoNum.toFixed(2)}</span></div>` : ''}
-    <div class="t-iva"><span>IVA Incluido (5%)</span><span>Q ${ivaAmt.toFixed(2)}</span></div>
-    <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${totalNum.toFixed(2)}</span></div>
-  </div>
-</div>
-
-<div class="notice">SUJETO A DISPONIBILIDAD. CONSULTAR EXISTENCIAS ANTES DE GENERAR PAGO.</div>
-<div class="conds">
-  <strong>CONDICIONES:</strong>
-  1. <strong>PAGO:</strong> Anticipado, contra entrega, financiado o tarjeta. Cheques a nombre de WebSoft Solutions.
-  2. <strong>ENTREGA:</strong> Inmediata a 3 dias segun pago. Sin existencia puede variar hasta 3 semanas.
-  3. <strong>GARANTIA:</strong> Se atiende en instalaciones de WebSoft. Danos fisicos anulan garantia.
-  4. <strong>SERVICIO:</strong> Departamento tecnico calificado para soporte durante garantia.
-</div>
-${cot.tiempoInstalacion ? `<div class="highlight-block"><strong>TIEMPO DE INSTALACION:</strong> ${cot.tiempoInstalacion}</div>` : ''}
-${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> ${cot.notas}</div>` : ''}
-
-<div class="signs">
-  <div>
-    <div class="sign-line">Aceptado (Cliente): _________________________</div>
-    <div style="font-size:9px;color:#94a3b8;margin-top:4px">Fecha: _____ / _____ / ______</div>
-  </div>
-  <div style="text-align:right;font-size:9px;color:#94a3b8">${cot.numero} · Valida ${cot.validezDias} dias</div>
-</div>
-
-<div class="footer">
-  <span>WebSoft Solutions · Sistema POS</span>
-  <span>Tel: 3836-1044 / 3671-4377 · Guastatoya, El Progreso</span>
-</div>
-</body></html>`)
-    w.document.close()
-    setTimeout(() => w.print(), 700)
-  }
+  const imprimir = (cot: Cotizacion) => printCotizacionHTML(cot)
 
   const estadoBadge = (e: string) => ({ pendiente: 'badge-orange', aceptada: 'badge-green', rechazada: 'badge-red', vencida: 'badge-gray', facturada: 'badge-blue' }[e] || 'badge-gray')
 
@@ -808,13 +638,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                   <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 55px 110px 80px 75px 22px', gap: 6, alignItems: 'start' }}>
                     <input className="input" value={item.codigo} onChange={e => updItem(i, 'codigo', e.target.value)} placeholder="COD" style={{ fontSize: 11, padding: '5px 7px' }} />
                     <input className="input" value={item.descripcion} onChange={e => updItem(i, 'descripcion', e.target.value)} placeholder="Descripcion" style={{ fontSize: 11, padding: '5px 7px' }} />
-                    <input className="input" type="number" min="1" value={item.cantidad} onChange={e => updItem(i, 'cantidad', Number(e.target.value))} style={{ fontSize: 11, padding: '5px 7px', textAlign: 'center' }} />
+                    <input className="input" type="number" min="1" value={item.cantidad} onChange={e => updItem(i, 'cantidad', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} style={{ fontSize: 11, padding: '5px 7px', textAlign: 'center' }} />
 
                     {/* Precio column */}
                     <div>
                       {item.tipo === 'producto' ? (
                         <div>
-                          <input className="input" type="number" min="0" value={item.precioVenta || ''} onChange={e => updItem(i, 'precioVenta', Number(e.target.value))} placeholder="Precio venta" style={{ fontSize: 11, padding: '5px 7px' }} />
+                          <input className="input" type="number" min="0" value={item.precioVenta === 0 ? '' : item.precioVenta} onChange={e => updItem(i, 'precioVenta', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="Precio venta" style={{ fontSize: 11, padding: '5px 7px' }} />
                           {item.costoCompra > 0 && (
                             <div style={{ fontSize: 9, color: '#94a3b8', padding: '2px 7px' }}>
                               Costo: Q {item.costoCompra.toFixed(2)}
@@ -828,11 +658,11 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
                           <div style={{ fontSize: 9, color: '#94a3b8', padding: '0 7px' }}>auto calculado</div>
                         </div>
                       ) : (
-                        <input className="input" type="number" min="0" value={item.precioVenta || ''} onChange={e => updItem(i, 'precioVenta', Number(e.target.value))} placeholder="Precio" style={{ fontSize: 11, padding: '5px 7px' }} />
+                        <input className="input" type="number" min="0" value={item.precioVenta === 0 ? '' : item.precioVenta} onChange={e => updItem(i, 'precioVenta', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="Precio" style={{ fontSize: 11, padding: '5px 7px' }} />
                       )}
                     </div>
 
-                    <input className="input" type="number" min="0" value={item.descuento || ''} onChange={e => updItem(i, 'descuento', Number(e.target.value))} placeholder="0" style={{ fontSize: 11, padding: '5px 7px' }} />
+                    <input className="input" type="number" min="0" value={item.descuento || ''} onChange={e => updItem(i, 'descuento', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="0" style={{ fontSize: 11, padding: '5px 7px' }} />
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textAlign: 'right', paddingTop: 7 }}>Q {item.total.toFixed(2)}</div>
                     <button onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, paddingTop: 4 }}>×</button>
                   </div>
@@ -1025,86 +855,36 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
         </div>
       )}
 
-      {/* ─── PIN AUTHORIZATION MODAL ─── */}
-      {pinModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 380, boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ width: 56, height: 56, background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 26 }}></div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#0f172a', marginBottom: 6 }}>Autorizacion requerida</div>
-              <div style={{ fontSize: 13, color: '#64748b' }}>
-                {'Para '}<strong style={{ color: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626' }}>{pinModal.estado === 'aceptada' ? 'ACEPTAR' : 'RECHAZAR'}</strong>{' la cotizacion '}<strong>{pinModal.numero}</strong>{' se requiere el PIN del administrador.'}
-              </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>PIN de Administrador</label>
-              <input
-                className="input"
-                type="password"
-                value={pin}
-                onChange={e => { setPin(e.target.value); setPinError('') }}
-                onKeyDown={e => e.key === 'Enter' && pin && aplicarEstado(pinModal.id, pinModal.estado, pin)}
-                placeholder="Ingresa el PIN"
-                autoFocus
-                style={{ fontSize: 20, textAlign: 'center', letterSpacing: 6, fontWeight: 700 }}
-              />
-              {pinError && <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600, marginTop: 6 }}> {pinError}</div>}
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { setPinModal(null); setPin(''); setPinError('') }}>Cancelar</button>
-              <button
-                onClick={() => aplicarEstado(pinModal.id, pinModal.estado, pin)}
-                disabled={!pin || pinLoading}
-                style={{ flex: 1, background: pinModal.estado === 'aceptada' ? '#16a34a' : '#dc2626', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: !pin || pinLoading ? .6 : 1 }}
-              >
-                {pinLoading ? 'Verificando...' : 'Autorizar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── PREVIEW MODAL ─── */}
+      <CotizacionPreviewModal
+        selected={showPreview ? selected : null}
+        onClose={() => setShowPreview(false)}
+        onImprimir={imprimir}
+        onSolicitarCambioEstado={solicitarCambioEstado}
+        onEliminar={eliminar}
+        onAbrirSendModal={abrirSendModal}
+      />
 
-      {sendModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#fff', borderRadius: 10, padding: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1.5px solid #e3e1d8' }}>
-              <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#18181b' }}>Enviar cotización</h3>
-                <div style={{ fontSize: 11, color: '#8a887e', marginTop: 2 }}>{sendModal.numero} — {sendModal.clienteNombre}</div>
-              </div>
-              <button onClick={() => setSendModal(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8a887e' }}>×</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => { enviarWA(sendModal); setSendModal(null) }} disabled={!sendModal.clienteTelefono}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: sendModal.clienteTelefono ? 'pointer' : 'not-allowed', opacity: sendModal.clienteTelefono ? 1 : 0.4, textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>WA</div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por WhatsApp</div>
-                  <div style={{ fontSize: 11, color: '#8a887e' }}>{sendModal.clienteTelefono || 'Sin teléfono registrado'}</div>
-                </div>
-              </button>
-              <div style={{ border: '1.5px solid #d8d6cd', borderRadius: 6, padding: '13px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 7, background: '#1581E3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>@</div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Enviar por correo</div>
-                </div>
-                <input className="input" type="email" placeholder="correo@cliente.com" value={sendEmail} onChange={e => setSendEmail(e.target.value)} style={{ marginBottom: 8 }} />
-                <button className="btn-primary" onClick={() => enviarCorreoManual(sendModal)} disabled={sendLoading || !sendEmail} style={{ width: '100%', justifyContent: 'center' }}>
-                  {sendLoading ? 'Enviando...' : 'Enviar por correo'}
-                </button>
-              </div>
-              <button onClick={() => { imprimir(sendModal); setSendModal(null) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', border: '1.5px solid #d8d6cd', borderRadius: 6, background: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 7, background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 11, color: '#fff' }}>PDF</div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#18181b' }}>Descargar / Imprimir PDF</div>
-                  <div style={{ fontSize: 11, color: '#8a887e' }}>Abre en nueva ventana</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── PIN AUTHORIZATION MODAL ─── */}
+      <CotizacionPinModal
+        pinModal={pinModal}
+        pin={pin}
+        pinError={pinError}
+        onPinChange={setPin}
+        onConfirm={() => pinModal && aplicarEstado(pinModal.id, pinModal.estado, pin)}
+        onClose={() => { setPinModal(null); setPin(''); setPinError('') }}
+      />
+
+      {/* ─── SEND EMAIL / DOWNLOAD MODAL ─── */}
+      <CotizacionSendModal
+        sendModal={sendModal}
+        sendEmail={sendEmail}
+        sendLoading={sendLoading}
+        onEmailChange={setSendEmail}
+        onSendEmail={enviarCorreoManual}
+        onDownloadPDF={(id) => window.open(`/api/cotizaciones/${id}/pdf`, '_blank')}
+        onClose={() => setSendModal(null)}
+      />
 
     </div>
   )

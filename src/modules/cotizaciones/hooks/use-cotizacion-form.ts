@@ -1,30 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { calculateGravable, calculateIVA } from '@/shared/money';
 import { LineItem } from '../types/cotizacion';
+import { createNewCotizacionItem, recalcLineItem, calculateCotizacionTotals } from '../utils/cotizacion-calc.helper';
 
-function newItem(tipo: LineItem['tipo']): LineItem {
-  const base = { tipo, productoId: null, codigo: '', descripcion: '', costoCompra: 0, precioVenta: 0, cantidad: 1, descuento: 0, subtotal: 0, total: 0, zonaId: null, zonaNombre: '', zonaTarifa: 0, cargoAdicional: 0, notaAdicional: '' };
-  if (tipo === 'instalacion') return { ...base, codigo: 'INST-001', descripcion: 'Instalacion tecnica' };
-  return base as LineItem;
-}
-
-function calcInstalacion(item: LineItem) {
-  return (item.zonaTarifa || 0) + (item.cargoAdicional || 0);
-}
-
-function recalc(item: LineItem): LineItem {
-  let precio = item.precioVenta;
-  if (item.tipo === 'instalacion') {
-    precio = calcInstalacion(item);
-    item = { ...item, precioVenta: precio };
-  }
-  const sub = Number((precio * item.cantidad).toFixed(2));
-  const descTotalLine = Math.max(0, item.descuento || 0);
-  const total = Number(Math.max(0, sub - descTotalLine).toFixed(2));
-  return { ...item, subtotal: sub, total };
-}
+const newItem = createNewCotizacionItem;
+const recalc = recalcLineItem;
 
 export const emptyForm = {
   id: null as number | null,
@@ -271,11 +252,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
     setItems([newItem('producto')]);
   };
 
-  const itemsSubtotalBruto = Number(items.reduce((s, i) => s + (i.subtotal || 0), 0).toFixed(2));
-  const itemsDescuentoTotal = Number(items.reduce((s, i) => s + (i.descuento || 0), 0).toFixed(2));
-  const grandTotal = Number(Math.max(0, itemsSubtotalBruto - itemsDescuentoTotal).toFixed(2));
-  const baseTotal = calculateGravable(grandTotal, 0.05);
-  const ivaCalculado = calculateIVA(grandTotal, 0.05);
+  const { itemsSubtotalBruto, itemsDescuentoTotal, totalFinal: grandTotal, baseTotal, ivaCalculado } = calculateCotizacionTotals(items);
 
   const guardar = async () => {
     if (!form.clienteNombre.trim()) return toast.error('El nombre del cliente es obligatorio');
