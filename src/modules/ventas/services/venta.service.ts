@@ -1,14 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { emitirFEL, FELResponse } from '@/lib/fel';
 import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { CreateVentaDto } from '../dto/create-venta.dto';
 import { Venta } from '../types/venta';
 
-// Helper functions for calculations (IVA 5% and profit 30%)
-const IVA_RATE = 0.05;
+// Helper functions for calculations (Included IVA 5% and profit 30%)
 const PROFIT_RATE = 0.30;
-function calculateIVA(subtotal: number): number {
-  return Number((subtotal * IVA_RATE).toFixed(2));
+function calculateIVAIncluded(total: number): number {
+  return calculateIVA(total, 0.05);
 }
 function calculateProfit(subtotal: number): number {
   return Number((subtotal * PROFIT_RATE).toFixed(2));
@@ -24,7 +24,7 @@ export class VentaService {
     const { fechaIni, fechaFin, estado, buscar } = params;
 
     const where: any = {};
-    if (estado && estado.trim() !== '') {
+    if (estado && estado.trim() !== '' && estado !== 'todos') {
       where.estado = estado;
     }
 
@@ -65,15 +65,29 @@ export class VentaService {
     }
 
     if (dto.cotizacionId) {
-      const ventaPrevia = await prisma.venta.findFirst({
-        where: { cotizacionId: dto.cotizacionId }
-      });
-      if (ventaPrevia) {
-        throw new Error(`La cotización ya fue facturada previamente en el sistema con el comprobante ${ventaPrevia.numero}`);
+      const cotIdNum = Number(dto.cotizacionId);
+      if (!isNaN(cotIdNum) && cotIdNum > 0) {
+        const cot = await prisma.cotizacion.findUnique({ where: { id: cotIdNum } });
+        if (cot && cot.estado === 'facturada') {
+          throw new Error(`La cotización ${cot.numero} ya fue facturada anteriormente. No se permite facturación doble.`);
+        }
+
+        const ventaPrevia = await prisma.venta.findFirst({
+          where: {
+            OR: [
+              { notas: { contains: `[Cotización COT-${cotIdNum}]` } },
+              ...(cot?.numero ? [{ notas: { contains: cot.numero } }] : [])
+            ]
+          }
+        });
+        if (ventaPrevia) {
+          throw new Error(`La cotización ya fue facturada previamente en el sistema con el comprobante ${ventaPrevia.numero}`);
+        }
       }
     }
 
     let numeroVenta = '';
+    const parsedUserId = isNaN(parseInt(userId)) ? 1 : parseInt(userId);
 
     const venta = await prisma.$transaction(async (tx) => {
       const cfg = await tx.config.findUnique({ where: { clave: 'numero_siguiente' } });
@@ -115,12 +129,11 @@ export class VentaService {
         }
 
         const cost = dbProd ? dbProd.costo : (item.costo ?? 0);
-        // Use catalog price if available, fallback to DTO price for custom unlisted items
         const catalogPrice = dbProd && dbProd.precio > 0 ? dbProd.precio : item.precioUnitario;
         const itemDiscount = item.descuento || 0;
         const netUnitPrice = Math.max(0, catalogPrice - itemDiscount);
         const itemSubtotal = Number((netUnitPrice * item.cantidad).toFixed(2));
-        const iva = calculateIVA(itemSubtotal);
+        const iva = calculateIVAIncluded(itemSubtotal);
         const ganancia = Number((itemSubtotal - (cost * item.cantidad)).toFixed(2));
 
         return {
@@ -139,9 +152,13 @@ export class VentaService {
         };
       });
 
-      const saleSubtotal = processedItems.reduce((sum, i) => sum + i.subtotal, 0);
-      const saleIVA = processedItems.reduce((sum, i) => sum + (i.iva ?? 0), 0);
-      const saleTotal = Number((saleSubtotal + saleIVA - (dto.descuento || 0)).toFixed(2));
+      const saleSubtotal = Number(processedItems.reduce((sum, i) => sum + i.subtotal, 0).toFixed(2));
+      const globalDescuento = Number((dto.descuento || 0).toFixed(2));
+      const saleTotal = Number(Math.max(0, saleSubtotal - globalDescuento).toFixed(2));
+      const saleIVA = calculateIVAIncluded(saleTotal);
+      const calculatedCambio = dto.metodoPago === 'efectivo'
+        ? Number(Math.max(0, (dto.montoRecibido || 0) - saleTotal).toFixed(2))
+        : 0;
 
       const v = await tx.venta.create({
         data: {
@@ -150,15 +167,14 @@ export class VentaService {
           clienteNombre: dto.clienteNombre || 'Consumidor Final',
           clienteNit: dto.clienteNit || 'CF',
           subtotal: saleSubtotal,
-          descuento: dto.descuento || 0,
+          descuento: globalDescuento,
           impuesto: saleIVA,
           total: saleTotal,
           metodoPago: dto.metodoPago,
-          montoRecibido: dto.montoRecibido,
-          cambio: dto.cambio,
-          cotizacionId: dto.cotizacionId ? Number(dto.cotizacionId) : null,
+          montoRecibido: dto.montoRecibido || saleTotal,
+          cambio: calculatedCambio,
           notas: dto.cotizacionId ? `${dto.notas || ''} [Cotización COT-${dto.cotizacionId}]`.trim() : dto.notas,
-          usuarioId: parseInt(userId),
+          usuarioId: parsedUserId,
           usuarioNombre: userName,
           items: {
             create: processedItems.map(i => ({
@@ -195,10 +211,21 @@ export class VentaService {
             stockDespues: newStock,
             motivo: `Venta ${numeroVenta}`,
             referencia: numeroVenta,
-            usuarioId: parseInt(userId),
+            usuarioId: parsedUserId,
             usuarioNombre: userName,
           },
         });
+      }
+
+      // Update quotation state to 'facturada' if billed from a quotation
+      if (dto.cotizacionId) {
+        const cotIdNum = Number(dto.cotizacionId);
+        if (!isNaN(cotIdNum) && cotIdNum > 0) {
+          await tx.cotizacion.update({
+            where: { id: cotIdNum },
+            data: { estado: 'facturada' },
+          });
+        }
       }
 
       // Increment usage counter on discount coupon if used
@@ -267,7 +294,7 @@ export class VentaService {
       // Audit
       await tx.auditLog.create({
         data: {
-          usuarioId: parseInt(userId),
+          usuarioId: parsedUserId,
           usuarioNombre: userName,
           accion: 'CREATE',
           tabla: 'ventas',
@@ -276,29 +303,13 @@ export class VentaService {
         },
       });
 
-      // Auto-create project if sale contains an installation item
-      const hasInstalacion = processedItems.some(i => 
-        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
-        (i.dbProd?.categoria && i.dbProd.categoria.toLowerCase().includes('servicio'))
-      );
-
-      if (hasInstalacion || dto.cotizacionId) {
-        try {
-          const { ProyectoService } = await import('@/modules/proyectos/services/proyecto.service');
-          await ProyectoService.createFromSale(v.id);
-        } catch (err) {
-          console.error('[VentaService] Error auto-creating project from sale with installation:', err);
-        }
-      }
-
       // Añadir campos calculados al objeto de respuesta (sin persistir)
       const itemsConCalculos = v.items.map((it, idx) => {
         const original = dto.items[idx];
-        const iva = calculateIVA(it.subtotal);
+        const iva = calculateIVAIncluded(it.subtotal);
         const ganancia = calculateProfit(it.subtotal);
         return { ...it, iva, ganancia };
       });
-      // Devolver venta con items enriquecidos
       return { ...v, items: itemsConCalculos };
 
     }, {
@@ -306,145 +317,9 @@ export class VentaService {
       timeout: 30000,
     });
 
-    // POST-Transaction side effects (FEL & Email)
-    let felResult: FELResponse | null = null;
-    let emailResult: EmailResult | null = null;
-
-    try {
-      const configs = await prisma.config.findMany({
-        where: { clave: { in: ['fel_activo', 'email_factura_activo'] } }
-      });
-      const configMap = Object.fromEntries(configs.map(c => [c.clave, c.valor]));
-
-      if (configMap['fel_activo'] === 'true') {
-        felResult = await emitirFEL({
-          numeroInterno: numeroVenta,
-          nitReceptor: dto.clienteNit || 'CF',
-          nombreReceptor: dto.clienteNombre || 'Consumidor Final',
-          correoReceptor: dto.clienteCorreo || '',
-          items: dto.items.map(it => ({
-            cantidad: it.cantidad,
-            descripcion: it.nombre,
-            precioUnitario: it.precioUnitario,
-            descuento: it.descuento || 0,
-            subtotal: it.subtotal,
-            codigoProducto: it.codigo || undefined,
-          })),
-          subtotal: dto.subtotal,
-          descuento: dto.descuento,
-          impuesto: dto.impuesto,
-          total: dto.total,
-          metodoPago: dto.metodoPago,
-        });
-
-        if (felResult.ok) {
-          await prisma.venta.update({
-            where: { id: venta.id },
-            data: {
-              felUuid: felResult.uuid,
-              felSerie: felResult.serie,
-              felNumero: felResult.numero,
-              felCertificacion: felResult.fechaCertificacion,
-              felPdfUrl: felResult.pdfUrl,
-              felEstado: felResult.sandbox ? 'sandbox' : 'certificado',
-            },
-          });
-        }
-      }
-
-      if (configMap['email_factura_activo'] === 'true' && dto.clienteCorreo && dto.clienteCorreo.includes('@')) {
-        emailResult = await enviarFacturaPorCorreo({
-          uuid: felResult?.uuid,
-          serie: felResult?.serie,
-          numero: felResult?.numero,
-          fechaCertificacion: felResult?.fechaCertificacion,
-          pdfUrl: felResult?.pdfUrl,
-          sandbox: felResult?.sandbox,
-          numeroInterno: numeroVenta,
-          fecha: venta.fecha,
-          clienteNombre: dto.clienteNombre || 'Consumidor Final',
-          clienteNit: dto.clienteNit || 'CF',
-          clienteCorreo: dto.clienteCorreo,
-          items: dto.items.map(it => ({
-            codigo: it.codigo || undefined,
-            nombre: it.nombre,
-            cantidad: it.cantidad,
-            precioUnitario: it.precioUnitario,
-            descuento: it.descuento || 0,
-            subtotal: it.subtotal,
-          })),
-          subtotal: dto.subtotal,
-          descuento: dto.descuento,
-          impuesto: dto.impuesto,
-          total: dto.total,
-          metodoPago: dto.metodoPago,
-        });
-      }
-    } catch (err) {
-      console.error('[VentaService] Side-effects error:', err);
-    }
-
-    try {
-      const { VentaAggregate } = await import('@/core/domain/VentaAggregate');
-      const ventaAgg = VentaAggregate.createFromPos({
-        id: venta.id,
-        numero: venta.numero,
-        clienteNombre: venta.clienteNombre,
-        clienteNit: venta.clienteNit,
-        total: venta.total,
-        metodoPago: venta.metodoPago,
-        items: dto.items.map(it => ({
-          productoId: it.productoId || null,
-          codigo: it.codigo || 'PRD',
-          nombre: it.nombre,
-          cantidad: it.cantidad,
-          precioUnitario: it.precioUnitario,
-          descuento: it.descuento || 0,
-          subtotal: it.subtotal,
-        })),
-        cotizacionId: dto.cotizacionId ? Number(dto.cotizacionId) : undefined,
-      });
-      await ventaAgg.dispatchEvents();
-
-      const { eventBus } = await import('@/core/events/EventBus');
-      const { VentaCreada, PagoRegistrado, ComisionReservada, FacturaEmitida } = await import('@/core/events/types');
-
-      await eventBus.publish(new VentaCreada({
-        ventaId: venta.id,
-        numero: venta.numero,
-        clienteNombre: venta.clienteNombre,
-        total: venta.total,
-        cotizacionId: dto.cotizacionId,
-        usuarioNombre: userName,
-      }));
-
-      await eventBus.publish(new PagoRegistrado({
-        ventaId: venta.id,
-        monto: venta.total,
-        metodoPago: dto.metodoPago || 'efectivo',
-        clienteNombre: venta.clienteNombre,
-        usuarioNombre: userName,
-      }));
-
-      await eventBus.publish(new ComisionReservada({
-        ventaId: venta.id,
-        vendedorNombre: userName,
-        monto: Number((venta.total * 0.05).toFixed(2)),
-      }));
-
-      if (felResult && (felResult as any).exito) {
-        await eventBus.publish(new FacturaEmitida({
-          ventaId: venta.id,
-          numeroFactura: (felResult as any).numero || venta.numero,
-          uuid: (felResult as any).uuid,
-          clienteNombre: venta.clienteNombre,
-          total: venta.total,
-          usuarioNombre: userName,
-        }));
-      }
-    } catch (err) {
-      console.error('[VentaService] Error publishing domain events:', err);
-    }
+    // POST-Transaction side effects (FEL, Email, Auto-Project Creation & Events)
+    const { processVentaSideEffects } = await import('./venta-side-effects.helper');
+    const { felResult, emailResult } = await processVentaSideEffects(venta, dto, numeroVenta, userName);
 
     return {
       venta,

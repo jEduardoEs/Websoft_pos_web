@@ -2,7 +2,20 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { ProyectosService, Proyecto, Mant } from '../services/proyectos.service'
 
-const emptyForm = { nombre: '', clienteNombre: '', clienteTelefono: '', clienteDireccion: '', clienteNit: '', contactoNombre: '', descripcion: '', alcance: '', cotizacionNumero: '', fechaInicio: new Date().toISOString().split('T')[0], notas: '' }
+const emptyForm = {
+  nombre: '',
+  clienteNombre: '',
+  clienteTelefono: '',
+  clienteDireccion: '',
+  clienteNit: '',
+  contactoNombre: '',
+  descripcion: '',
+  alcance: '',
+  cotizacionId: null as number | null,
+  cotizacionNumero: '',
+  fechaInicio: new Date().toISOString().split('T')[0],
+  notas: ''
+}
 
 export function useProyectos(esAdminOSupervisor: boolean) {
   const [proyectos, setProyectos] = useState<Proyecto[]>([])
@@ -11,66 +24,34 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   const [pinInput, setPinInput] = useState('')
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [alertas, setAlertas] = useState({ proximos: 0, vencidos: 0 })
-  const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'>('todos')
+  const [tab, setTab] = useState<'todos'|'planificado'|'en_ejecucion'|'completado'|'cancelado'>('todos')
   const [buscar, setBuscar] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   // Clear form automatically whenever modal is closed
   useEffect(() => {
     if (!showModal) {
       setClienteSearch('')
-      setForm({
-        nombre: '',
-        clienteNombre: '',
-        clienteTelefono: '',
-        clienteDireccion: '',
-        clienteNit: '',
-        contactoNombre: '',
-        descripcion: '',
-        alcance: '',
-        cotizacionNumero: '',
-        fechaInicio: new Date().toISOString().split('T')[0],
-        notas: '',
-      })
+      setFormError(null)
+      setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
     }
   }, [showModal])
 
   const openModal = () => {
     setClienteSearch('')
-    setForm({
-      nombre: '',
-      clienteNombre: '',
-      clienteTelefono: '',
-      clienteDireccion: '',
-      clienteNit: '',
-      contactoNombre: '',
-      descripcion: '',
-      alcance: '',
-      cotizacionNumero: '',
-      fechaInicio: new Date().toISOString().split('T')[0],
-      notas: '',
-    })
+    setFormError(null)
+    setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
     setShowModal(true)
   }
 
   const closeModal = () => {
     setShowModal(false)
     setClienteSearch('')
-    setForm({
-      nombre: '',
-      clienteNombre: '',
-      clienteTelefono: '',
-      clienteDireccion: '',
-      clienteNit: '',
-      contactoNombre: '',
-      descripcion: '',
-      alcance: '',
-      cotizacionNumero: '',
-      fechaInicio: new Date().toISOString().split('T')[0],
-      notas: '',
-    })
+    setFormError(null)
+    setForm({ ...emptyForm, fechaInicio: new Date().toISOString().split('T')[0] })
   }
 
   const load = useCallback(async () => {
@@ -95,8 +76,10 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   }, [])
 
   const save = async () => {
+    setFormError(null)
     if (!form.nombre || !form.clienteNombre || !form.descripcion) { 
-      toast.error('Nombre, cliente y descripción requeridos')
+      const msg = 'Nombre del proyecto, cliente y descripción son requeridos'
+      setFormError(msg)
       return 
     }
     setLoading(true)
@@ -108,7 +91,8 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       closeModal()
       load() 
     } else {
-      toast.error(data.error || 'Error al crear proyecto')
+      const msg = data.error || 'Error al crear proyecto'
+      setFormError(msg)
     }
   }
 
@@ -173,80 +157,103 @@ export function useProyectos(esAdminOSupervisor: boolean) {
   }, [showModal])
 
   const term = clienteSearch.trim().toLowerCase()
+  const isSearchFactura = term.startsWith('fac') || term.startsWith('ven') || term.startsWith('f-') || term.startsWith('v-') || term.includes('factura')
+  const isSearchCotizacion = term.startsWith('cot') || term.startsWith('c-') || term.includes('cotiz')
 
-  const asociados = term.length >= 2
-    ? [
-        ...cotizacionesList.filter(c => 
-          (c.clienteNombre && c.clienteNombre.toLowerCase().includes(term)) ||
-          (c.clienteNit && c.clienteNit.toLowerCase().includes(term) && c.clienteNit !== 'CF') ||
-          (c.numero && c.numero.toLowerCase().includes(term))
-        ).map(c => {
-          const hasInstalacion = (c.items || []).some((i: any) => 
-            (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
-            (i.descripcion && i.descripcion.toLowerCase().includes('instalac'))
-          )
-          return {
-            tipo: 'cotizacion' as const,
-            id: c.id,
-            numero: c.numero,
-            clienteNombre: c.clienteNombre,
-            clienteNit: c.clienteNit,
-            clienteTelefono: c.clienteTelefono,
-            clienteDireccion: c.clienteDireccion,
-            total: c.total,
-            hasInstalacion,
-            itemsText: c.items && c.items.length > 0 ? c.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ') : c.descripcion || '',
-            data: c,
-          }
-        }),
-        ...ventasList.filter(v => 
-          (v.clienteNombre && v.clienteNombre.toLowerCase().includes(term)) ||
-          (v.clienteNit && v.clienteNit.toLowerCase().includes(term) && v.clienteNit !== 'CF') ||
-          (v.numero && v.numero.toLowerCase().includes(term))
-        ).map(v => {
-          const hasInstalacion = (v.items || []).some((i: any) => 
-            (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
-            (i.descripcion && i.descripcion.toLowerCase().includes('instalac')) ||
-            (i.categoria && i.categoria.toLowerCase().includes('servicio'))
-          )
-          return {
-            tipo: 'venta' as const,
-            id: v.id,
-            numero: v.numero,
-            clienteNombre: v.clienteNombre,
-            clienteNit: v.clienteNit,
-            clienteTelefono: v.clienteTelefono,
-            clienteDireccion: v.clienteDireccion,
-            total: v.total,
-            hasInstalacion,
-            itemsText: v.items && v.items.length > 0 ? v.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ') : v.notas || '',
-            data: v,
-          }
-        })
-      ]
+  const matchingCotizaciones = (!isSearchFactura) 
+    ? cotizacionesList.filter(c => {
+        if (!c) return false
+        const nom = (c.clienteNombre || '').toLowerCase()
+        const nit = (c.clienteNit || '').toLowerCase()
+        const num = (c.numero || '').toLowerCase()
+        return nom.includes(term) || (nit.includes(term) && nit !== 'cf') || num.includes(term)
+      }).map(c => ({
+        tipo: 'cotizacion' as const,
+        id: c.id,
+        numero: String(c.numero || ''),
+        clienteNombre: c.clienteNombre || '',
+        clienteNit: c.clienteNit || 'CF',
+        clienteTelefono: c.clienteTelefono || '',
+        clienteDireccion: c.clienteDireccion || '',
+        total: c.total || 0,
+        estado: c.estado || 'pendiente',
+        hasInstalacion: (c.items || []).some((i: any) => 
+          (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
+          (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac'))
+        ),
+        itemsText: c.items && c.items.length > 0 ? c.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ') : c.descripcion || '',
+        data: c,
+      }))
     : []
+
+  const matchingVentas = (!isSearchCotizacion)
+    ? ventasList.filter(v => {
+        if (!v) return false
+        const nom = (v.clienteNombre || '').toLowerCase()
+        const nit = (v.clienteNit || '').toLowerCase()
+        const num = (v.numero || '').toLowerCase()
+        const fel = v.felNumero !== null && v.felNumero !== undefined ? String(v.felNumero) : ''
+        return nom.includes(term) || (nit.includes(term) && nit !== 'cf') || num.includes(term) || fel.includes(term)
+      }).map(v => ({
+        tipo: 'venta' as const,
+        id: v.id,
+        numero: String(v.numero || ''),
+        clienteNombre: v.clienteNombre || '',
+        clienteNit: v.clienteNit || 'CF',
+        clienteTelefono: v.clienteTelefono || '',
+        clienteDireccion: v.clienteDireccion || '',
+        total: v.total || 0,
+        estado: 'facturada',
+        hasInstalacion: (v.items || []).some((i: any) => 
+          (i.nombre && String(i.nombre).toLowerCase().includes('instalac')) || 
+          (i.descripcion && String(i.descripcion).toLowerCase().includes('instalac')) ||
+          (i.categoria && String(i.categoria).toLowerCase().includes('servicio'))
+        ),
+        itemsText: v.items && v.items.length > 0 ? v.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ') : v.notas || '',
+        data: v,
+      }))
+    : []
+
+  const asociados = term.length >= 2 ? [...matchingCotizaciones, ...matchingVentas] : []
 
   const seleccionarAsociado = (item: any) => {
     if (!item) return
     setClienteSearch('')
+    setFormError(null)
+    const matchCotId = item.data?.notas ? String(item.data.notas).match(/COT-(\d+)/i) : null
+    const resolvedCotId = item.tipo === 'cotizacion' ? item.id : (matchCotId ? Number(matchCotId[1]) : null)
+
+    const isFacturada = item.tipo === 'venta' || item.estado === 'facturada'
+    
     setForm(prev => ({
       ...prev,
+      cotizacionId: isFacturada ? resolvedCotId : null,
+      cotizacionNumero: isFacturada ? item.numero : '',
       clienteNombre: item.clienteNombre || prev.clienteNombre,
       clienteNit: item.clienteNit || prev.clienteNit || 'CF',
       clienteTelefono: item.clienteTelefono || prev.clienteTelefono || '',
       clienteDireccion: item.clienteDireccion || prev.clienteDireccion || '',
-      cotizacionNumero: item.numero,
       descripcion: item.itemsText || `Instalación / Trabajo para ${item.clienteNombre}`,
       nombre: `Proyecto ${item.clienteNombre} (${item.numero})`,
     }))
-    const labelTipo = item.tipo === 'cotizacion' ? 'Cotización' : 'Venta'
-    toast.success(`Datos cargados desde ${labelTipo} ${item.numero}${item.hasInstalacion ? ' (con instalación incluida)' : ''}`)
+    
+    if (item.tipo === 'cotizacion') {
+      if (isFacturada) {
+        toast.success(`Cotización ${item.numero} (Facturada) cargada correctamente`)
+      } else {
+        setFormError(`Datos de ${item.numero} cargados. Nota: La cotización está ${item.estado || 'Pendiente'} (No facturada), por lo que el proyecto se creará como manual.`)
+      }
+    } else {
+      toast.success(`Factura ${item.numero} cargada correctamente`)
+    }
   }
 
   const cargarDesdeCotizacion = async (cotNumero: string) => {
     setClienteSearch('')
+    setFormError(null)
     if (!cotNumero || !cotNumero.trim()) {
-      toast.error('Ingresa un número de cotización o venta vinculada')
+      const msg = 'Ingresa un número de cotización o factura vinculada'
+      setFormError(msg)
       return
     }
 
@@ -275,86 +282,117 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       } catch (err) {}
     }
 
-    const t = cotNumero.trim().toLowerCase()
+    const rawInput = cotNumero.trim()
+    const t = rawInput.toLowerCase()
     const cleanNum = t.replace(/\D/g, '')
 
-    const cot = cList.find(c => {
-      if (!c) return false
-      const numStr = (c.numero || '').toLowerCase()
-      if (numStr === t) return true
-      if (t.includes('cot') && cleanNum.length > 0 && numStr.includes(cleanNum)) return true
-      if (String(c.id) === t || (cleanNum.length > 0 && String(c.id) === cleanNum)) return true
-      if (cleanNum.length > 0 && numStr.endsWith(cleanNum)) return true
-      return false
-    })
+    const isExplicitFactura = t.startsWith('fac') || t.startsWith('ven') || t.startsWith('f-') || t.startsWith('v-') || t.includes('fact') || t.includes('vent')
+    const isExplicitCotizacion = t.startsWith('cot') || t.startsWith('c-') || t.includes('cotiz')
 
-    const venta = vList.find(v => {
-      if (!v) return false
-      const numStr = (v.numero || '').toLowerCase()
-      if (numStr === t) return true
-      if ((t.includes('fac') || t.includes('ven')) && cleanNum.length > 0 && numStr.includes(cleanNum)) return true
-      if (String(v.id) === t || (cleanNum.length > 0 && String(v.id) === cleanNum)) return true
-      if (cleanNum.length > 0 && numStr.endsWith(cleanNum)) return true
-      return false
-    })
+    let matchedVenta: any = null
+    let matchedCot: any = null
 
-    if (cot) {
-      const itemsText = cot.items && cot.items.length > 0
-        ? cot.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
-        : cot.descripcion || ''
+    if (isExplicitFactura) {
+      matchedVenta = vList.find(v => {
+        if (!v) return false
+        const numStr = (v.numero || '').toLowerCase()
+        const felStr = (v.felNumero !== null && v.felNumero !== undefined ? String(v.felNumero) : '').toLowerCase()
+        if (numStr === t || felStr === t) return true
+        if (cleanNum.length > 0 && (numStr.includes(cleanNum) || felStr.includes(cleanNum))) return true
+        return false
+      })
+    } else if (isExplicitCotizacion) {
+      matchedCot = cList.find(c => {
+        if (!c) return false
+        const numStr = (c.numero || '').toLowerCase()
+        if (numStr === t) return true
+        if (cleanNum.length > 0 && numStr.includes(cleanNum)) return true
+        return false
+      })
+    } else {
+      matchedVenta = vList.find(v => {
+        if (!v) return false
+        const numStr = (v.numero || '').toLowerCase()
+        const felStr = (v.felNumero !== null && v.felNumero !== undefined ? String(v.felNumero) : '').toLowerCase()
+        return numStr === t || felStr === t || String(v.id) === t || (cleanNum.length > 0 && numStr === `fac-${cleanNum.padStart(6, '0')}`)
+      })
 
-      const hasInstalacion = (cot.items || []).some((i: any) => 
-        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
-        (i.descripcion && i.descripcion.toLowerCase().includes('instalac'))
-      )
+      if (!matchedVenta) {
+        matchedCot = cList.find(c => {
+          if (!c) return false
+          const numStr = (c.numero || '').toLowerCase()
+          return numStr === t || String(c.id) === t || (cleanNum.length > 0 && numStr === `cot-${cleanNum.padStart(6, '0')}`)
+        })
+      }
+
+      if (!matchedVenta && !matchedCot && cleanNum.length > 0) {
+        matchedVenta = vList.find(v => (v.numero || '').toLowerCase().includes(cleanNum))
+        if (!matchedVenta) {
+          matchedCot = cList.find(c => (c.numero || '').toLowerCase().includes(cleanNum))
+        }
+      }
+    }
+
+    if (matchedVenta) {
+      const itemsText = matchedVenta.items && matchedVenta.items.length > 0
+        ? matchedVenta.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ')
+        : matchedVenta.notas || ''
+
+      const matchCotId = (matchedVenta.notas || '').match(/COT-(\d+)/i)
+      const vCotId = matchCotId ? Number(matchCotId[1]) : null
 
       setForm(prev => ({
         ...prev,
-        cotizacionNumero: cot.numero,
-        clienteNombre: cot.clienteNombre || prev.clienteNombre,
-        clienteNit: cot.clienteNit || prev.clienteNit || 'CF',
-        clienteTelefono: cot.clienteTelefono || prev.clienteTelefono || '',
-        clienteDireccion: cot.clienteDireccion || prev.clienteDireccion || '',
-        contactoNombre: cot.atencion || prev.contactoNombre || '',
+        cotizacionId: vCotId,
+        cotizacionNumero: matchedVenta.numero,
+        clienteNombre: matchedVenta.clienteNombre || prev.clienteNombre,
+        clienteNit: matchedVenta.clienteNit || prev.clienteNit || 'CF',
+        clienteTelefono: matchedVenta.clienteTelefono || prev.clienteTelefono || '',
+        clienteDireccion: matchedVenta.clienteDireccion || prev.clienteDireccion || '',
         descripcion: itemsText || prev.descripcion,
-        nombre: prev.nombre || `Proyecto ${cot.clienteNombre} (${cot.numero})`,
+        nombre: prev.nombre || `Proyecto ${matchedVenta.clienteNombre} (${matchedVenta.numero})`,
       }))
-      toast.success(hasInstalacion ? `Cotización ${cot.numero} (con instalación) cargada` : `Cotización ${cot.numero} cargada`)
+      toast.success(`Factura ${matchedVenta.numero} cargada correctamente`)
       return
     }
 
-    if (venta) {
-      const itemsText = venta.items && venta.items.length > 0
-        ? venta.items.map((i: any) => `${i.cantidad}x ${i.nombre || i.descripcion}`).join(', ')
-        : venta.notas || ''
-
-      const hasInstalacion = (venta.items || []).some((i: any) => 
-        (i.nombre && i.nombre.toLowerCase().includes('instalac')) || 
-        (i.descripcion && i.descripcion.toLowerCase().includes('instalac')) ||
-        (i.categoria && i.categoria.toLowerCase().includes('servicio'))
-      )
+    if (matchedCot) {
+      const isFacturada = matchedCot.estado === 'facturada'
+      const itemsText = matchedCot.items && matchedCot.items.length > 0
+        ? matchedCot.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
+        : matchedCot.descripcion || ''
 
       setForm(prev => ({
         ...prev,
-        cotizacionNumero: venta.numero,
-        clienteNombre: venta.clienteNombre || prev.clienteNombre,
-        clienteNit: venta.clienteNit || prev.clienteNit || 'CF',
-        clienteTelefono: venta.clienteTelefono || prev.clienteTelefono || '',
-        clienteDireccion: venta.clienteDireccion || prev.clienteDireccion || '',
+        cotizacionId: isFacturada ? matchedCot.id : null,
+        cotizacionNumero: isFacturada ? matchedCot.numero : '',
+        clienteNombre: matchedCot.clienteNombre || prev.clienteNombre,
+        clienteNit: matchedCot.clienteNit || prev.clienteNit || 'CF',
+        clienteTelefono: matchedCot.clienteTelefono || prev.clienteTelefono || '',
+        clienteDireccion: matchedCot.clienteDireccion || prev.clienteDireccion || '',
+        contactoNombre: matchedCot.atencion || prev.contactoNombre || '',
         descripcion: itemsText || prev.descripcion,
-        nombre: prev.nombre || `Proyecto ${venta.clienteNombre} (${venta.numero})`,
+        nombre: prev.nombre || `Proyecto ${matchedCot.clienteNombre} (${matchedCot.numero})`,
       }))
-      toast.success(hasInstalacion ? `Venta libre ${venta.numero} (con instalación) cargada` : `Venta ${venta.numero} cargada`)
+      
+      if (isFacturada) {
+        toast.success(`Cotización ${matchedCot.numero} (Facturada) cargada correctamente`)
+      } else {
+        setFormError(`Datos de ${matchedCot.numero} cargados. Nota: La cotización está ${matchedCot.estado || 'Pendiente'} (No facturada), por lo que el proyecto se creará de forma manual.`)
+      }
       return
     }
 
-    toast.error(`No se encontró cotización o venta "${cotNumero}"`)
+    const msg = `No se encontró cotización o factura "${rawInput}". Verifica el número.`
+    setFormError(msg)
   }
 
   const cargarDesdeCliente = async (val: string) => {
     setClienteSearch('')
+    setFormError(null)
     if (!val || !val.trim()) {
-      toast.error('Ingresa el nombre o NIT del cliente')
+      const msg = 'Ingresa el nombre o NIT del cliente'
+      setFormError(msg)
       return
     }
 
@@ -398,7 +436,9 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       let docNum = ''
 
       if (cotAssoc) {
-        docNum = cotAssoc.numero
+        if (cotAssoc.estado === 'facturada') {
+          docNum = cotAssoc.numero
+        }
         itemsText = cotAssoc.items && cotAssoc.items.length > 0
           ? cotAssoc.items.map((i: any) => `${i.cantidad}x ${i.descripcion || i.nombre}`).join(', ')
           : cotAssoc.descripcion || ''
@@ -421,11 +461,15 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       }))
       toast.success(`Datos del cliente ${nombreFinal} cargados`)
     } else {
-      toast.error(`No se encontró cliente para "${val}"`)
+      const msg = `No se encontró cliente para "${val}"`
+      setFormError(msg)
     }
   }
 
-  const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const setF = (k: string, v: string) => {
+    setFormError(null)
+    setForm(p => ({ ...p, [k]: v }))
+  }
 
   return {
     state: {
@@ -436,6 +480,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       showModal,
       form,
       loading,
+      formError,
       openMenuId,
       showPinEliminar,
       pinInput,
@@ -453,6 +498,7 @@ export function useProyectos(esAdminOSupervisor: boolean) {
       closeModal,
       setForm,
       setF,
+      setFormError,
       save,
       handleEliminar,
       eliminarProyecto,

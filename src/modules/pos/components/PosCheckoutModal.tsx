@@ -1,5 +1,6 @@
 import React from 'react';
 import { fmt } from '@/lib/utils';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 
 interface PosCheckoutModalProps {
   showCobro: boolean;
@@ -61,9 +62,27 @@ export function PosCheckoutModal({
               </button>
             </div>
 
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ fontSize: 13, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total a Pagar</div>
-              <div style={{ fontSize: 40, fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>{fmt(total)}</div>
+            <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
+              {(() => {
+                const baseSinIVA = calculateGravable(total, 0.05);
+                const ivaMonto = calculateIVA(total, 0.05);
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8, fontSize: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                      <span>Subtotal (Base sin IVA):</span>
+                      <span style={{ fontWeight: 600 }}>{fmt(baseSinIVA)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706', fontWeight: 600 }}>
+                      <span>IVA (5% Incluido):</span>
+                      <span>{fmt(ivaMonto)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid #bfdbfe', paddingTop: 8, marginTop: 4 }}>
+                <span style={{ fontSize: 13, color: '#1e40af', fontWeight: 800, textTransform: 'uppercase' }}>Total a Pagar</span>
+                <span style={{ fontSize: 28, fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>{fmt(total)}</span>
+              </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>

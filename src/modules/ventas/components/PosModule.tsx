@@ -360,7 +360,7 @@ export function PosModule() {
   const felActivo = config?.fel_activo === 'true';
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       
       <PosGrid 
         tab={tab} setTab={setTab} felActivo={felActivo}

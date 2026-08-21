@@ -1,6 +1,7 @@
 import React from 'react';
 import { Compra } from '../types/compra';
 import { fmt, fmtDate } from '@/lib/utils';
+import { printCompraHTML } from '../utils/compra-print.helper';
 
 interface CompraDetalleModalProps {
   compra: Compra;
@@ -92,7 +93,10 @@ export function CompraDetalleModal({ compra, onClose }: CompraDetalleModalProps)
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+          <button onClick={() => printCompraHTML(compra)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Imprimir Detalles
+          </button>
           <button onClick={onClose} className="btn-secondary">Cerrar</button>
         </div>
       </div>

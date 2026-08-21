@@ -2,6 +2,7 @@ export interface CompraItem {
   id: number;
   compraId: number;
   productoId?: number | null;
+  codigo?: string | null;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -14,7 +15,8 @@ export interface Compra {
   fecha: Date;
   proveedorId?: number | null;
   proveedorNombre?: string | null;
-  proveedor?: { nombre: string } | null;
+  proveedorNit?: string | null;
+  proveedor?: { nombre: string; nit?: string | null } | null;
   subtotal: number;
   impuesto: number;
   total: number;

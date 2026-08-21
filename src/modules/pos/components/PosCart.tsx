@@ -1,5 +1,6 @@
 import React from 'react';
 import { fmt } from '@/lib/utils';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { CartItem } from '../hooks/use-pos';
 
 interface PosCartProps {
@@ -50,13 +51,13 @@ export function PosCart({
   const lbl: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, color: '#8a887e', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: '#f8fafc', borderLeft: '1.5px solid var(--ws-border, #d8d6cd)' }}>
       {/* HEADER CLIENTE */}
-      <div style={{ padding: '14px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 10 }}>
+      <div style={{ padding: '16px 20px', background: '#fff', borderBottom: '1.5px solid var(--ws-border, #d8d6cd)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={lbl}>NIT Cliente</label>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <input 
                 className="input" 
                 placeholder="CF" 
@@ -76,7 +77,7 @@ export function PosCart({
                 }} 
                 onKeyDown={e => e.key === 'Enter' && ejecutarBusquedaNit()} 
               />
-              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 12px' }}>Buscar</button>
+              <button className="btn-secondary" onClick={ejecutarBusquedaNit} style={{ padding: '0 14px', fontWeight: 600 }}>Buscar</button>
             </div>
           </div>
         </div>
@@ -128,16 +129,10 @@ export function PosCart({
                   }
                   setShowRegCliente(true);
                 }} 
-                style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', height: 38, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '0 14px', height: 38, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
               >
                 + Crear
               </button>
-            )}
-            {nitStatus === 'found' && clienteTieneCorreo && (
-              <span title="Cliente tiene correo para factura electrónica" style={{ fontSize: 16 }}></span>
-            )}
-            {nitStatus === 'found' && !clienteTieneCorreo && (
-              <span title="Sin correo configurado" style={{ fontSize: 16, opacity: 0.4 }}>!</span>
             )}
           </div>
 
@@ -171,7 +166,7 @@ export function PosCart({
                     setShowSugerenciasNombre(false);
                   }}
                   style={{
-                    padding: '8px 12px',
+                    padding: '9px 14px',
                     borderBottom: '1px solid #f1f5f9',
                     cursor: 'pointer',
                     fontSize: 12,
@@ -192,7 +187,7 @@ export function PosCart({
 
 
       {/* HEADER DE ITEMS CON BOTÓN LIMPIAR */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px 4px 14px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px 6px 20px', flexShrink: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Ítems Seleccionados ({cart.length})
         </span>
@@ -204,7 +199,7 @@ export function PosCart({
               color: '#dc2626',
               border: '1px solid #fecaca',
               borderRadius: 6,
-              padding: '3px 10px',
+              padding: '4px 12px',
               fontSize: 11,
               fontWeight: 700,
               cursor: 'pointer',
@@ -218,23 +213,23 @@ export function PosCart({
       </div>
 
       {/* CART ITEMS */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 10, minHeight: 0 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px', minHeight: 0 }}>
         {cart.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 14 }}>
             El carrito está vacío
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {cart.map((item, i) => (
               <div
                 key={i}
                 style={{
                   background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 6,
-                  padding: '8px 10px',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 8,
+                  padding: '10px 14px',
                   position: 'relative',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   transition: 'border-color 0.15s ease',
                 }}
               >
@@ -243,43 +238,43 @@ export function PosCart({
                   title="Eliminar producto"
                   style={{
                     position: 'absolute',
-                    top: 6,
-                    right: 6,
+                    top: 8,
+                    right: 8,
                     background: 'none',
                     border: 'none',
                     color: '#94a3b8',
                     cursor: 'pointer',
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: 700,
-                    padding: '2px 4px',
+                    padding: '2px 6px',
                     lineHeight: 1,
                   }}
                   onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                   onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
                 >
-                  
+                  ×
                 </button>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', paddingRight: 16, lineHeight: 1.25, marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', paddingRight: 20, lineHeight: 1.3, marginBottom: 8 }}>
                   {item.codigo ? <span style={{ color: '#64748b', fontWeight: 500, fontSize: 11 }}>[{item.codigo}] </span> : ''}
                   {item.nombre}
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: 4, overflow: 'hidden', border: '1px solid #e2e8f0', height: 24 }}>
-                    <button onClick={() => changeQty(i, -1)} style={{ background: 'none', border: 'none', width: 22, height: 24, cursor: 'pointer', color: '#475569', fontWeight: 700, fontSize: 12 }}>-</button>
-                    <div style={{ width: 26, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{item.cantidad}</div>
-                    <button onClick={() => changeQty(i, 1)} style={{ background: 'none', border: 'none', width: 22, height: 24, cursor: 'pointer', color: '#475569', fontWeight: 700, fontSize: 12 }}>+</button>
+                  <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', border: '1px solid #cbd5e1', height: 28 }}>
+                    <button onClick={() => changeQty(i, -1)} style={{ background: 'none', border: 'none', width: 26, height: 28, cursor: 'pointer', color: '#475569', fontWeight: 700, fontSize: 14 }}>-</button>
+                    <div style={{ width: 30, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{item.cantidad}</div>
+                    <button onClick={() => changeQty(i, 1)} style={{ background: 'none', border: 'none', width: 26, height: 28, cursor: 'pointer', color: '#475569', fontWeight: 700, fontSize: 14 }}>+</button>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <input 
                       type="number" 
                       value={item.precioUnitario} 
                       onChange={e => changePrice(i, e.target.value)}
-                      style={{ width: 62, textAlign: 'right', padding: '2px 4px', fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 4, background: item.tipo === 'libre' ? '#fff' : '#f8fafc' }}
+                      style={{ width: 78, textAlign: 'right', padding: '4px 6px', fontSize: 12, border: '1px solid #cbd5e1', borderRadius: 6, background: item.tipo === 'libre' ? '#fff' : '#f8fafc' }}
                       disabled={item.tipo !== 'libre'}
                     />
-                    <div style={{ fontWeight: 800, color: '#1581E3', fontSize: 13, minWidth: 60, textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, color: '#1581E3', fontSize: 14, minWidth: 70, textAlign: 'right' }}>
                       {fmt(item.subtotal)}
                     </div>
                   </div>
@@ -291,29 +286,49 @@ export function PosCart({
       </div>
 
       {/* TOTALES */}
-      <div style={{ background: '#fff', borderTop: '1px solid #e2e8f0', padding: 16, flexShrink: 0 }}>
-        {/* Descuentos Globales */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <input className="input" placeholder="Cupón..." style={{ flex: 1, padding: '6px 10px', fontSize: 12 }} value={codigoDesc} onChange={e => setCodigoDesc(e.target.value)} />
-          <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={validarDescuento}>Aplicar</button>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13, color: '#64748b' }}>
-          <span>Subtotal</span>
-          <span>{fmt(subtotal)}</span>
-        </div>
-        {descPct > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13, color: '#ef4444' }}>
-            <span>Descuento ({descPct}%)</span>
-            <span>- {fmt(descuento)}</span>
+      <div style={{ background: '#fff', borderTop: '1.5px solid var(--ws-border, #d8d6cd)', padding: 20, flexShrink: 0 }}>
+        {/* Descuentos Globales / Cupones — Solo si la venta no posee descuento previo */}
+        {descuento === 0 && descPct === 0 && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input className="input" placeholder="Código de Cupón..." style={{ flex: 1, padding: '6px 10px', fontSize: 12 }} value={codigoDesc} onChange={e => setCodigoDesc(e.target.value)} />
+            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={validarDescuento}>Aplicar</button>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, color: '#64748b' }}>
-          <span>Impuestos</span>
-          <span>Incluido en Total</span>
-        </div>
+
+        {/* Desglose de Cuentas Transparente */}
+        {(() => {
+          const baseSinIVA = calculateGravable(total, 0.05);
+          const ivaMonto = calculateIVA(total, 0.05);
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                <span>Subtotal (Base sin IVA):</span>
+                <span style={{ fontWeight: 600 }}>{fmt(baseSinIVA)}</span>
+              </div>
+
+              {(descuento > 0 || descPct > 0) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontWeight: 600 }}>
+                  <span>
+                    {codigoDesc ? `Descuento Cupón (${codigoDesc.toUpperCase()}):` : descPct > 0 ? `Descuento (${descPct}%):` : 'Descuento Aplicado (Cotización/Promoción):'}
+                  </span>
+                  <span>- {fmt(descuento)}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706', fontWeight: 600 }}>
+                <span>IVA (5% Incluido):</span>
+                <span>{fmt(ivaMonto)}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, borderTop: '2px dashed #e2e8f0', paddingTop: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>TOTAL</span>
+          <div>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', display: 'block' }}>TOTAL A PAGAR</span>
+            {descuento > 0 && <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>(Ahorro: {fmt(descuento)})</span>}
+          </div>
           <span style={{ fontSize: 28, fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>{fmt(total)}</span>
         </div>
         <button 

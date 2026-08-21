@@ -6,6 +6,7 @@ import { useCompras } from '../hooks/use-compras';
 import { matchesSearchQuery } from '@/lib/search-utils';
 import { ProductoFormModal } from '@/modules/productos/components/ProductoFormModal';
 import { parseCompraXML } from '../utils/compra-xml.helper';
+import { parseCompraPDF } from '../utils/compra-pdf.helper';
 
 interface CompraFormModalProps {
   onClose: () => void;
@@ -70,6 +71,35 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
       const url = await uploadFactura(file);
       setF('facturaUrl', url);
       toast.success('Factura subida');
+
+      // Fusión de lectura desde documento PDF (Extracción de NIT, Serie, No. Factura, Fecha)
+      if (file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf')) {
+        const pdfData = await parseCompraPDF(file);
+        if (pdfData.nitEmisor) {
+          const normNit = pdfData.nitEmisor.replace(/[^0-9kK]/g, '');
+          const provMatch = proveedores.find(p => p.nit && p.nit.replace(/[^0-9kK]/g, '') === normNit);
+          if (provMatch) {
+            setForm(p => ({ ...p, proveedorId: String(provMatch.id) }));
+            toast.success(`Proveedor "${provMatch.nombre}" detectado por NIT en el PDF`);
+          } else {
+            setForm(p => ({
+              ...p,
+              notas: p.notas 
+                ? (p.notas.includes(pdfData.nitEmisor!) ? p.notas : `${p.notas} | NIT del PDF: ${pdfData.nitEmisor}`)
+                : `NIT del PDF: ${pdfData.nitEmisor}`
+            }));
+          }
+        }
+        if (pdfData.numeroFactura) {
+          setForm(p => ({ ...p, numeroFactura: p.numeroFactura || pdfData.numeroFactura || '' }));
+        }
+        if (pdfData.serie) {
+          setForm(p => ({ ...p, serieFactura: p.serieFactura || pdfData.serie || '' }));
+        }
+        if (pdfData.fechaEmision) {
+          setForm(p => ({ ...p, fecha: p.fecha || pdfData.fechaEmision || '' }));
+        }
+      }
     } catch (err: any) {
       toast.error(err.message || 'Error al subir factura');
     } finally {
@@ -83,9 +113,25 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
       const result = await parseCompraXML(file, productos);
       setXmlParsed(result);
 
-      if (result.numAutorizacion) setForm(p => ({ ...p, numeroFactura: result.numAutorizacion }));
+      if (result.numeroFactura || result.numAutorizacion) {
+        setForm(p => ({ ...p, numeroFactura: result.numeroFactura || result.numAutorizacion }));
+      }
       if (result.serie) setForm(p => ({ ...p, serieFactura: result.serie }));
       if (result.fechaEmision) setForm(p => ({ ...p, fecha: result.fechaEmision }));
+      if (result.nitEmisor) {
+        const normNit = result.nitEmisor.replace(/[^0-9kK]/g, '');
+        const provMatch = proveedores.find(p => p.nit && p.nit.replace(/[^0-9kK]/g, '') === normNit);
+        if (provMatch) {
+          setForm(p => ({ ...p, proveedorId: String(provMatch.id) }));
+        } else if (result.nombreEmisor) {
+          setForm(p => ({
+            ...p,
+            notas: p.notas 
+              ? `${p.notas} | Emisor XML: ${result.nombreEmisor} (NIT: ${result.nitEmisor})`
+              : `Emisor XML: ${result.nombreEmisor} (NIT: ${result.nitEmisor})`
+          }));
+        }
+      }
 
       if (result.items.length > 0) {
         setItems(result.items);
@@ -103,9 +149,9 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
       toast.error('Agrega al menos un producto');
       return;
     }
-    const invalid = items.find(i => !i.nombre || !i.cantidad || !i.precioUnitario);
+    const invalid = items.find(i => !i.nombre?.trim() || parseFloat(i.cantidad) <= 0 || isNaN(parseFloat(i.precioUnitario)));
     if (invalid) {
-      toast.error('Completa todos los campos de los items');
+      toast.error('Completa el nombre, cantidad (mayor a 0) y costo unitario valido para todos los items');
       return;
     }
     setLoading(true);
@@ -256,7 +302,7 @@ export function CompraFormModal({ onClose, onSuccess, proveedores, productos, co
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 18px', textAlign: 'right' }}>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>Total sin IVA</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>Total de la Compra</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{fmt(total)}</div>
               <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>IVA incluido en cada artículo</div>
             </div>

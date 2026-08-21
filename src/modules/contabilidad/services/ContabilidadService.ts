@@ -1,16 +1,17 @@
 import { prisma } from '@/lib/prisma';
-import { 
-  AsientoContableDTO, AsientoContableSchema, 
+import { calculateGravable, calculateIVA } from '@/shared/money';
+import {
+  AsientoContableDTO, AsientoContableSchema,
   CuentaContableDTO, CuentaContableSchema, PeriodoContableDTO, PeriodoContableSchema
 } from '../types/contabilidad';
 import { z } from 'zod';
 
 export class ContabilidadService {
-  
+
   // ==========================================
   // CUENTAS CONTABLES
   // ==========================================
-  
+
   static async getCuentas() {
     return prisma.cuentaContable.findMany({
       orderBy: { codigo: 'asc' },
@@ -21,7 +22,7 @@ export class ContabilidadService {
     const valid = CuentaContableSchema.parse(data);
     const exist = await prisma.cuentaContable.findUnique({ where: { codigo: valid.codigo } });
     if (exist) throw new Error('El código de cuenta ya existe');
-    
+
     return prisma.cuentaContable.create({
       data: {
         codigo: valid.codigo,
@@ -88,7 +89,7 @@ export class ContabilidadService {
     }
 
     const now = valid.fecha ? new Date(valid.fecha) : new Date();
-    
+
     return prisma.$transaction(async (tx) => {
       const periodo = await tx.periodoContable.findFirst({
         where: { estado: 'abierto', fechaInicio: { lte: now }, fechaFin: { gte: now } }
@@ -99,11 +100,11 @@ export class ContabilidadService {
 
       return tx.asientoContable.create({
         data: {
-          numero, 
-          concepto: valid.concepto, 
+          numero,
+          concepto: valid.concepto,
           tipo: valid.tipo || 'manual',
-          fecha: now, 
-          referenciaNum: valid.referenciaNum, 
+          fecha: now,
+          referenciaNum: valid.referenciaNum,
           referenciaTipo: valid.referenciaTipo,
           periodoId: valid.periodoId || periodo?.id,
           usuarioNombre: valid.usuarioNombre,
@@ -133,7 +134,7 @@ export class ContabilidadService {
         const td = validPartidas.reduce((s, p) => s + p.debe, 0);
         const th = validPartidas.reduce((s, p) => s + p.haber, 0);
         if (Math.abs(td - th) > 0.01) throw new Error(`Asiento no cuadra. Debe: Q${td.toFixed(2)} | Haber: Q${th.toFixed(2)}`);
-        
+
         await tx.partidaContable.deleteMany({ where: { asientoId: id } });
         await tx.partidaContable.createMany({
           data: validPartidas.map(p => ({
@@ -226,7 +227,7 @@ export class ContabilidadService {
       agrupado[p.cuentaId].partidas.push(p);
       agrupado[p.cuentaId].totalDebe += p.debe;
       agrupado[p.cuentaId].totalHaber += p.haber;
-      
+
       if (p.cuenta.naturaleza === 'deudora') {
         agrupado[p.cuentaId].saldo += (p.debe - p.haber);
       } else {
@@ -247,8 +248,8 @@ export class ContabilidadService {
     });
 
     const totalVentas = ventas.reduce((s, v) => s + v.total, 0);
-    const baseVentas = totalVentas / 1.05;
-    const ivaDebito = totalVentas - baseVentas;
+    const baseVentas = calculateGravable(totalVentas, 0.05);
+    const ivaDebito = calculateIVA(totalVentas, 0.05);
 
     const compras = await prisma.compra.findMany({
       where: { fecha: { gte: fechaIni, lte: fechaFin } },
@@ -256,8 +257,8 @@ export class ContabilidadService {
     });
 
     const totalCompras = compras.reduce((s, c) => s + c.total, 0);
-    const baseCompras = totalCompras / 1.05;
-    const ivaCredito = totalCompras - baseCompras;
+    const baseCompras = calculateGravable(totalCompras, 0.05);
+    const ivaCredito = calculateIVA(totalCompras, 0.05);
 
     const ivaLiquido = ivaDebito - ivaCredito;
 
@@ -275,7 +276,7 @@ export class ContabilidadService {
 
     if (tipo === 'pyg') {
       const ventas = await prisma.venta.aggregate({ where: { fecha: { gte: start, lte: end }, estado: 'completada' }, _sum: { total: true }, _count: true });
-      const ingresos = (ventas._sum.total || 0) / 1.05; // sin IVA
+      const ingresos = calculateGravable(ventas._sum.total || 0, 0.05); // sin IVA
 
       const ventaItems = await prisma.ventaItem.findMany({
         where: { venta: { fecha: { gte: start, lte: end }, estado: 'completada' } },
@@ -371,7 +372,7 @@ export class ContabilidadService {
       { codigo: '1201', nombre: 'Mobiliario y Equipo', tipo: 'activo', naturaleza: 'deudora', nivel: 3 },
       { codigo: '1202', nombre: 'Vehículos', tipo: 'activo', naturaleza: 'deudora', nivel: 3 },
       { codigo: '1203', nombre: 'Depreciación Acumulada', tipo: 'activo', naturaleza: 'acreedora', nivel: 3 },
-      
+
       // PASIVOS
       { codigo: '2000', nombre: 'PASIVOS', tipo: 'pasivo', naturaleza: 'acreedora', nivel: 1 },
       { codigo: '2100', nombre: 'Pasivos Corrientes', tipo: 'pasivo', naturaleza: 'acreedora', nivel: 2 },
@@ -382,25 +383,25 @@ export class ContabilidadService {
       { codigo: '2105', nombre: 'Sueldos por Pagar', tipo: 'pasivo', naturaleza: 'acreedora', nivel: 3 },
       { codigo: '2200', nombre: 'Pasivos No Corrientes', tipo: 'pasivo', naturaleza: 'acreedora', nivel: 2 },
       { codigo: '2201', nombre: 'Préstamos Bancarios', tipo: 'pasivo', naturaleza: 'acreedora', nivel: 3 },
-      
+
       // CAPITAL
       { codigo: '3000', nombre: 'CAPITAL', tipo: 'capital', naturaleza: 'acreedora', nivel: 1 },
       { codigo: '3101', nombre: 'Capital Social', tipo: 'capital', naturaleza: 'acreedora', nivel: 3 },
       { codigo: '3102', nombre: 'Utilidades Retenidas', tipo: 'capital', naturaleza: 'acreedora', nivel: 3 },
       { codigo: '3103', nombre: 'Utilidad del Ejercicio', tipo: 'capital', naturaleza: 'acreedora', nivel: 3 },
-      
+
       // INGRESOS
       { codigo: '4000', nombre: 'INGRESOS', tipo: 'ingreso', naturaleza: 'acreedora', nivel: 1 },
       { codigo: '4100', nombre: 'Ingresos Operativos', tipo: 'ingreso', naturaleza: 'acreedora', nivel: 2 },
       { codigo: '4101', nombre: 'Ventas', tipo: 'ingreso', naturaleza: 'acreedora', nivel: 3 },
       { codigo: '4102', nombre: 'Servicios Prestados', tipo: 'ingreso', naturaleza: 'acreedora', nivel: 3 },
       { codigo: '4200', nombre: 'Otros Ingresos', tipo: 'ingreso', naturaleza: 'acreedora', nivel: 2 },
-      
+
       // COSTOS
       { codigo: '5000', nombre: 'COSTOS', tipo: 'costo', naturaleza: 'deudora', nivel: 1 },
       { codigo: '5100', nombre: 'Costo de Ventas', tipo: 'costo', naturaleza: 'deudora', nivel: 2 },
       { codigo: '5101', nombre: 'Costo de Mercadería', tipo: 'costo', naturaleza: 'deudora', nivel: 3 },
-      
+
       // GASTOS
       { codigo: '6000', nombre: 'GASTOS OPERATIVOS', tipo: 'gasto', naturaleza: 'deudora', nivel: 1 },
       { codigo: '6100', nombre: 'Gastos de Administración', tipo: 'gasto', naturaleza: 'deudora', nivel: 2 },

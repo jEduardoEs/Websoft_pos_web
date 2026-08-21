@@ -122,7 +122,9 @@ export function usePos() {
       const ex = prev.find(x => x.productoId === prod.id);
       if (ex) {
         if (ex.cantidad >= ex.stock) { toast.warning('Stock máximo'); return prev; }
-        return prev.map(x => x.productoId === prod.id ? { ...x, cantidad: x.cantidad + 1, subtotal: (x.cantidad + 1) * x.precioUnitario } : x);
+        const newQty = ex.cantidad + 1;
+        const sub = Number((newQty * ex.precioUnitario).toFixed(2));
+        return prev.map(x => x.productoId === prod.id ? { ...x, cantidad: newQty, subtotal: sub } : x);
       }
       return [...prev, { tipo: 'inventario', productoId: prod.id, codigo: prod.codigo || '', nombre: prod.nombre, cantidad: 1, precioUnitario: prod.precio, stock: prod.stock, descuento: 0, subtotal: prod.precio }];
     });
@@ -132,7 +134,8 @@ export function usePos() {
     if (!libreForm.nombre || !libreForm.precio) { toast.error('Descripción y precio requeridos'); return; }
     const precio = parseFloat(libreForm.precio) || 0;
     const cantidad = parseInt(libreForm.cantidad) || 1;
-    setCart(prev => [...prev, { tipo: 'libre', productoId: null, codigo: libreForm.codigo, nombre: libreForm.nombre, cantidad, precioUnitario: precio, stock: 99999, descuento: 0, subtotal: precio * cantidad }]);
+    const sub = Number((precio * cantidad).toFixed(2));
+    setCart(prev => [...prev, { tipo: 'libre', productoId: null, codigo: libreForm.codigo, nombre: libreForm.nombre, cantidad, precioUnitario: precio, stock: 99999, descuento: 0, subtotal: sub }]);
     setLibreForm({ codigo: '', nombre: '', precio: '', cantidad: '1' });
     toast.success('Item agregado');
   };
@@ -142,13 +145,15 @@ export function usePos() {
   const changeQty = (i: number, d: number) => setCart(prev => prev.map((item, idx) => {
     if (idx !== i) return item;
     const q = Math.max(1, item.tipo === 'libre' ? item.cantidad + d : Math.min(item.stock, item.cantidad + d));
-    return { ...item, cantidad: q, subtotal: q * item.precioUnitario - item.descuento };
+    const sub = Number((q * item.precioUnitario - item.descuento).toFixed(2));
+    return { ...item, cantidad: q, subtotal: sub };
   }));
   
   const changePrice = (i: number, val: string) => setCart(prev => prev.map((item, idx) => {
     if (idx !== i) return item;
     const p = parseFloat(val) || 0;
-    return { ...item, precioUnitario: p, subtotal: item.cantidad * p - item.descuento };
+    const sub = Number((item.cantidad * p - item.descuento).toFixed(2));
+    return { ...item, precioUnitario: p, subtotal: sub };
   }));
 
   const clearCart = () => {

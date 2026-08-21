@@ -78,7 +78,7 @@ export class ReclamoBackendService {
             descripcionFalla: `GARANTÍA ${reclamo.garantiaNumero}: ${reclamo.descripcionFalla}`,
             observaciones: `Reclamo ${reclamo.numero} — ${reclamo.motivoReclamo}`,
             prioridad: 'urgente',
-            usuarioId: user?.id ? Number(user.id) : undefined,
+            usuarioId: (user?.id && !isNaN(Number(user.id))) ? Number(user.id) : 1,
             usuarioNombre: uName,
             historial: {
               create: {

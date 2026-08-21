@@ -15,7 +15,7 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
     onClose();
   }, cotizacionInitial, isDuplicate);
 
-  const { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode, clienteSugerencias, showClienteSugerencias } = state;
+  const { form, items, loading, productos, zonas, buscarProd, itemsSubtotalBruto, itemsDescuentoTotal, baseTotal, ivaCalculado, grandTotal, isEditMode, clienteSugerencias, showClienteSugerencias } = state;
   const { setF, setItems, setBuscarProd, setShowClienteSugerencias } = setters;
   const { buscarNitCliente, buscarClienteNombre, seleccionarClienteSugerido, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar } = actions;
 
@@ -232,20 +232,20 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
                       )}
                     </td>
 
-                    <td style={{ padding: 8 }}><input className="input" type="number" min="0.01" step="any" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.cantidad} onChange={e => updItem(i, 'cantidad', +e.target.value)} /></td>
+                    <td style={{ padding: 8 }}><input className="input" type="number" min="0.01" step="any" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.cantidad} onChange={e => updItem(i, 'cantidad', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} /></td>
 
                     <td style={{ padding: 8 }}>
                       {it.tipo === 'instalacion' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <div style={{ fontSize: 10, color: 'var(--ws-text2, #52524d)', textAlign: 'right' }}>Tarifa: {fmt(it.zonaTarifa)}</div>
-                          <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} placeholder="+ Cargo Extra" value={it.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', +e.target.value)} />
+                          <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} placeholder="+ Cargo Extra" value={it.cargoAdicional || ''} onChange={e => updItem(i, 'cargoAdicional', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} />
                         </div>
                       ) : (
-                        <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.precioVenta} onChange={e => updItem(i, 'precioVenta', +e.target.value)} />
+                        <input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.precioVenta === 0 ? '' : it.precioVenta} onChange={e => updItem(i, 'precioVenta', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="0.00" />
                       )}
                     </td>
 
-                    <td style={{ padding: 8 }}><input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.descuento || ''} onChange={e => updItem(i, 'descuento', +e.target.value)} /></td>
+                    <td style={{ padding: 8 }}><input className="input" type="number" step="0.01" style={{ padding: '6px 8px', fontSize: 12, textAlign: 'right' }} value={it.descuento || ''} onChange={e => updItem(i, 'descuento', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} placeholder="0.00" /></td>
 
                     <td style={{ padding: 8, textAlign: 'right', fontWeight: 700, fontSize: 13, color: 'var(--ws-text, #18181b)' }}>{fmt(it.total)}</td>
                     <td style={{ padding: 8, textAlign: 'center' }}>
@@ -276,12 +276,15 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', background: 'var(--ws-bg3, #f8f7f3)', borderTop: '1.5px solid var(--ws-border, #d8d6cd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 20, fontSize: 13, alignItems: 'center' }}>
-            <div><span style={{ color: 'var(--ws-text2, #52524d)' }}>Subtotal:</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(baseTotal)}</strong></div>
+          <div style={{ display: 'flex', gap: 18, fontSize: 13, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div><span style={{ color: 'var(--ws-text2, #52524d)' }}>Subtotal:</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(itemsSubtotalBruto)}</strong></div>
+            {itemsDescuentoTotal > 0 && (
+              <div><span style={{ color: '#dc2626' }}>Descuento:</span> <strong style={{ color: '#dc2626' }}>-{fmt(itemsDescuentoTotal)}</strong></div>
+            )}
             <div>
-              <span style={{ color: 'var(--ws-text2, #52524d)' }}>IVA (Incluido):</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(ivaCalculado)}</strong>
+              <span style={{ color: 'var(--ws-text2, #52524d)' }}>IVA (5% Incluido):</span> <strong style={{ color: '#d97706' }}>{fmt(ivaCalculado)}</strong>
             </div>
-            <div style={{ fontSize: 16 }}><span style={{ color: 'var(--ws-blue, #1581E3)', fontWeight: 600 }}>Total Final:</span> <strong style={{ color: 'var(--ws-blue, #1581E3)', fontSize: 18 }}>{fmt(grandTotal)}</strong></div>
+            <div style={{ fontSize: 16 }}><span style={{ color: 'var(--ws-blue, #1581E3)', fontWeight: 600 }}>TOTAL A PAGAR:</span> <strong style={{ color: 'var(--ws-blue, #1581E3)', fontSize: 18 }}>{fmt(grandTotal)}</strong></div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn-ghost" onClick={onClose}>Cancelar</button>

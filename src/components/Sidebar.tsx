@@ -132,14 +132,16 @@ export default function Sidebar() {
     <aside style={{ width: 210, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }}>
       <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
         {/* Dashboard */}
-        <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 7, marginBottom: 6, background: pathname === '/dashboard' ? '#eff6ff' : 'transparent', color: pathname === '/dashboard' ? '#2563eb' : '#475569', fontSize: 13, fontWeight: pathname === '/dashboard' ? 700 : 500, transition: 'all .12s' }}>
-            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: pathname === '/dashboard' ? '#2563eb' : '#94a3b8', flexShrink: 0 }}>
-              <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-          </div>
-        </Link>
+        {tienePermiso(permisos, 'dashboard', rol) && (
+          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 7, marginBottom: 6, background: pathname === '/dashboard' ? '#eff6ff' : 'transparent', color: pathname === '/dashboard' ? '#2563eb' : '#475569', fontSize: 13, fontWeight: pathname === '/dashboard' ? 700 : 500, transition: 'all .12s' }}>
+              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: pathname === '/dashboard' ? '#2563eb' : '#94a3b8', flexShrink: 0 }}>
+                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Dashboard
+            </div>
+          </Link>
+        )}
 
         {GROUPS.map(group => {
           if (!canSeeGroup(group)) return null

@@ -39,9 +39,6 @@ export async function POST(req: NextRequest) {
     }
     let dto = parsed.data as any;
     if (!id) {
-      if (!dto.codigo) {
-        dto.codigo = `PROD-${Date.now()}`;
-      }
       const producto = await service.create(dto as any);
       return NextResponse.json({ ok: true, producto });
     } else {

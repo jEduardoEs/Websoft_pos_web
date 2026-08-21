@@ -4,17 +4,17 @@ import { Compra } from '../types/compra';
 import { calculateNewPricePreservingMargin } from '@/modules/productos/utils/producto-calc.helper';
 
 export class CompraRepository {
-  
+
   async findAll(limit = 100): Promise<Compra[]> {
     const compras = await prisma.compra.findMany({
       orderBy: { id: 'desc' },
       take: limit,
       include: {
         items: true,
-        proveedor: { select: { nombre: true } },
+        proveedor: { select: { nombre: true, nit: true } },
       },
     });
-    
+
     return compras.map(c => ({
       ...c,
       items: c.items.map(i => ({
@@ -41,7 +41,7 @@ export class CompraRepository {
         data: {
           numero,
           proveedorId: dto.proveedorId || null,
-          fecha: dto.fecha ? new Date(dto.fecha) : new Date(),
+          fecha: dto.fecha ? new Date(dto.fecha.includes('T') ? dto.fecha : `${dto.fecha}T12:00:00`) : new Date(),
           total,
           numeroFactura: dto.numeroFactura || null,
           serieFactura: dto.serieFactura || null,
@@ -73,19 +73,16 @@ export class CompraRepository {
         const oldCost = currentProd?.costo || 0;
         const oldPrice = currentProd?.precio || 0;
 
-        const totalNewStock = oldStock + qty;
-        const weightedCost = totalNewStock > 0 && unitCost > 0
-          ? Number((((oldStock * oldCost) + (qty * unitCost)) / totalNewStock).toFixed(2))
-          : unitCost;
+        const costToSave = unitCost > 0 ? unitCost : oldCost;
 
-        // Calculate new sale price preserving the user's established margin ratio
-        const newPrice = calculateNewPricePreservingMargin(oldCost, oldPrice, weightedCost);
+        // Calculate new sale price preserving the user's established margin ratio (+ 5% IVA)
+        const newPrice = calculateNewPricePreservingMargin(oldCost, oldPrice, costToSave);
 
         const prod = await tx.producto.update({
           where: { id: item.productoId },
           data: {
             stock: { increment: qty },
-            ...(unitCost > 0 ? { costo: weightedCost, precio: newPrice } : {}),
+            ...(unitCost > 0 ? { costo: costToSave, precio: newPrice } : {}),
           },
         });
 

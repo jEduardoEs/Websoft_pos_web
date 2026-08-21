@@ -16,9 +16,35 @@ export class ProductoService {
     return this.repo.findById(id);
   }
 
+  async generarSiguienteCodigo(): Promise<string> {
+    const { prisma } = await import('@/lib/prisma');
+    const cfg = await prisma.config.findUnique({ where: { clave: 'producto_prefijo' } });
+    const prefix = cfg?.valor || 'WSP';
+
+    const todos = await prisma.producto.findMany({
+      where: { codigo: { startsWith: prefix + '-' } },
+      select: { codigo: true },
+    });
+    const usados = new Set<number>();
+    todos.forEach(p => {
+      const n = parseInt(p.codigo?.replace(prefix + '-', '') || '0');
+      if (!isNaN(n) && n > 0) usados.add(n);
+    });
+
+    let next = 1;
+    while (usados.has(next)) {
+      next++;
+    }
+    return `${prefix}-${String(next).padStart(4, '0')}`;
+  }
+
   async create(dto: CreateProductoDto): Promise<Producto> {
+    let codigo = dto.codigo && dto.codigo.trim() !== '' ? dto.codigo.trim() : null;
+    if (!codigo) {
+      codigo = await this.generarSiguienteCodigo();
+    }
     const data: Omit<Producto, 'id' | 'createdAt'> = {
-      codigo: dto.codigo ?? null,
+      codigo,
       nombre: dto.nombre,
       descripcion: dto.descripcion ?? null,
       precio: dto.precio,
