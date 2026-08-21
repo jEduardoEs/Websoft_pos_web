@@ -26,12 +26,19 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
       where: { id: proyecto.cotizacionId },
       include: { items: true },
     });
+  } else if (proyecto.cotizacionNumero && proyecto.cotizacionNumero.toUpperCase().startsWith('COT')) {
+    cotizacion = await prisma.cotizacion.findFirst({
+      where: { numero: { equals: proyecto.cotizacionNumero.trim(), mode: 'insensitive' as const } },
+      include: { items: true },
+    });
+  }
 
+  if (cotizacion) {
     const ventaExistente = await prisma.venta.findFirst({
       where: {
         OR: [
           ...(cotizacion?.numero ? [{ notas: { contains: cotizacion.numero, mode: 'insensitive' as const } }] : []),
-          { notas: { contains: `[Cotización COT-${proyecto.cotizacionId}]`, mode: 'insensitive' as const } }
+          { notas: { contains: `[Cotización COT-${cotizacion.id}]`, mode: 'insensitive' as const } }
         ]
       }
     });
@@ -61,7 +68,7 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
     });
 
     const impuesto = calculateIVA(total, 0.05);
-    const subtotal = calculateGravable(total, 0.05);
+    const grossSubtotal = cotizacion?.subtotal && cotizacion.subtotal > 0 ? cotizacion.subtotal : total;
 
     const itemsList = cotizacion?.items && cotizacion.items.length > 0
       ? cotizacion.items.map((it: any) => ({
@@ -77,9 +84,9 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
             codigo: proyecto.numero,
             nombre: proyecto.nombre || proyecto.descripcion || 'Servicios y Trabajos del Proyecto',
             cantidad: 1,
-            precioUnitario: subtotal,
+            precioUnitario: total,
             descuento: 0,
-            subtotal: subtotal,
+            subtotal: total,
           },
         ];
 
@@ -89,7 +96,7 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
         fecha: new Date(),
         clienteNombre,
         clienteNit,
-        subtotal,
+        subtotal: grossSubtotal,
         descuento: 0,
         impuesto,
         total,
