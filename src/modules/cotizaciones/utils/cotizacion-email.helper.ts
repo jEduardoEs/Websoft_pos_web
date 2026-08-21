@@ -90,8 +90,9 @@ export async function enviarCotizacionPorCorreo(cotizacionId: number, email: str
     <table cellpadding="0" cellspacing="0" style="margin-left:auto">
       <tr><td style="padding:3px 12px 3px 0;font-size:11px;color:#8a887e;text-align:right">Subtotal:</td><td style="font-size:11px;font-family:Courier New,monospace;text-align:right;color:#18181b">Q ${cot.subtotal.toFixed(2)}</td></tr>
       ${cot.descuento > 0 ? `<tr><td style="padding:3px 12px 3px 0;font-size:11px;color:#b13a2e;text-align:right">Descuento:</td><td style="font-size:11px;font-family:Courier New,monospace;color:#b13a2e;text-align:right">-Q ${cot.descuento.toFixed(2)}</td></tr>` : ''}
+      <tr><td style="padding:3px 12px 3px 0;font-size:11px;color:#d97706;text-align:right">IVA (5% Incluido):</td><td style="font-size:11px;font-family:Courier New,monospace;color:#d97706;text-align:right">Q ${(cot.total - (cot.total / 1.05)).toFixed(2)}</td></tr>
       <tr><td colspan="2" style="padding:4px 0"><div style="border-top:1px solid #d8d6cd;margin:4px 0"></div></td></tr>
-      <tr><td style="padding:3px 12px 3px 0;font-size:15px;font-weight:700;color:#18181b;text-align:right">TOTAL:</td><td style="font-size:18px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;text-align:right">Q ${cot.total.toFixed(2)}</td></tr>
+      <tr><td style="padding:3px 12px 3px 0;font-size:15px;font-weight:700;color:#18181b;text-align:right">TOTAL A PAGAR:</td><td style="font-size:18px;font-weight:700;color:#1581E3;font-family:Courier New,monospace;text-align:right">Q ${cot.total.toFixed(2)}</td></tr>
     </table>
   </td></tr>
 

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import {
   AsientoContableDTO, AsientoContableSchema,
   CuentaContableDTO, CuentaContableSchema, PeriodoContableDTO, PeriodoContableSchema
@@ -247,8 +248,8 @@ export class ContabilidadService {
     });
 
     const totalVentas = ventas.reduce((s, v) => s + v.total, 0);
-    const baseVentas = totalVentas / 1.05;
-    const ivaDebito = totalVentas - baseVentas;
+    const baseVentas = calculateGravable(totalVentas, 0.05);
+    const ivaDebito = calculateIVA(totalVentas, 0.05);
 
     const compras = await prisma.compra.findMany({
       where: { fecha: { gte: fechaIni, lte: fechaFin } },
@@ -256,8 +257,8 @@ export class ContabilidadService {
     });
 
     const totalCompras = compras.reduce((s, c) => s + c.total, 0);
-    const baseCompras = totalCompras / 1.05;
-    const ivaCredito = totalCompras - baseCompras;
+    const baseCompras = calculateGravable(totalCompras, 0.05);
+    const ivaCredito = calculateIVA(totalCompras, 0.05);
 
     const ivaLiquido = ivaDebito - ivaCredito;
 
@@ -275,7 +276,7 @@ export class ContabilidadService {
 
     if (tipo === 'pyg') {
       const ventas = await prisma.venta.aggregate({ where: { fecha: { gte: start, lte: end }, estado: 'completada' }, _sum: { total: true }, _count: true });
-      const ingresos = (ventas._sum.total || 0) / 1.05; // sin IVA
+      const ingresos = calculateGravable(ventas._sum.total || 0, 0.05); // sin IVA
 
       const ventaItems = await prisma.ventaItem.findMany({
         where: { venta: { fecha: { gte: start, lte: end }, estado: 'completada' } },

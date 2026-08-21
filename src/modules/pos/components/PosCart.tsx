@@ -1,5 +1,6 @@
 import React from 'react';
 import { fmt } from '@/lib/utils';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { CartItem } from '../hooks/use-pos';
 
 interface PosCartProps {
@@ -296,8 +297,8 @@ export function PosCart({
 
         {/* Desglose de Cuentas Transparente */}
         {(() => {
-          const baseSinIVA = Math.round((total / 1.05) * 100) / 100;
-          const ivaMonto = Math.round((total - baseSinIVA) * 100) / 100;
+          const baseSinIVA = calculateGravable(total, 0.05);
+          const ivaMonto = calculateIVA(total, 0.05);
 
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12, fontSize: 13 }}>

@@ -15,7 +15,7 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
     onClose();
   }, cotizacionInitial, isDuplicate);
 
-  const { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode, clienteSugerencias, showClienteSugerencias } = state;
+  const { form, items, loading, productos, zonas, buscarProd, itemsSubtotalBruto, itemsDescuentoTotal, baseTotal, ivaCalculado, grandTotal, isEditMode, clienteSugerencias, showClienteSugerencias } = state;
   const { setF, setItems, setBuscarProd, setShowClienteSugerencias } = setters;
   const { buscarNitCliente, buscarClienteNombre, seleccionarClienteSugerido, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar } = actions;
 
@@ -276,12 +276,15 @@ export function CotizacionFormModal({ onClose, onSuccess, cotizacionInitial, isD
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', background: 'var(--ws-bg3, #f8f7f3)', borderTop: '1.5px solid var(--ws-border, #d8d6cd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 20, fontSize: 13, alignItems: 'center' }}>
-            <div><span style={{ color: 'var(--ws-text2, #52524d)' }}>Subtotal (Base sin IVA):</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(grandTotal - ivaCalculado)}</strong></div>
+          <div style={{ display: 'flex', gap: 18, fontSize: 13, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div><span style={{ color: 'var(--ws-text2, #52524d)' }}>Subtotal:</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(itemsSubtotalBruto)}</strong></div>
+            {itemsDescuentoTotal > 0 && (
+              <div><span style={{ color: '#dc2626' }}>Descuento:</span> <strong style={{ color: '#dc2626' }}>-{fmt(itemsDescuentoTotal)}</strong></div>
+            )}
             <div>
-              <span style={{ color: 'var(--ws-text2, #52524d)' }}>IVA (5% Incluido):</span> <strong style={{ color: 'var(--ws-text, #18181b)' }}>{fmt(ivaCalculado)}</strong>
+              <span style={{ color: 'var(--ws-text2, #52524d)' }}>IVA (5% Incluido):</span> <strong style={{ color: '#d97706' }}>{fmt(ivaCalculado)}</strong>
             </div>
-            <div style={{ fontSize: 16 }}><span style={{ color: 'var(--ws-blue, #1581E3)', fontWeight: 600 }}>Total Final a Pagar:</span> <strong style={{ color: 'var(--ws-blue, #1581E3)', fontSize: 18 }}>{fmt(grandTotal)}</strong></div>
+            <div style={{ fontSize: 16 }}><span style={{ color: 'var(--ws-blue, #1581E3)', fontWeight: 600 }}>TOTAL A PAGAR:</span> <strong style={{ color: 'var(--ws-blue, #1581E3)', fontSize: 18 }}>{fmt(grandTotal)}</strong></div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button className="btn-ghost" onClick={onClose}>Cancelar</button>

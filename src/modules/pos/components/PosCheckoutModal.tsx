@@ -1,5 +1,6 @@
 import React from 'react';
 import { fmt } from '@/lib/utils';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 
 interface PosCheckoutModalProps {
   showCobro: boolean;
@@ -63,8 +64,8 @@ export function PosCheckoutModal({
 
             <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
               {(() => {
-                const baseSinIVA = Math.round((total / 1.05) * 100) / 100;
-                const ivaMonto = Math.round((total - baseSinIVA) * 100) / 100;
+                const baseSinIVA = calculateGravable(total, 0.05);
+                const ivaMonto = calculateIVA(total, 0.05);
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8, fontSize: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>

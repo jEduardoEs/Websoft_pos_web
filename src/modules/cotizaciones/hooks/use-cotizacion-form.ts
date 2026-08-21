@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { LineItem } from '../types/cotizacion';
 
 function newItem(tipo: LineItem['tipo']): LineItem {
@@ -15,22 +16,13 @@ function calcInstalacion(item: LineItem) {
 
 function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta;
-  if (item.tipo === 'producto' && item.costoCompra > 0) {
-    if (!item.productoId && (item.precioVenta === 0 || !item.precioVenta)) {
-      // Formula: Costo + 20% ganancia + 5% IVA
-      // Base sin IVA = costo * 1.20
-      // Precio Final con IVA = base * 1.05
-      const base = item.costoCompra * 1.20;
-      precio = Number((base * 1.05).toFixed(2));
-      item = { ...item, precioVenta: precio };
-    }
-  }
   if (item.tipo === 'instalacion') {
     precio = calcInstalacion(item);
     item = { ...item, precioVenta: precio };
   }
   const sub = Number((precio * item.cantidad).toFixed(2));
-  const total = Number(Math.max(0, sub - (item.descuento || 0)).toFixed(2));
+  const descTotalLine = Math.max(0, item.descuento || 0);
+  const total = Number(Math.max(0, sub - descTotalLine).toFixed(2));
   return { ...item, subtotal: sub, total };
 }
 
@@ -279,9 +271,11 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
     setItems([newItem('producto')]);
   };
 
-  const baseTotal = items.reduce((s, i) => s + (i.total || 0), 0);
-  const ivaCalculado = Math.round((baseTotal - (baseTotal / 1.05)) * 100) / 100;
-  const grandTotal = Math.round(baseTotal * 100) / 100;
+  const itemsSubtotalBruto = Number(items.reduce((s, i) => s + (i.subtotal || 0), 0).toFixed(2));
+  const itemsDescuentoTotal = Number(items.reduce((s, i) => s + (i.descuento || 0), 0).toFixed(2));
+  const grandTotal = Number(Math.max(0, itemsSubtotalBruto - itemsDescuentoTotal).toFixed(2));
+  const baseTotal = calculateGravable(grandTotal, 0.05);
+  const ivaCalculado = calculateIVA(grandTotal, 0.05);
 
   const guardar = async () => {
     if (!form.clienteNombre.trim()) return toast.error('El nombre del cliente es obligatorio');
@@ -306,6 +300,9 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
         notas: form.notas.trim() || undefined,
         validezDias: parseInt(form.validezDias) || 15,
         tiempoInstalacion: form.tiempoInstalacion.trim() || undefined,
+        subtotal: itemsSubtotalBruto,
+        descuento: itemsDescuentoTotal,
+        total: grandTotal,
         items: items.map(i => ({
           productoId: i.productoId || undefined,
           codigo: i.codigo || undefined,
@@ -342,7 +339,7 @@ export function useCotizacionForm(onSuccess: () => void, cotizacionInitial?: any
   };
 
   return {
-    state: { form, items, loading, productos, zonas, buscarProd, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id, clienteSugerencias, showClienteSugerencias },
+    state: { form, items, loading, productos, zonas, buscarProd, itemsSubtotalBruto, itemsDescuentoTotal, baseTotal, ivaCalculado, grandTotal, isEditMode: !!form.id, clienteSugerencias, showClienteSugerencias },
     setters: { setForm, setItems, setBuscarProd, setF, setShowClienteSugerencias },
     actions: { buscarNitCliente, buscarClienteNombre, seleccionarClienteSugerido, selClienteRegistrado, selProducto, addProductoToCotizacion, updItem, addItem, removeItem, guardar },
   };

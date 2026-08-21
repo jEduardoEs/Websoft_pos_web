@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CotizacionService } from '@/modules/cotizaciones/services/cotizacion.service';
 import { ConfigBackendService } from '@/modules/configuracion/services/config.backend.service';
 
+import { calculateGravable, calculateIVA } from '@/shared/money';
+
 export const dynamic = 'force-dynamic';
 
 async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Promise<T> {
@@ -29,9 +31,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const { d: configData } = await fetchWithRetry(() => ConfigBackendService.getCuentasPdfData()).catch(() => ({ d: {} as any }));
 
     const totalNum = Number(cot.total) || 0;
-    const subtotalBase = totalNum / 1.05;
-    const ivaMonto = totalNum - subtotalBase;
     const descuentoNum = Number(cot.descuento) || 0;
+    const subtotalBruto = Number(cot.subtotal) || (totalNum + descuentoNum);
+    const subtotalBase = calculateGravable(totalNum, 0.05);
+    const ivaMonto = calculateIVA(totalNum, 0.05);
 
     const rows = (cot.items || []).map((it: any) => `
       <tr>
@@ -161,7 +164,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   <div class="totals-wrap">
     <div class="totals">
-      <div class="t-row"><span>Base (sin IVA)</span><span>Q ${subtotalBase.toFixed(2)}</span></div>
+      <div class="t-row"><span>Subtotal</span><span>Q ${subtotalBruto.toFixed(2)}</span></div>
       ${descuentoNum > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${descuentoNum.toFixed(2)}</span></div>` : ''}
       <div class="t-iva"><span>IVA Incluido (5%)</span><span>Q ${ivaMonto.toFixed(2)}</span></div>
       <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${totalNum.toFixed(2)}</span></div>

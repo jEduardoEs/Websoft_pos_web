@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { fmt, fmtDate } from '@/lib/utils'
+import { calculateGravable, calculateIVA } from '@/shared/money'
 
 const IVA = 0.05
 
@@ -63,20 +64,13 @@ function calcInstalacion(item: LineItem) {
 
 function recalc(item: LineItem): LineItem {
   let precio = item.precioVenta
-  if (item.tipo === 'producto' && item.costoCompra > 0) {
-    // Si viene del inventario (tiene productoId) → respetar precio tal cual
-    // Si es manual (sin productoId) → calcular 30% sobre costo
-    if (!item.productoId) {
-      precio = item.costoCompra * 1.30
-      item = { ...item, precioVenta: precio }
-    }
-  }
   if (item.tipo === 'instalacion') {
     precio = calcInstalacion(item)
     item = { ...item, precioVenta: precio }
   }
-  const sub = precio * item.cantidad
-  const total = sub - (item.descuento || 0)
+  const sub = Number((precio * item.cantidad).toFixed(2))
+  const descTotalLine = Math.max(0, item.descuento || 0)
+  const total = Number(Math.max(0, sub - descTotalLine).toFixed(2))
   return { ...item, subtotal: sub, total }
 }
 
@@ -233,7 +227,7 @@ export default function CotizacionesPage() {
         codigo: prod.codigo || '',
         descripcion: prod.nombre,
         costoCompra: prod.costo,
-        precioVenta: prod.precio > 0 ? prod.precio : prod.costo * 1.30,
+        precioVenta: prod.precio || prod.costo || 0,
       }
       return recalc(updated)
     }))
@@ -251,10 +245,11 @@ export default function CotizacionesPage() {
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i))
 
   // Totals — IVA incluido en el total final
-  const totalFinal = items.reduce((s, i) => s + i.total, 0)
-  const iva = Math.round((totalFinal - (totalFinal / 1.05)) * 100) / 100
-  const baseTotal = Math.round((totalFinal - iva) * 100) / 100
-  const descuentoTotal = items.reduce((s, i) => s + i.descuento, 0)
+  const itemsSubtotalBruto = Number(items.reduce((s, i) => s + (i.subtotal || 0), 0).toFixed(2))
+  const itemsDescuentoTotal = Number(items.reduce((s, i) => s + (i.descuento || 0), 0).toFixed(2))
+  const totalFinal = Number(Math.max(0, itemsSubtotalBruto - itemsDescuentoTotal).toFixed(2))
+  const baseTotal = calculateGravable(totalFinal, 0.05)
+  const iva = calculateIVA(totalFinal, 0.05)
 
   const save = async () => {
     if (!form.clienteNombre.trim()) { toast.error('Nombre del cliente requerido'); return }
@@ -276,7 +271,7 @@ export default function CotizacionesPage() {
           cantidad: it.cantidad, precioUnitario: it.precioVenta,
           subtotal: it.subtotal, descuento: it.descuento, totalItem: it.total,
         })),
-        subtotal: baseTotal, descuento: descuentoTotal, total: totalFinal,
+        subtotal: itemsSubtotalBruto, descuento: itemsDescuentoTotal, total: totalFinal,
       }
       const url = editingId ? `/api/cotizaciones/${editingId}` : '/api/cotizaciones'
       const method = editingId ? 'PUT' : 'POST'
@@ -407,8 +402,11 @@ export default function CotizacionesPage() {
   const imprimir = (cot: Cotizacion) => {
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
-    const ivaAmt = cot.total - cot.subtotal + cot.descuento
-    const baseAmt = cot.subtotal - cot.descuento
+    const totalNum = Number(cot.total) || 0
+    const descuentoNum = Number(cot.descuento) || 0
+    const subtotalBruto = Number(cot.subtotal) || (totalNum + descuentoNum)
+    const baseAmt = calculateGravable(totalNum, 0.05)
+    const ivaAmt = calculateIVA(totalNum, 0.05)
     const rows = cot.items.map(it => `
       <tr>
         <td class="code">${it.codigo || ''}</td>
@@ -518,10 +516,10 @@ ${cot.descripcion ? `<div style="font-weight:700;font-size:11px;margin-bottom:8p
 
 <div class="totals-wrap">
   <div class="totals">
-    <div class="t-row"><span>Base</span><span>Q ${baseAmt.toFixed(2)}</span></div>
-    ${cot.descuento > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${cot.descuento.toFixed(2)}</span></div>` : ''}
+    <div class="t-row"><span>Subtotal</span><span>Q ${subtotalBruto.toFixed(2)}</span></div>
+    ${descuentoNum > 0 ? `<div class="t-row" style="color:#dc2626"><span>Descuento</span><span>-Q ${descuentoNum.toFixed(2)}</span></div>` : ''}
     <div class="t-iva"><span>IVA Incluido (5%)</span><span>Q ${ivaAmt.toFixed(2)}</span></div>
-    <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${cot.total.toFixed(2)}</span></div>
+    <div class="t-final"><span>TOTAL A PAGAR</span><span>Q ${totalNum.toFixed(2)}</span></div>
   </div>
 </div>
 
@@ -886,13 +884,13 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
 
             {/* Totales — IVA SOLO UNA VEZ AL FINAL */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-              <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '14px 20px', minWidth: 250 }}>
+              <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '14px 20px', minWidth: 260 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 5 }}>
-                  <span>Subtotal (Base sin IVA)</span><span>Q {baseTotal.toFixed(2)}</span>
+                  <span>Subtotal</span><span>Q {itemsSubtotalBruto.toFixed(2)}</span>
                 </div>
-                {descuentoTotal > 0 && (
+                {itemsDescuentoTotal > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#dc2626', marginBottom: 5 }}>
-                    <span>Descuento</span><span>-Q {descuentoTotal.toFixed(2)}</span>
+                    <span>Descuento</span><span>-Q {itemsDescuentoTotal.toFixed(2)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#d97706', fontWeight: 600, marginBottom: 10 }}>
@@ -980,9 +978,12 @@ ${cot.notas ? `<div class="highlight-block"><strong>NOTAS ADICIONALES:</strong> 
             </table>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-              <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '12px 18px', minWidth: 230 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 4 }}><span>Base</span><span>{fmt(selected.subtotal - selected.descuento)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#d97706', fontWeight: 600, marginBottom: 8 }}><span>IVA (5%)</span><span>{fmt(selected.total - (selected.subtotal - selected.descuento))}</span></div>
+              <div style={{ background: '#f8fafc', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '12px 18px', minWidth: 240 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', marginBottom: 4 }}><span>Subtotal</span><span>{fmt(selected.subtotal || selected.total)}</span></div>
+                {selected.descuento > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#dc2626', marginBottom: 4 }}><span>Descuento</span><span>-{fmt(selected.descuento)}</span></div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#d97706', fontWeight: 600, marginBottom: 8 }}><span>IVA (5% Incluido)</span><span>{fmt(calculateIVA(selected.total, 0.05))}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: '#2563eb', borderTop: '2px solid #bfdbfe', paddingTop: 8 }}><span>TOTAL</span><span>{fmt(selected.total)}</span></div>
               </div>
             </div>

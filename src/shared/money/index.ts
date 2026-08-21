@@ -3,13 +3,14 @@ export function formatGTQ(amount: number | null | undefined, symbol = 'Q'): stri
   return `${symbol} ${val.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export function calculateGravable(totalConIVA: number, rate = 0.12): number {
+export function calculateGravable(totalConIVA: number, rate = 0.05): number {
   if (!totalConIVA) return 0
-  return Number((totalConIVA / (1 + rate)).toFixed(6))
+  return Number((totalConIVA / (1 + rate)).toFixed(2))
 }
 
-export function calculateIVA(totalConIVA: number, rate = 0.12): number {
+export function calculateIVA(totalConIVA: number, rate = 0.05): number {
   if (!totalConIVA) return 0
   const gravable = calculateGravable(totalConIVA, rate)
-  return Number((totalConIVA - gravable).toFixed(6))
+  return Number((totalConIVA - gravable).toFixed(2))
 }
+

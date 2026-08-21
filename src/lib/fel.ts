@@ -65,18 +65,18 @@ async function getApiKey(): Promise<string | null> {
 
 function buildInvoice(input: FELInput) {
   const env = process.env
-  // DTEvia pide precio_unitario SIN IVA; el POS maneja precios CON IVA (12%)
+  // DTEvia pide precio_unitario SIN IVA; el POS maneja precios CON IVA (5%)
   const items = input.items.map(it => {
     const totalLinea = it.subtotal - (it.descuento || 0)   // con IVA
-    const gravable = totalLinea / 1.12
+    const gravable = totalLinea / 1.05
     const iva = totalLinea - gravable
     return {
       tipo: 'B',
       cantidad: it.cantidad,
       unidad_medida: it.unidadMedida || 'UND',
       descripcion: it.descripcion,
-      precio_unitario: Number((it.precioUnitario / 1.12).toFixed(6)),
-      descuento: Number(((it.descuento || 0) / 1.12).toFixed(6)),
+      precio_unitario: Number((it.precioUnitario / 1.05).toFixed(6)),
+      descuento: Number(((it.descuento || 0) / 1.05).toFixed(6)),
       impuestos: [{
         nombre: 'IVA',
         codigo_unidad_gravable: 1,

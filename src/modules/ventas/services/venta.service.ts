@@ -1,13 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { emitirFEL, FELResponse } from '@/lib/fel';
 import { enviarFacturaPorCorreo, EmailResult } from '@/lib/email-factura';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { CreateVentaDto } from '../dto/create-venta.dto';
 import { Venta } from '../types/venta';
 
 // Helper functions for calculations (Included IVA 5% and profit 30%)
 const PROFIT_RATE = 0.30;
 function calculateIVAIncluded(total: number): number {
-  return Number((total - (total / 1.05)).toFixed(2));
+  return calculateIVA(total, 0.05);
 }
 function calculateProfit(subtotal: number): number {
   return Number((subtotal * PROFIT_RATE).toFixed(2));

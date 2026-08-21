@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { enviarFacturaPorCorreo } from '@/lib/email-factura';
 import { emitirFEL, FELResponse } from '@/lib/fel';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 
 export async function facturarProyectoHelper(id: number, data: any, userId: number, userName: string) {
   const proyecto = await prisma.proyecto.findUnique({
@@ -59,8 +60,8 @@ export async function facturarProyectoHelper(id: number, data: any, userId: numb
       update: { valor: String(num + 1) },
     });
 
-    const impuesto = Number((total - total / 1.05).toFixed(2));
-    const subtotal = Number((total - impuesto).toFixed(2));
+    const impuesto = calculateIVA(total, 0.05);
+    const subtotal = calculateGravable(total, 0.05);
 
     const itemsList = cotizacion?.items && cotizacion.items.length > 0
       ? cotizacion.items.map((it: any) => ({

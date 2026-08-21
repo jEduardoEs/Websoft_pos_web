@@ -171,7 +171,7 @@ export function buildFacturaHTML(d: FacturaEmailData, config?: Record<string, st
             <table cellpadding="0" cellspacing="0" style="margin-left:auto;font-size:12px">
               <tr><td style="padding:4px 16px 4px 0;color:#64748b;text-align:right">Subtotal:</td><td style="padding:4px 0;color:#0f172a;text-align:right;font-family:Courier New,monospace">${fmt(d.subtotal)}</td></tr>
               ${d.descuento > 0 ? `<tr><td style="padding:4px 16px 4px 0;color:#dc2626;text-align:right">Descuento:</td><td style="padding:4px 0;color:#dc2626;text-align:right;font-family:Courier New,monospace">-${fmt(d.descuento)}</td></tr>` : ''}
-              <tr><td style="padding:4px 16px 4px 0;color:#64748b;text-align:right">IVA (12%):</td><td style="padding:4px 0;color:#0f172a;text-align:right;font-family:Courier New,monospace">${fmt(d.impuesto)}</td></tr>
+              <tr><td style="padding:4px 16px 4px 0;color:#64748b;text-align:right">IVA (5%):</td><td style="padding:4px 0;color:#0f172a;text-align:right;font-family:Courier New,monospace">${fmt(d.impuesto)}</td></tr>
               <tr><td colspan="2" style="padding:0"><div style="border-top:2px solid #1581E3;margin:8px 0"></div></td></tr>
               <tr>
                 <td style="padding:4px 16px 4px 0;font-size:15px;font-weight:700;color:#0f172a;text-align:right">TOTAL GTQ:</td>

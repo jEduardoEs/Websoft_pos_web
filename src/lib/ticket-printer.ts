@@ -54,7 +54,7 @@ export function buildTicketHTML(d: TicketData): string {
   const fechaStr = fecha.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const horaStr = fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
-  const ivaPct = d.ivaPct ?? 12
+  const ivaPct = d.ivaPct ?? 5
 
   // Filas de items — formato compacto
   const itemRows = d.items.map(it => {

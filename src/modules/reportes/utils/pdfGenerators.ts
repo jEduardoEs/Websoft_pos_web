@@ -1,3 +1,5 @@
+import { calculateIVA } from '@/shared/money';
+
 function safeDate(val: any): string {
   if (!val) return '—';
   try {
@@ -248,7 +250,7 @@ export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
   const granTotal = Number(reporte.granTotal || 0);
   const totalVentas = Number(reporte.totalVentas || 0);
   const ivaPct = 5;
-  const ivaRecaudado = granTotal * (ivaPct / (100 + ivaPct));
+  const ivaRecaudado = calculateIVA(granTotal, 0.05);
 
   const diasRows = Object.entries(reporte.porDia || {})
     .sort(([a], [b]) => a.localeCompare(b))

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { calculateGravable, calculateIVA } from '@/shared/money';
 import { CreateCotizacionDto } from '../dto/create-cotizacion.dto';
 
 export class CotizacionService {
@@ -66,6 +67,14 @@ export class CotizacionService {
       const nextId = (maxCot?.id || 0) + 1;
       const numero = `COT-${String(nextId).padStart(6, '0')}`;
 
+      const itemsSubtotal = Number((data.items || []).reduce((acc, it) => acc + (it.subtotal || 0), 0).toFixed(2));
+      const itemsDescuento = Number((data.items || []).reduce((acc, it) => acc + (it.descuento || 0), 0).toFixed(2));
+      const itemsTotal = Number(Math.max(0, itemsSubtotal - itemsDescuento).toFixed(2));
+
+      const calcSubtotal = typeof data.subtotal === 'number' && data.subtotal > 0 ? data.subtotal : itemsSubtotal;
+      const calcDescuento = typeof data.descuento === 'number' ? data.descuento : itemsDescuento;
+      const calcTotal = typeof data.total === 'number' && data.total > 0 ? data.total : itemsTotal;
+
       // Create the quotation
       const cotizacion = await tx.cotizacion.create({
         data: {
@@ -78,9 +87,9 @@ export class CotizacionService {
           formaPago: data.formaPago || null,
           descripcion: data.descripcion || null,
           notas: data.notas || null,
-          subtotal: data.subtotal,
-          descuento: data.descuento,
-          total: data.total,
+          subtotal: calcSubtotal,
+          descuento: calcDescuento,
+          total: calcTotal,
           validezDias: data.validezDias,
           tiempoInstalacion: data.tiempoInstalacion || null,
           usuarioId,
@@ -394,19 +403,21 @@ export class CotizacionService {
       const num = parseInt(cfg?.valor || '1');
       const numero = `FAC-${String(num).padStart(6, '0')}`;
 
-      const total = cotizacion.total;
-      const montoRecibido = parseFloat(data.montoRecibido) || total;
-      const cambio = Math.max(0, montoRecibido - total);
+      const totalVenta = cotizacion.total;
+      const subtotalBase = calculateGravable(totalVenta, 0.05);
+      const ivaVenta = calculateIVA(totalVenta, 0.05);
+      const montoRecibido = parseFloat(data.montoRecibido) || totalVenta;
+      const cambio = Math.max(0, montoRecibido - totalVenta);
 
       const venta = await tx.venta.create({
         data: {
           numero,
           clienteNombre: data.clienteNombre || cotizacion.clienteNombre,
           clienteNit: data.clienteNit || cotizacion.clienteNit || 'CF',
-          subtotal: cotizacion.subtotal,
-          descuento: cotizacion.descuento,
-          impuesto: cotizacion.total - (cotizacion.subtotal - cotizacion.descuento),
-          total: cotizacion.total,
+          subtotal: subtotalBase,
+          descuento: cotizacion.descuento || 0,
+          impuesto: ivaVenta,
+          total: totalVenta,
           metodoPago: data.metodoPago || 'efectivo',
           montoRecibido,
           cambio,
