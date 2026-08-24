@@ -129,10 +129,13 @@ export class VentaService {
         }
 
         const cost = dbProd ? dbProd.costo : (item.costo ?? 0);
-        const catalogPrice = dbProd && dbProd.precio > 0 ? dbProd.precio : item.precioUnitario;
+        // Preserve quoted/custom item price if specified (>= 0), fallback to dbProd.precio
+        const unitPrice = (typeof item.precioUnitario === 'number' && item.precioUnitario >= 0)
+          ? item.precioUnitario
+          : (dbProd ? dbProd.precio : 0);
         const itemDiscount = item.descuento || 0;
-        const netUnitPrice = Math.max(0, catalogPrice - itemDiscount);
-        const itemSubtotal = Number((netUnitPrice * item.cantidad).toFixed(2));
+        const grossLineSubtotal = Number((unitPrice * item.cantidad).toFixed(2));
+        const itemSubtotal = Number(Math.max(0, grossLineSubtotal - itemDiscount).toFixed(2));
         const iva = calculateIVAIncluded(itemSubtotal);
         const ganancia = Number((itemSubtotal - (cost * item.cantidad)).toFixed(2));
 
@@ -141,7 +144,7 @@ export class VentaService {
           codigo: item.codigo || dbProd?.codigo || '',
           nombre: item.nombre || dbProd?.nombre || 'Producto',
           cantidad: item.cantidad,
-          precioUnitario: catalogPrice,
+          precioUnitario: unitPrice,
           descuento: itemDiscount,
           subtotal: itemSubtotal,
           costo: cost,
@@ -152,9 +155,15 @@ export class VentaService {
         };
       });
 
-      const saleSubtotal = Number(processedItems.reduce((sum, i) => sum + i.subtotal, 0).toFixed(2));
+      const saleGrossSubtotal = Number(processedItems.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toFixed(2));
+      const itemsDescuentoTotal = Number(processedItems.reduce((sum, i) => sum + i.descuento, 0).toFixed(2));
       const globalDescuento = Number((dto.descuento || 0).toFixed(2));
-      const saleTotal = Number(Math.max(0, saleSubtotal - globalDescuento).toFixed(2));
+      
+      const totalDescuento = dto.descuento !== undefined && dto.descuento >= itemsDescuentoTotal
+        ? globalDescuento
+        : Number((itemsDescuentoTotal + globalDescuento).toFixed(2));
+
+      const saleTotal = Number(Math.max(0, saleGrossSubtotal - totalDescuento).toFixed(2));
       const saleIVA = calculateIVAIncluded(saleTotal);
       const calculatedCambio = dto.metodoPago === 'efectivo'
         ? Number(Math.max(0, (dto.montoRecibido || 0) - saleTotal).toFixed(2))
@@ -166,8 +175,8 @@ export class VentaService {
           fecha: new Date(),
           clienteNombre: dto.clienteNombre || 'Consumidor Final',
           clienteNit: dto.clienteNit || 'CF',
-          subtotal: saleSubtotal,
-          descuento: globalDescuento,
+          subtotal: saleGrossSubtotal,
+          descuento: totalDescuento,
           impuesto: saleIVA,
           total: saleTotal,
           metodoPago: dto.metodoPago,
@@ -221,54 +230,14 @@ export class VentaService {
       if (dto.cotizacionId) {
         const cotIdNum = Number(dto.cotizacionId);
         if (!isNaN(cotIdNum) && cotIdNum > 0) {
-          await tx.cotizacion.update({
-            where: { id: cotIdNum },
-            data: { estado: 'facturada' },
-          });
-        }
-      }
-
-      // Increment usage counter on discount coupon if used
-      if (dto.descuento && dto.descuento > 0 && dto.notas) {
-        const couponMatch = dto.notas.match(/CÓDIGO:\s*([A-Z0-9_-]+)/i);
-        if (couponMatch && couponMatch[1]) {
-          await tx.descuento.updateMany({
-            where: { codigo: { equals: couponMatch[1].trim(), mode: 'insensitive' } },
-            data: { usosActuales: { increment: 1 } },
-          });
-        }
-      }
-
-      // Automatically register CuentaCobrar for credit sales
-      if (dto.metodoPago === 'credito') {
-        const maxCc = await tx.cuentaCobrar.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
-        const nextCcId = (maxCc?.id || 0) + 1;
-        const numCc = `CC-${String(nextCcId).padStart(6, '0')}`;
-        const fechaVenc = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-        await tx.cuentaCobrar.create({
-          data: {
-            numero: numCc,
-            fecha: new Date(),
-            fechaVencimiento: fechaVenc,
-            clienteNombre: dto.clienteNombre || 'Consumidor Final',
-            clienteNit: dto.clienteNit || 'CF',
-            ventaNumero: numeroVenta,
-            concepto: `Venta a crédito ${numeroVenta}`,
-            monto: saleTotal,
-            montoPagado: 0,
-            estado: 'pendiente',
-            usuarioNombre: userName,
-          },
-        });
-      }
-
-      // Marcar cotización como facturada
-      if (dto.cotizacionId) {
-        try {
-          await tx.cotizacion.update({ where: { id: dto.cotizacionId }, data: { estado: 'facturada' } });
-        } catch (err) {
-          console.error('[VentaService] Error actualizando estado de cotizacion:', err);
+          try {
+            await tx.cotizacion.update({
+              where: { id: cotIdNum },
+              data: { estado: 'facturada' },
+            });
+          } catch (err) {
+            console.error('[VentaService] Error actualizando estado de cotizacion:', err);
+          }
         }
       }
 
@@ -365,24 +334,24 @@ export class VentaService {
     const dto: CreateVentaDto = {
       cotizacionId: cotizacion.id,
       clienteNombre: cotizacion.clienteNombre,
-      clienteNit: cotizacion.clienteNit,
-      clienteCorreo: cotizacion.clienteCorreo,
+      clienteNit: cotizacion.clienteNit || 'CF',
+      clienteCorreo: (cotizacion as any).clienteCorreo || undefined,
       subtotal: cotizacion.subtotal,
-      descuento: cotizacion.descuento,
-      impuesto: cotizacion.impuesto,
+      descuento: cotizacion.descuento || 0,
+      impuesto: 0,
       total: cotizacion.total,
       metodoPago: 'efectivo', // default
       montoRecibido: cotizacion.total,
       cambio: 0,
       notas: `Creado desde cotización ${cotizacion.numero}`,
       items: cotizacion.items.map(item => ({
-        productoId: item.productoId,
-        codigo: item.codigo,
-        nombre: item.nombre,
+        productoId: (item as any).productoId || null,
+        codigo: item.codigo || '',
+        nombre: item.descripcion,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
-        descuento: item.descuento,
-        subtotal: item.subtotal,
+        descuento: item.descuento || 0,
+        subtotal: item.totalItem || (item.cantidad * item.precioUnitario - (item.descuento || 0)),
       })),
     };
     

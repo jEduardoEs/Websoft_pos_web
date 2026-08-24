@@ -149,11 +149,11 @@ export async function processVentaSideEffects(
       monto: Number((venta.total * 0.05).toFixed(2)),
     }));
 
-    if (felResult && (felResult as any).exito) {
+    if (felResult && felResult.ok) {
       await eventBus.publish(new FacturaEmitida({
         ventaId: venta.id,
-        numeroFactura: (felResult as any).numero || venta.numero,
-        uuid: (felResult as any).uuid,
+        numeroFactura: (felResult as any).numero ? String((felResult as any).numero) : venta.numero,
+        uuid: felResult.uuid || '',
         clienteNombre: venta.clienteNombre,
         total: venta.total,
         usuarioNombre: userName,

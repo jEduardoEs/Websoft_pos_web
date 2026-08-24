@@ -404,7 +404,7 @@ export class CotizacionService {
       const numero = `FAC-${String(num).padStart(6, '0')}`;
 
       const totalVenta = cotizacion.total;
-      const subtotalBase = calculateGravable(totalVenta, 0.05);
+      const grossSubtotal = cotizacion.subtotal || cotizacion.items.reduce((s, i) => s + (i.precioUnitario * i.cantidad), 0) || totalVenta;
       const ivaVenta = calculateIVA(totalVenta, 0.05);
       const montoRecibido = parseFloat(data.montoRecibido) || totalVenta;
       const cambio = Math.max(0, montoRecibido - totalVenta);
@@ -414,7 +414,7 @@ export class CotizacionService {
           numero,
           clienteNombre: data.clienteNombre || cotizacion.clienteNombre,
           clienteNit: data.clienteNit || cotizacion.clienteNit || 'CF',
-          subtotal: subtotalBase,
+          subtotal: grossSubtotal,
           descuento: cotizacion.descuento || 0,
           impuesto: ivaVenta,
           total: totalVenta,
@@ -430,8 +430,8 @@ export class CotizacionService {
               codigo: item.codigo || '',
               cantidad: item.cantidad,
               precioUnitario: item.precioUnitario,
-              descuento: item.descuento,
-              subtotal: item.totalItem,
+              descuento: item.descuento || 0,
+              subtotal: item.totalItem || (item.cantidad * item.precioUnitario - (item.descuento || 0)),
             })),
           },
         },

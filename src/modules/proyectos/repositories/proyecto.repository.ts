@@ -128,7 +128,17 @@ export class ProyectoRepository {
           if (matchCotId) {
             linkedCotId = Number(matchCotId[1]);
             const cot = await prisma.cotizacion.findUnique({ where: { id: linkedCotId } });
-            if (cot) linkedCotNumero = cot.numero;
+            if (cot) {
+              linkedCotNumero = cot.numero;
+              if (cot.descripcion?.trim() && (!data.nombre || data.nombre.startsWith('Proyecto Venta'))) {
+                data.nombre = cot.descripcion.trim();
+              }
+              if (!data.descripcion && cot.descripcion) data.descripcion = cot.descripcion;
+              if (!data.clienteTelefono && cot.clienteTelefono) data.clienteTelefono = cot.clienteTelefono;
+              if (!data.clienteDireccion && cot.clienteDireccion) data.clienteDireccion = cot.clienteDireccion;
+              if (!data.contactoNombre && cot.atencion) data.contactoNombre = cot.atencion;
+              if (!data.notas && cot.notas) data.notas = cot.notas;
+            }
           }
         }
       } else if (rawCotNum.toUpperCase().startsWith('COT')) {
@@ -139,6 +149,14 @@ export class ProyectoRepository {
             throw new Error(`La cotización "${cot.numero}" no ha sido facturada aún (Estado actual: ${cot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`);
           }
           linkedCotId = cot.id;
+          if (cot.descripcion?.trim() && (!data.nombre || data.nombre.startsWith('Proyecto Venta'))) {
+            data.nombre = cot.descripcion.trim();
+          }
+          if (!data.descripcion && cot.descripcion) data.descripcion = cot.descripcion;
+          if (!data.clienteTelefono && cot.clienteTelefono) data.clienteTelefono = cot.clienteTelefono;
+          if (!data.clienteDireccion && cot.clienteDireccion) data.clienteDireccion = cot.clienteDireccion;
+          if (!data.contactoNombre && cot.atencion) data.contactoNombre = cot.atencion;
+          if (!data.notas && cot.notas) data.notas = cot.notas;
           const venta = await prisma.venta.findFirst({
             where: {
               OR: [
@@ -159,6 +177,14 @@ export class ProyectoRepository {
           throw new Error(`La cotización "${cot.numero}" no ha sido facturada aún (Estado actual: ${cot.estado || 'Pendiente'}). Primero debes facturarla en el punto de venta (POS) para poder crear el proyecto.`);
         }
         linkedCotNumero = cot.numero;
+        if (cot.descripcion?.trim() && (!data.nombre || data.nombre.startsWith('Proyecto Venta'))) {
+          data.nombre = cot.descripcion.trim();
+        }
+        if (!data.descripcion && cot.descripcion) data.descripcion = cot.descripcion;
+        if (!data.clienteTelefono && cot.clienteTelefono) data.clienteTelefono = cot.clienteTelefono;
+        if (!data.clienteDireccion && cot.clienteDireccion) data.clienteDireccion = cot.clienteDireccion;
+        if (!data.contactoNombre && cot.atencion) data.contactoNombre = cot.atencion;
+        if (!data.notas && cot.notas) data.notas = cot.notas;
         const venta = await prisma.venta.findFirst({
           where: {
             OR: [
