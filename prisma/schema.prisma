@@ -1,0 +1,714 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Usuario {
+  id           Int            @id @default(autoincrement())
+  nombre       String
+  usuario      String         @unique
+  password     String
+  rol          String         @default("cajero")
+  activo       Boolean        @default(true)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  permisos     String         @default("")
+  metaMensual  Float          @default(0) @map("meta_mensual")
+  aperturas    AperturaCaja[]
+  auditLogs    AuditLog[]
+  cierres      Cierre[]
+  compras      Compra[]
+  devoluciones Devolucion[]
+  kardex       Kardex[]
+  ventas       Venta[]
+
+  @@map("usuarios")
+}
+
+model Producto {
+  id              Int              @id @default(autoincrement())
+  codigo          String?
+  nombre          String
+  descripcion     String?
+  precio          Float            @default(0)
+  costo           Float            @default(0)
+  stock           Int              @default(0)
+  stockMinimo     Int              @default(5) @map("stock_minimo")
+  categoria       String           @default("General")
+  unidad          String           @default("unidad")
+  activo          Boolean          @default(true)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  imagenUrl       String?          @map("imagen_url")
+  compraItems     CompraItem[]
+  devolucionItems DevolucionItem[]
+  kardex          Kardex[]
+  ventaItems      VentaItem[]
+
+  @@map("productos")
+}
+
+model Venta {
+  id               Int          @id @default(autoincrement())
+  numero           String       @unique
+  fecha            DateTime     @default(now())
+  clienteNombre    String       @default("Consumidor Final") @map("cliente_nombre")
+  clienteNit       String       @default("CF") @map("cliente_nit")
+  subtotal         Float        @default(0)
+  descuento        Float        @default(0)
+  impuesto         Float        @default(0)
+  total            Float        @default(0)
+  metodoPago       String       @default("efectivo") @map("metodo_pago")
+  montoRecibido    Float        @default(0) @map("monto_recibido")
+  cambio           Float        @default(0)
+  estado           String       @default("completada")
+  notas            String?
+  usuarioId        Int?         @map("usuario_id")
+  usuarioNombre    String?      @map("usuario_nombre")
+  felUuid          String?      @map("fel_uuid")
+  felSerie         String?      @map("fel_serie")
+  felNumero        Int?         @map("fel_numero")
+  felCertificacion String?      @map("fel_certificacion")
+  felPdfUrl        String?      @map("fel_pdf_url")
+  felEstado        String?      @map("fel_estado")
+  devoluciones     Devolucion[]
+  items            VentaItem[]
+  usuario          Usuario?     @relation(fields: [usuarioId], references: [id])
+
+  @@map("ventas")
+}
+
+model VentaItem {
+  id             Int       @id @default(autoincrement())
+  ventaId        Int       @map("venta_id")
+  productoId     Int?      @map("producto_id")
+  codigo         String?
+  nombre         String
+  cantidad       Float
+  precioUnitario Float     @map("precio_unitario")
+  descuento      Float     @default(0)
+  subtotal       Float
+  producto       Producto? @relation(fields: [productoId], references: [id])
+  venta          Venta     @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
+  @@map("venta_items")
+}
+
+model Cierre {
+  id                 Int       @id @default(autoincrement())
+  fecha              DateTime  @default(now())
+  fechaInicio        DateTime? @map("fecha_inicio")
+  fechaFin           DateTime? @map("fecha_fin")
+  totalVentas        Int       @default(0) @map("total_ventas")
+  totalEfectivo      Float     @default(0) @map("total_efectivo")
+  totalTarjeta       Float     @default(0) @map("total_tarjeta")
+  totalTransferencia Float     @default(0) @map("total_transferencia")
+  granTotal          Float     @default(0) @map("gran_total")
+  usuarioId          Int?      @map("usuario_id")
+  usuarioNombre      String?   @map("usuario_nombre")
+  notas              String?
+  usuario            Usuario?  @relation(fields: [usuarioId], references: [id])
+
+  @@map("cierres")
+}
+
+model Config {
+  clave String @id
+  valor String
+
+  @@map("config")
+}
+
+model Proveedor {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  nit       String?
+  telefono  String?
+  email     String?
+  direccion String?
+  contacto  String?
+  notas     String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  compras   Compra[]
+
+  @@map("proveedores")
+}
+
+model Compra {
+  id              Int          @id @default(autoincrement())
+  numero          String       @unique
+  fecha           DateTime     @default(now())
+  proveedorId     Int?         @map("proveedor_id")
+  proveedorNombre String?      @map("proveedor_nombre")
+  subtotal        Float        @default(0)
+  impuesto        Float        @default(0)
+  total           Float        @default(0)
+  estado          String       @default("recibida")
+  notas           String?
+  usuarioId       Int?         @map("usuario_id")
+  usuarioNombre   String?      @map("usuario_nombre")
+  facturaUrl      String?      @map("factura_url")
+  numeroFactura   String?      @map("numero_factura")
+  serieFactura    String?      @map("serie_factura")
+  items           CompraItem[]
+  proveedor       Proveedor?   @relation(fields: [proveedorId], references: [id])
+  usuario         Usuario?     @relation(fields: [usuarioId], references: [id])
+
+  @@map("compras")
+}
+
+model CompraItem {
+  id             Int       @id @default(autoincrement())
+  compraId       Int       @map("compra_id")
+  productoId     Int?      @map("producto_id")
+  nombre         String
+  cantidad       Float
+  precioUnitario Float     @map("precio_unitario")
+  subtotal       Float
+  compra         Compra    @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  producto       Producto? @relation(fields: [productoId], references: [id])
+
+  @@map("compra_items")
+}
+
+model Descuento {
+  id           Int       @id @default(autoincrement())
+  codigo       String    @unique
+  descripcion  String?
+  tipo         String    @default("porcentaje")
+  valor        Float
+  minimoCompra Float     @default(0) @map("minimo_compra")
+  usosMaximos  Int       @default(0) @map("usos_maximos")
+  usosActuales Int       @default(0) @map("usos_actuales")
+  fechaInicio  DateTime? @map("fecha_inicio")
+  fechaFin     DateTime? @map("fecha_fin")
+  activo       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("descuentos")
+}
+
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  nit       String?
+  telefono  String?
+  email     String?
+  direccion String?
+  notas     String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  tipo      String   @default("prospecto")
+
+  @@map("clientes")
+}
+
+model AperturaCaja {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  fondoInicial  Float    @default(0) @map("fondo_inicial")
+  usuarioId     Int?     @map("usuario_id")
+  usuarioNombre String?  @map("usuario_nombre")
+  estado        String   @default("abierta")
+  notas         String?
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("apertura_caja")
+}
+
+model Kardex {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  productoId    Int      @map("producto_id")
+  tipo          String
+  cantidad      Float
+  stockAntes    Float    @default(0) @map("stock_antes")
+  stockDespues  Float    @default(0) @map("stock_despues")
+  motivo        String?
+  referencia    String?
+  usuarioId     Int?     @map("usuario_id")
+  usuarioNombre String?  @map("usuario_nombre")
+  producto      Producto @relation(fields: [productoId], references: [id])
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("kardex")
+}
+
+model Devolucion {
+  id            Int              @id @default(autoincrement())
+  fecha         DateTime         @default(now())
+  ventaId       Int?             @map("venta_id")
+  ventaNumero   String?          @map("venta_numero")
+  motivo        String
+  totalDevuelto Float            @default(0) @map("total_devuelto")
+  estado        String           @default("completada")
+  usuarioId     Int?             @map("usuario_id")
+  usuarioNombre String?          @map("usuario_nombre")
+  items         DevolucionItem[]
+  usuario       Usuario?         @relation(fields: [usuarioId], references: [id])
+  venta         Venta?           @relation(fields: [ventaId], references: [id])
+
+  @@map("devoluciones")
+}
+
+model DevolucionItem {
+  id             Int        @id @default(autoincrement())
+  devolucionId   Int        @map("devolucion_id")
+  productoId     Int?       @map("producto_id")
+  nombre         String
+  cantidad       Float
+  precioUnitario Float      @map("precio_unitario")
+  subtotal       Float
+  devolucion     Devolucion @relation(fields: [devolucionId], references: [id], onDelete: Cascade)
+  producto       Producto?  @relation(fields: [productoId], references: [id])
+
+  @@map("devolucion_items")
+}
+
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  usuarioId     Int?     @map("usuario_id")
+  usuarioNombre String?  @map("usuario_nombre")
+  accion        String
+  tabla         String?
+  registroId    String?  @map("registro_id")
+  detalle       String?
+  ip            String?
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("audit_log")
+}
+
+model Cotizacion {
+  id                Int              @id @default(autoincrement())
+  numero            String           @unique
+  fecha             DateTime         @default(now())
+  clienteNombre     String           @map("cliente_nombre")
+  clienteDireccion  String?          @map("cliente_direccion")
+  clienteTelefono   String?          @map("cliente_telefono")
+  clienteNit        String?          @map("cliente_nit")
+  atencion          String?
+  formaPago         String?          @map("forma_pago")
+  descripcion       String?
+  notas             String?
+  subtotal          Float            @default(0)
+  descuento         Float            @default(0)
+  total             Float            @default(0)
+  estado            String           @default("pendiente")
+  validezDias       Int              @default(15) @map("validez_dias")
+  usuarioId         Int?             @map("usuario_id")
+  usuarioNombre     String?          @map("usuario_nombre")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  tiempoInstalacion String?          @map("tiempo_instalacion")
+  items             CotizacionItem[]
+
+  @@map("cotizaciones")
+}
+
+model CotizacionItem {
+  id             Int        @id @default(autoincrement())
+  cotizacionId   Int        @map("cotizacion_id")
+  codigo         String?
+  descripcion    String
+  cantidad       Float
+  precioUnitario Float      @map("precio_unitario")
+  subtotal       Float
+  descuento      Float      @default(0)
+  totalItem      Float      @map("total_item")
+  cotizacion     Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+
+  @@map("cotizacion_items")
+}
+
+model MovimientoCaja {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  tipo          String
+  monto         Float
+  motivo        String?
+  aperturaId    Int?     @map("apertura_id")
+  usuarioId     Int?     @map("usuario_id")
+  usuarioNombre String?  @map("usuario_nombre")
+
+  @@map("movimientos_caja")
+}
+
+model ActiveSession {
+  id           Int      @id @default(autoincrement())
+  usuarioId    Int      @unique @map("usuario_id")
+  sessionToken String   @map("session_token")
+  ip           String?
+  lastActivity DateTime @default(now()) @map("last_activity")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("active_sessions")
+}
+
+model OrdenTrabajo {
+  id               Int              @id @default(autoincrement())
+  numero           String           @unique
+  fecha            DateTime         @default(now())
+  clienteNombre    String           @map("cliente_nombre")
+  clienteTelefono  String?          @map("cliente_telefono")
+  clienteNit       String?          @map("cliente_nit")
+  tipoEquipo       String           @map("tipo_equipo")
+  marca            String?
+  modelo           String?
+  serie            String?
+  accesorios       String?
+  descripcionFalla String           @map("descripcion_falla")
+  observaciones    String?
+  estado           String           @default("recibido")
+  prioridad        String           @default("normal")
+  diagnostico      String?
+  trabajoRealizado String?          @map("trabajo_realizado")
+  costoReparacion  Float            @default(0) @map("costo_reparacion")
+  costoRepuestos   Float            @default(0) @map("costo_repuestos")
+  total            Float            @default(0)
+  fechaPromesa     DateTime?        @map("fecha_promesa")
+  fechaEntrega     DateTime?        @map("fecha_entrega")
+  tecnicoNombre    String?          @map("tecnico_nombre")
+  usuarioId        Int?             @map("usuario_id")
+  usuarioNombre    String?          @map("usuario_nombre")
+  notas            String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  historial        OrdenHistorial[]
+  repuestos        OrdenRepuesto[]
+
+  @@map("ordenes_trabajo")
+}
+
+model OrdenRepuesto {
+  id         Int          @id @default(autoincrement())
+  ordenId    Int          @map("orden_id")
+  nombre     String
+  cantidad   Float
+  precioUnit Float        @map("precio_unit")
+  subtotal   Float
+  orden      OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@map("orden_repuestos")
+}
+
+model OrdenHistorial {
+  id             Int          @id @default(autoincrement())
+  ordenId        Int          @map("orden_id")
+  fecha          DateTime     @default(now())
+  estadoAnterior String?      @map("estado_anterior")
+  estadoNuevo    String       @map("estado_nuevo")
+  comentario     String?
+  usuarioNombre  String?      @map("usuario_nombre")
+  orden          OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+
+  @@map("orden_historial")
+}
+
+model Garantia {
+  id               Int       @id @default(autoincrement())
+  numero           String    @unique
+  fechaVenta       DateTime  @map("fecha_venta")
+  fechaVencimiento DateTime  @map("fecha_vencimiento")
+  diasGarantia     Int       @map("dias_garantia")
+  clienteNombre    String    @map("cliente_nombre")
+  clienteTelefono  String?   @map("cliente_telefono")
+  clienteNit       String?   @map("cliente_nit")
+  productoNombre   String    @map("producto_nombre")
+  productoSerie    String?   @map("producto_serie")
+  ventaNumero      String?   @map("venta_numero")
+  ventaId          Int?      @map("venta_id")
+  estado           String    @default("vigente")
+  condiciones      String?
+  notas            String?
+  usuarioNombre    String?   @map("usuario_nombre")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  proyectoId       Int?      @map("proyecto_id")
+  proyecto         Proyecto? @relation(fields: [proyectoId], references: [id])
+
+  @@map("garantias")
+}
+
+model Presupuesto {
+  id        Int      @id @default(autoincrement())
+  anio      Int
+  mes       Int
+  meta      Float    @default(0)
+  notas     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([anio, mes])
+  @@map("presupuestos")
+}
+
+model ReclamoGarantia {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique
+  fecha            DateTime @default(now())
+  garantiaId       Int      @map("garantia_id")
+  garantiaNumero   String   @map("garantia_numero")
+  clienteNombre    String   @map("cliente_nombre")
+  clienteNit       String?  @map("cliente_nit")
+  clienteDpi       String?  @map("cliente_dpi")
+  clienteTelefono  String?  @map("cliente_telefono")
+  productoNombre   String   @map("producto_nombre")
+  productoSerie    String?  @map("producto_serie")
+  motivoReclamo    String   @map("motivo_reclamo")
+  descripcionFalla String   @map("descripcion_falla")
+  tieneFactura     Boolean  @default(false) @map("tiene_factura")
+  numeroFactura    String?  @map("numero_factura")
+  estado           String   @default("recibido")
+  decision         String?
+  resolucion       String?
+  ordenTrabajoId   Int?     @map("orden_trabajo_id")
+  usuarioNombre    String?  @map("usuario_nombre")
+  notas            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("reclamos_garantia")
+}
+
+model PedidoWeb {
+  id               Int             @id @default(autoincrement())
+  numero           String          @unique
+  fecha            DateTime        @default(now())
+  clienteNombre    String          @map("cliente_nombre")
+  clienteEmail     String          @map("cliente_email")
+  clienteTelefono  String?         @map("cliente_telefono")
+  clienteNit       String?         @map("cliente_nit")
+  clienteDireccion String?         @map("cliente_direccion")
+  metodoPago       String          @default("stripe") @map("metodo_pago")
+  stripeSessionId  String?         @map("stripe_session_id")
+  stripePaymentId  String?         @map("stripe_payment_id")
+  subtotal         Float           @default(0)
+  envio            Float           @default(0)
+  total            Float           @default(0)
+  estado           String          @default("pendiente")
+  notas            String?
+  ventaId          Int?            @map("venta_id")
+  procesadoPor     String?         @map("procesado_por")
+  fechaProcesado   DateTime?       @map("fecha_procesado")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  items            PedidoWebItem[]
+
+  @@map("pedidos_web")
+}
+
+model PedidoWebItem {
+  id             Int       @id @default(autoincrement())
+  pedidoId       Int       @map("pedido_id")
+  productoId     Int?      @map("producto_id")
+  nombre         String
+  codigo         String?
+  cantidad       Int
+  precioUnitario Float     @map("precio_unitario")
+  subtotal       Float
+  imagenUrl      String?   @map("imagen_url")
+  pedido         PedidoWeb @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@map("pedido_web_items")
+}
+
+model CuentaCobrar {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique
+  fecha            DateTime @default(now())
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  clienteNombre    String   @map("cliente_nombre")
+  clienteNit       String?  @map("cliente_nit")
+  clienteTelefono  String?  @map("cliente_telefono")
+  ventaNumero      String?  @map("venta_numero")
+  concepto         String
+  monto            Float
+  montoPagado      Float    @default(0) @map("monto_pagado")
+  estado           String   @default("pendiente")
+  notas            String?
+  usuarioNombre    String?  @map("usuario_nombre")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("cuentas_cobrar")
+}
+
+model CuentaPagar {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique
+  fecha            DateTime @default(now())
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  proveedorNombre  String   @map("proveedor_nombre")
+  proveedorId      Int?     @map("proveedor_id")
+  compraNumero     String?  @map("compra_numero")
+  concepto         String
+  monto            Float
+  montoPagado      Float    @default(0) @map("monto_pagado")
+  estado           String   @default("pendiente")
+  notas            String?
+  usuarioNombre    String?  @map("usuario_nombre")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("cuentas_pagar")
+}
+
+model CuentaContable {
+  id            Int               @id @default(autoincrement())
+  codigo        String            @unique
+  nombre        String
+  tipo          String
+  naturaleza    String
+  nivel         Int               @default(1)
+  cuentaPadreId Int?              @map("cuenta_padre_id")
+  activa        Boolean           @default(true)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  partidas      PartidaContable[]
+
+  @@map("cuentas_contables")
+}
+
+model PeriodoContable {
+  id          Int               @id @default(autoincrement())
+  nombre      String
+  fechaInicio DateTime          @map("fecha_inicio")
+  fechaFin    DateTime          @map("fecha_fin")
+  estado      String            @default("abierto")
+  cerradoPor  String?           @map("cerrado_por")
+  cerradoAt   DateTime?         @map("cerrado_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  asientos    AsientoContable[]
+
+  @@map("periodos_contables")
+}
+
+model AsientoContable {
+  id             Int               @id @default(autoincrement())
+  numero         String            @unique
+  fecha          DateTime          @default(now())
+  concepto       String
+  tipo           String            @default("manual")
+  referenciaId   Int?              @map("referencia_id")
+  referenciaTipo String?           @map("referencia_tipo")
+  referenciaNum  String?           @map("referencia_num")
+  periodoId      Int?              @map("periodo_id")
+  usuarioNombre  String?           @map("usuario_nombre")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  periodo        PeriodoContable?  @relation(fields: [periodoId], references: [id])
+  partidas       PartidaContable[]
+
+  @@map("asientos_contables")
+}
+
+model PartidaContable {
+  id          Int             @id @default(autoincrement())
+  asientoId   Int             @map("asiento_id")
+  cuentaId    Int             @map("cuenta_id")
+  debe        Float           @default(0)
+  haber       Float           @default(0)
+  descripcion String?
+  asiento     AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
+  cuenta      CuentaContable  @relation(fields: [cuentaId], references: [id])
+
+  @@map("partidas_contables")
+}
+
+model ActivoFijo {
+  id                  Int      @id @default(autoincrement())
+  codigo              String   @unique
+  nombre              String
+  descripcion         String?
+  fechaAdquisicion    DateTime @map("fecha_adquisicion")
+  costoOriginal       Float    @map("costo_original")
+  vidaUtilAnios       Int      @map("vida_util_anios")
+  valorResidual       Float    @default(0) @map("valor_residual")
+  depreciacionMensual Float    @map("depreciacion_mensual")
+  depreciacionAcum    Float    @default(0) @map("depreciacion_acum")
+  valorNeto           Float    @map("valor_neto")
+  estado              String   @default("activo")
+  notas               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("activos_fijos")
+}
+
+model Mantenimiento {
+  id               Int       @id @default(autoincrement())
+  numero           String    @unique
+  clienteNombre    String    @map("cliente_nombre")
+  clienteTelefono  String?   @map("cliente_telefono")
+  clienteDireccion String?   @map("cliente_direccion")
+  descripcion      String
+  fechaInstalacion DateTime  @map("fecha_instalacion")
+  mant1Fecha       DateTime? @map("mant1_fecha")
+  mant1Realizado   Boolean   @default(false) @map("mant1_realizado")
+  mant1Notas       String?   @map("mant1_notas")
+  mant2Fecha       DateTime? @map("mant2_fecha")
+  mant2Realizado   Boolean   @default(false) @map("mant2_realizado")
+  mant2Notas       String?   @map("mant2_notas")
+  mant3Fecha       DateTime? @map("mant3_fecha")
+  mant3Realizado   Boolean   @default(false) @map("mant3_realizado")
+  mant3Notas       String?   @map("mant3_notas")
+  estado           String    @default("activo")
+  notas            String?
+  ventaNumero      String?   @map("venta_numero")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("mantenimientos")
+}
+
+model Proyecto {
+  id               Int                     @id @default(autoincrement())
+  numero           String                  @unique
+  nombre           String
+  clienteNombre    String                  @map("cliente_nombre")
+  clienteTelefono  String?                 @map("cliente_telefono")
+  clienteDireccion String?                 @map("cliente_direccion")
+  clienteNit       String?                 @map("cliente_nit")
+  contactoNombre   String?                 @map("contacto_nombre")
+  descripcion      String
+  alcance          String?
+  cotizacionId     Int?                    @unique @map("cotizacion_id")
+  cotizacionNumero String?                 @map("cotizacion_numero")
+  fechaInicio      DateTime?               @map("fecha_inicio")
+  fechaFin         DateTime?               @map("fecha_fin")
+  estado           String                  @default("planificado")
+  notas            String?
+  usuarioNombre    String?                 @map("usuario_nombre")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  garantias        Garantia[]
+  mantenimientos   MantenimientoProyecto[]
+
+  @@map("proyectos")
+}
+
+model MantenimientoProyecto {
+  id              Int       @id @default(autoincrement())
+  proyectoId      Int       @map("proyecto_id")
+  numero          Int
+  fechaProgramada DateTime  @map("fecha_programada")
+  fechaRealizada  DateTime? @map("fecha_realizada")
+  realizado       Boolean   @default(false)
+  notas           String?
+  cobrado         Boolean   @default(false)
+  montoCobrado    Float     @default(0) @map("monto_cobrado")
+  tecnicoNombre   String?   @map("tecnico_nombre")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  proyecto        Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  @@map("mantenimientos_proyecto")
+}
+
+model ZonaInstalacion {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  departamento String
+  tarifa       Float    @default(0)
+  notas        String?
+  activa       Boolean  @default(true)
+  orden        Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("zonas_instalacion")
+}

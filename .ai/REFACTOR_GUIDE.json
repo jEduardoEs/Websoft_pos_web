@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "guide_title": "AI Refactoring Step-by-Step Protocol",
+  "steps": [
+    "Step 1: Clone src/modules/__template/ to src/modules/[modulo-name]/",
+    "Step 2: Define DTOs in dto/ and TypeScript types in types/",
+    "Step 3: Extract pure business logic to logic/ with unit tests in tests/unit/",
+    "Step 4: Create isolated repository in repositories/ wrapping Prisma queries",
+    "Step 5: Create HTTP service client in services/",
+    "Step 6: Build Custom Hook in hooks/ to manage state and service calls",
+    "Step 7: Build clean View in views/ using src/ui/ components",
+    "Step 8: Export public API in index.ts and connect App Router page.tsx to <ModuloView />"
+  ]
+}

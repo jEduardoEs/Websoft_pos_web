@@ -1,0 +1,111 @@
+import { CreateProyectoDto } from '../dto/create-proyecto.dto';
+import { ProyectoRepository } from '../repositories/proyecto.repository';
+
+export class ProyectoService {
+  private static repository = new ProyectoRepository();
+
+  static async findAll(params: { estado?: string; buscar?: string }) {
+    return this.repository.findAll(params);
+  }
+
+  static async findById(id: number) {
+    return this.repository.findById(id);
+  }
+
+  static async create(data: CreateProyectoDto, userId: number, userName: string) {
+    return this.repository.create(data, userId, userName);
+  }
+
+  static async update(id: number, data: Partial<CreateProyectoDto> & { pin?: string }, userId: number, userName: string) {
+    return this.repository.update(id, data, userId, userName);
+  }
+
+  static async updateEstado(id: number, estado: string) {
+    const proyecto = await this.repository.findById(id);
+    if (!proyecto) throw new Error('Proyecto no encontrado');
+    return this.repository.update(id, { estado }, proyecto.usuarioId || 1, 'System');
+  }
+
+  static async facturarProyecto(id: number, data: any, userId: number, userName: string) {
+    return this.repository.facturarProyecto(id, data, userId, userName);
+  }
+
+  static async facturarFEL(id: number, opciones?: { emisorNit?: string; emisorNombre?: string; correoCliente?: string; enviarCorreo?: boolean }) {
+    return this.repository.facturarProyecto(id, opciones || {}, 1, 'System');
+  }
+
+  static async registerMantenimiento(id: number, mantId: number, data: any, userId: number, userName: string) {
+    return this.repository.registerMantenimiento(id, mantId, data, userId, userName);
+  }
+
+  static async delete(id: number, role: string, pin?: string) {
+    return this.repository.delete(id, role, pin);
+  }
+
+  static async createFromSale(saleId: number) {
+    const { prisma } = await import('@/lib/prisma');
+    const venta = await prisma.venta.findUnique({
+      where: { id: saleId },
+      include: { items: true },
+    });
+    if (!venta) throw new Error('Venta no encontrada');
+
+    const matchCotId = (venta.notas || '').match(/COT-(\d+)/i);
+    const resolvedCotId = matchCotId ? Number(matchCotId[1]) : undefined;
+
+    let cot: any = null;
+    if (resolvedCotId) {
+      cot = await prisma.cotizacion.findUnique({
+        where: { id: resolvedCotId },
+        include: { items: true },
+      });
+    }
+
+    // Build description from cotizacion items for clarity
+    let descripcionProyecto = `Proyecto generado automáticamente a partir de la venta ${venta.numero}`;
+    if (cot?.items?.length > 0) {
+      const lineas = cot.items.map((it: any) => `• ${it.descripcion} (x${it.cantidad})`).join('\n');
+      descripcionProyecto = `Items de la cotización ${cot.numero}:\n${lineas}`;
+    }
+
+    const dto: CreateProyectoDto = {
+      nombre: cot?.descripcion?.trim() ? cot.descripcion.trim() : `Proyecto Venta ${venta.numero}`,
+      clienteNombre: cot?.clienteNombre || venta.clienteNombre,
+      clienteNit: cot?.clienteNit || venta.clienteNit,
+      clienteTelefono: cot?.clienteTelefono || undefined,
+      clienteDireccion: cot?.clienteDireccion || undefined,
+      contactoNombre: cot?.atencion || undefined,
+      descripcion: descripcionProyecto,
+      notas: cot?.notas || undefined,
+      cotizacionId: resolvedCotId,
+      cotizacionNumero: cot?.numero || venta.numero,
+    };
+
+    const proyecto = await this.create(dto, 1, 'System');
+    
+    const { eventBus } = require('@/core/events/EventBus');
+    await eventBus.publish({
+      type: 'ProjectCreated',
+      payload: { projectId: proyecto.id, saleId: venta.id },
+      timestamp: new Date(),
+    });
+
+    return proyecto;
+  }
+
+  static async markReadyForExecution(saleId: number) {
+    console.info(`[ProyectoService] markReadyForExecution called for sale ${saleId}`);
+    return true;
+  }
+
+  static async handleInvoicing(projectId: number) {
+    const result = await this.repository.handleInvoicing(projectId);
+    const { eventBus } = require('@/core/events/EventBus');
+    await eventBus.publish({
+      type: 'ProjectInvoiced',
+      payload: { projectId, saleId: undefined },
+      timestamp: new Date(),
+    });
+    return result;
+  }
+}

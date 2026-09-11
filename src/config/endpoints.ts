@@ -1,0 +1,23 @@
+export const ENDPOINTS = {
+  AUTH: {
+    SESSION: '/api/auth/session',
+    LOGIN: '/api/auth/callback/credentials',
+  },
+  VENTAS: '/api/ventas',
+  PRODUCTOS: '/api/productos',
+  CLIENTES: '/api/clientes',
+  COTIZACIONES: '/api/cotizaciones',
+  PROYECTOS: '/api/proyectos',
+  DEVOLUCIONES: '/api/devoluciones',
+  DESCUENTOS: '/api/descuentos',
+  CAJA: '/api/caja',
+  CIERRES: '/api/cierres',
+  COMPRAS: '/api/compras',
+  PROVEEDORES: '/api/proveedores',
+  GARANTIAS: '/api/garantias',
+  SERVICIO: '/api/mantenimientos',
+  CONTABILIDAD: '/api/contabilidad/asientos',
+  CUENTAS_COBRAR: '/api/cuentas-cobrar',
+  CUENTAS_PAGAR: '/api/cuentas-pagar',
+  REPORTES: '/api/reportes',
+} as const

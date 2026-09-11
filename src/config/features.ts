@@ -1,0 +1,8 @@
+export const FEATURE_FLAGS = {
+  ENABLE_FEL: true,
+  ENABLE_STRIPE: true,
+  ENABLE_EMAIL_INVOICES: true,
+  ENABLE_PRINTER: true,
+  ENABLE_CONTABILIDAD_MODULE: true,
+  ENABLE_V2_ARCHITECTURE: true,
+} as const
