@@ -16,11 +16,10 @@ export const projectDeliveredListener = async (event: any): Promise<void> => {
     if (!proyecto) return;
 
     // 1. Birth Warranty Certificate (BR-007)
-    const maxGar = await prisma.garantia.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
-    const nextGarId = (maxGar?.id || 0) + 1;
-    const numG = `GAR-${String(nextGarId).padStart(6, '0')}`;
+    const countG = await prisma.garantia.count();
+    const numG = `GAR-${String(countG + 1).padStart(6, '0')}`;
     const garantiaAgg = GarantiaAggregate.createOnProjectDelivery({
-      id: nextGarId,
+      id: countG + 1,
       numero: numG,
       proyectoId: proyecto.id,
       clienteNombre: proyecto.clienteNombre,

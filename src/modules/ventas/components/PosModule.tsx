@@ -234,6 +234,31 @@ export function PosModule() {
       setDescMontoExacto(null);
       resetPos();
       loadProductos();
+
+      // Auto-imprimir ticket
+      const ivaPct = parseFloat(config?.iva_porcentaje || '5');
+      const html = buildTicketHTML({
+        empresaNombre: config?.empresa_nombre || '',
+        empresaNit: config?.empresa_nit || '',
+        empresaDireccion: config?.empresa_direccion || '',
+        empresaTelefono: config?.empresa_telefono || '',
+        cajero: data.venta.usuarioNombre || 'Cajero',
+        numero: data.venta.numero,
+        fecha: data.venta.createdAt,
+        clienteNombre: data.venta.clienteNombre,
+        clienteNit: data.venta.clienteNit,
+        felUuid: data.fel?.uuid,
+        felSerie: data.fel?.serie,
+        felNumero: data.fel?.numero,
+        felCertificacion: data.fel?.fechaCertificacion,
+        isSandbox: data.fel?.sandbox,
+        items: (data.venta.items || []).map((it: any) => ({
+          nombre: it.nombre, cantidad: it.cantidad, precioUnitario: it.precioUnitario, descuento: it.descuento || 0, subtotal: it.subtotal
+        })),
+        subtotal: data.venta.subtotal, descuento: data.venta.descuento, impuesto: data.venta.impuesto,
+        total: data.venta.total, metodoPago: data.venta.metodoPago, montoRecibido: data.venta.montoRecibido, cambio: data.venta.cambio, ivaPct,
+      });
+      printTicketWindow(html);
     } catch (err: any) {
       toast.error(err.message || 'Error al procesar la venta');
     } finally {

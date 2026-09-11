@@ -57,15 +57,7 @@ export class ProyectoService {
     if (resolvedCotId) {
       cot = await prisma.cotizacion.findUnique({
         where: { id: resolvedCotId },
-        include: { items: true },
       });
-    }
-
-    // Build description from cotizacion items for clarity
-    let descripcionProyecto = `Proyecto generado automáticamente a partir de la venta ${venta.numero}`;
-    if (cot?.items?.length > 0) {
-      const lineas = cot.items.map((it: any) => `• ${it.descripcion} (x${it.cantidad})`).join('\n');
-      descripcionProyecto = `Items de la cotización ${cot.numero}:\n${lineas}`;
     }
 
     const dto: CreateProyectoDto = {
@@ -75,7 +67,7 @@ export class ProyectoService {
       clienteTelefono: cot?.clienteTelefono || undefined,
       clienteDireccion: cot?.clienteDireccion || undefined,
       contactoNombre: cot?.atencion || undefined,
-      descripcion: descripcionProyecto,
+      descripcion: cot?.descripcion || `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
       notas: cot?.notas || undefined,
       cotizacionId: resolvedCotId,
       cotizacionNumero: cot?.numero || venta.numero,
