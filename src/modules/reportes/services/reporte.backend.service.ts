@@ -139,17 +139,77 @@ export class ReporteBackendService {
   }
 
   static async getReportePatrimonio() {
-    const activosFijos = await prisma.activoFijo.findMany({
-      where: { estado: 'activo' },
-      orderBy: { fechaAdquisicion: 'asc' },
-    });
+   const activosDB = await prisma.activoFijo.findMany({
+  where: { estado: 'activo' },
+  orderBy: { fechaAdquisicion: 'asc' },
+});
 
-    const resumenActivos = {
-      cantidad: activosFijos.length,
-      valorBruto: activosFijos.reduce((s, a) => s + a.costoOriginal, 0),
-      depreciacionAcum: activosFijos.reduce((s, a) => s + a.depreciacionAcum, 0),
-      valorNeto: activosFijos.reduce((s, a) => s + a.valorNeto, 0),
-    };
+const hoy = new Date();
+
+const activosFijos = activosDB.map((a) => {
+  const fechaAdquisicion = new Date(a.fechaAdquisicion);
+
+  let mesesTranscurridos =
+    (hoy.getFullYear() - fechaAdquisicion.getFullYear()) * 12 +
+    (hoy.getMonth() - fechaAdquisicion.getMonth());
+
+  if (hoy.getDate() < fechaAdquisicion.getDate()) {
+    mesesTranscurridos--;
+  }
+
+  mesesTranscurridos = Math.max(0, mesesTranscurridos);
+
+  const totalMesesVidaUtil = a.vidaUtilAnios * 12;
+
+  const mesesDepreciables = Math.min(
+    mesesTranscurridos,
+    totalMesesVidaUtil
+  );
+
+  const baseDepreciable =
+    a.costoOriginal - a.valorResidual;
+
+  const depreciacionMensual =
+    totalMesesVidaUtil > 0
+      ? baseDepreciable / totalMesesVidaUtil
+      : 0;
+
+  const depreciacionAcum = Math.min(
+    depreciacionMensual * mesesDepreciables,
+    baseDepreciable
+  );
+
+  const valorNeto = Math.max(
+    a.costoOriginal - depreciacionAcum,
+    a.valorResidual
+  );
+
+  return {
+    ...a,
+    depreciacionMensual,
+    depreciacionAcum,
+    valorNeto
+  };
+});
+
+const resumenActivos = {
+  cantidad: activosFijos.length,
+
+  valorBruto: activosFijos.reduce(
+    (s, a) => s + a.costoOriginal,
+    0
+  ),
+
+  depreciacionAcum: activosFijos.reduce(
+    (s, a) => s + a.depreciacionAcum,
+    0
+  ),
+
+  valorNeto: activosFijos.reduce(
+    (s, a) => s + a.valorNeto,
+    0
+  ),
+};
 
     const productos = await prisma.producto.findMany({
       where: { activo: true, stock: { gt: 0 } },
