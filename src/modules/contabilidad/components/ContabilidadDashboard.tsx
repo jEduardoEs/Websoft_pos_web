@@ -268,13 +268,45 @@ export function ContabilidadDashboard() {
   }
 
   const saveActivo = async () => {
-    setLoading(true)
-    const res = await fetch('/api/contabilidad/activos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(activoForm) })
-    const data = await res.json()
-    setLoading(false)
-    if (data.ok) { toast.success('Activo registrado'); setShowActivoModal(false); setActivoForm({ nombre: '', descripcion: '', fechaAdquisicion: TODAY, costoOriginal: '', vidaUtilAnios: '5', valorResidual: '0' }); loadActivos() }
-    else toast.error(data.error)
+  if (!activoForm.nombre || !activoForm.costoOriginal || !activoForm.vidaUtilAnios) {
+    toast.error('Completa los campos requeridos')
+    return
   }
+
+  setLoading(true)
+
+  const payload = {
+    ...activoForm,
+    costoOriginal: Number(activoForm.costoOriginal),
+    vidaUtilAnios: Number(activoForm.vidaUtilAnios),
+    valorResidual: Number(activoForm.valorResidual || 0),
+  }
+
+  const res = await fetch('/api/contabilidad/activos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+
+  const data = await res.json()
+  setLoading(false)
+
+  if (data.ok) {
+    toast.success('Activo registrado')
+    setShowActivoModal(false)
+    setActivoForm({
+      nombre: '',
+      descripcion: '',
+      fechaAdquisicion: TODAY,
+      costoOriginal: '',
+      vidaUtilAnios: '5',
+      valorResidual: '0'
+    })
+    loadActivos()
+  } else {
+    toast.error(data.error)
+  }
+}
 
   const imprimirIVA = () => {
     if (!ivaData) return
