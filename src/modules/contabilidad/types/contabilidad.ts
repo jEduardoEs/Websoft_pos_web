@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 export const CuentaContableSchema = z.object({
   id: z.number().optional(),
-  codigo: z.string().min(1, "Código requerido"),
+  codigo: z.string().min(1, "Código requerido").optional(),
   nombre: z.string().min(1, "Nombre requerido"),
   tipo: z.string(), // activo, pasivo, capital, ingreso, costo, gasto
   naturaleza: z.string(), // deudora, acreedora
