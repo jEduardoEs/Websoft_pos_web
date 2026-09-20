@@ -289,7 +289,7 @@ export default function ReportesDashboard() {
                     {(reporte.topProductos || []).slice(0, 10).map((p: any) => (
                       <tr key={p.nombre}>
                         <td style={{ ...tdS, fontWeight: 600 }}>{p.nombre}</td>
-                        <td style={{ ...tdS, textAlign: 'center' }}>{p.cantidad}</td>
+                        <td style={{ ...tdS, textAlign: 'center' }}>{p.qty}</td>
                         <td style={{ ...tdS, fontWeight: 700, color: '#16a34a' }}>{fmt(p.total)}</td>
                         <td style={tdS}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
