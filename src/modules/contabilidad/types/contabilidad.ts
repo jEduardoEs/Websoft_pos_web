@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 export const CuentaContableSchema = z.object({
   id: z.number().optional(),
-  codigo: z.string().min(1, "Código requerido").optional(),
+  codigo: z.string().min(1, "Código requerido"),
   nombre: z.string().min(1, "Nombre requerido"),
   tipo: z.string(), // activo, pasivo, capital, ingreso, costo, gasto
   naturaleza: z.string(), // deudora, acreedora
@@ -59,7 +59,7 @@ export type PeriodoContableDTO = z.infer<typeof PeriodoContableSchema>;
 
 export const ActivoFijoSchema = z.object({
   id: z.number().optional(),
-  codigo: z.string().min(1, "Código requerido"),
+  codigo: z.string().optional(),
   nombre: z.string().min(1, "Nombre requerido"),
   descripcion: z.string().nullable().optional(),
   fechaAdquisicion: z.union([z.string(), z.date()]),
