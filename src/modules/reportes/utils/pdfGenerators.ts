@@ -264,7 +264,7 @@ export function exportarPDFVentas(reporte: any, fi: string, ff: string) {
   const prodRows = (reporte.topProductos || []).slice(0, 15).map((p: any) => {
     const totP = Number(p.total || 0);
     const pct = granTotal > 0 ? Math.round((totP / granTotal) * 100) : 0;
-    return `<tr><td>${p.nombre || '—'}</td><td class="center">${p.cantidad || 0}</td><td class="right">Q ${totP.toFixed(2)}</td><td class="center">${pct}%</td></tr>`;
+   return `<tr><td>${p.nombre || '—'}</td><td class="center">${p.qty || 0}</td><td class="right">Q ${totP.toFixed(2)}</td><td class="center">${pct}%</td></tr>`;
   }).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
