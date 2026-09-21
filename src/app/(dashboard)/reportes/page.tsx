@@ -256,8 +256,10 @@ export default function ReportesPage() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dia, v]: any) => `<tr><td>${new Date(dia).toLocaleDateString('es-GT')}</td><td class="center">${v.ventas}</td><td class="right">Q ${v.total.toFixed(2)}</td><td class="right">Q ${(v.total / v.ventas).toFixed(2)}</td><td class="center">0</td></tr>`).join('')
     const prodRows = (reporte.topProductos || []).slice(0, 15).map((p: any) =>
-      `<tr><td>${p.nombre}</td><td class="center">${p.qty}</td><td class="right">Q ${p.total.toFixed(2)}</td><td class="center">${Math.round((p.total / reporte.granTotal) * 100)}%</td></tr>`
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
+  `<tr><td>${p.nombre}</td><td class="center">${p.qty}</td><td class="right">Q ${p.total.toFixed(2)}</td><td class="center">${Math.round((p.total / reporte.granTotal) * 100)}%</td></tr>`
+).join('')
+
+const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
       *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#0f172a;padding:20px}
       .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #2563eb}
       .logo{font-size:20px;font-weight:800;color:#0f172a}.logo span{color:#2563eb}
