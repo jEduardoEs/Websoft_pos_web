@@ -232,7 +232,6 @@ export function PosModule() {
       setLastFel(data.fel || null);
       setShowCobro(false);
       setDescMontoExacto(null);
-      resetPos();
       loadProductos();
     } catch (err: any) {
       toast.error(err.message || 'Error al procesar la venta');
