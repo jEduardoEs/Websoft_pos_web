@@ -248,7 +248,7 @@ export function PosModule() {
       empresaNit: config?.empresa_nit || '',
       empresaDireccion: config?.empresa_direccion || '',
       empresaTelefono: config?.empresa_telefono || '',
-      empresaLogoUrl: '/logo.png',
+      empresaLogoUrl: '/bancos/logo.png',
       mostrarLogo: true,
       ticketMensaje: config?.ticket_mensaje || '¡Gracias por su compra!', 
       cajero: lastVenta.usuarioNombre || 'Cajero',
