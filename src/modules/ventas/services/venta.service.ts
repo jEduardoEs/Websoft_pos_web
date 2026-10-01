@@ -192,6 +192,7 @@ export class VentaService {
               nombre: i.nombre,
               cantidad: i.cantidad,
               precioUnitario: i.precioUnitario,
+              costoUnitario: i.costo,
               descuento: i.descuento,
               subtotal: i.subtotal,
             })),
