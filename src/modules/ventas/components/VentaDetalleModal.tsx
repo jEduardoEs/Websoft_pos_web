@@ -165,5 +165,4 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
     </div>
   );
 }
-  
-}
+
