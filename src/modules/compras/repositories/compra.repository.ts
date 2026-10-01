@@ -61,40 +61,73 @@ export class CompraRepository {
         include: { items: true },
       });
 
-      // 2. Update stock, cost, sale price (preserving margin), and register in Kardex for each item
+     
+      // 2. Actualizar existencias y costo promedio ponderado
       for (const item of dto.items) {
         if (!item.productoId) continue;
+
         const qty = Number(item.cantidad);
         const unitCost = Number(item.precioUnitario);
 
-        const currentProd = await tx.producto.findUnique({ where: { id: item.productoId }, select: { stock: true, costo: true, precio: true } });
-        const oldStock = currentProd?.stock || 0;
-        const oldCost = currentProd?.costo || 0;
-        const oldPrice = currentProd?.precio || 0;
+        // Validar cantidad y costo
+        if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) {
+          throw new Error(
+            `Cantidad inválida para el producto: ${item.nombre}. Debe ser un número entero positivo.`
+          );
+        }
 
-        const costToSave = unitCost > 0 ? unitCost : oldCost;
+        if (!Number.isFinite(unitCost) || unitCost < 0) {
+          throw new Error(`Costo inválido para el producto: ${item.nombre}`);
+        }
 
-        // Calculate new sale price preserving the user's established margin ratio (+ 5% IVA)
-        const newPrice = calculateNewPricePreservingMargin(oldCost, oldPrice, costToSave);
+        // Obtener existencias y costo actuales
+        const currentProd = await tx.producto.findUnique({
+          where: { id: item.productoId },
+          select: {
+            stock: true,
+            costo: true,
+          },
+        });
 
+        if (!currentProd) {
+          throw new Error(`No se encontró el producto: ${item.nombre}`);
+        }
+
+        const oldStock = currentProd.stock || 0;
+        const oldCost = currentProd.costo || 0;
+
+        // Calcular el nuevo costo promedio ponderado
+        let newAverageCost = oldCost;
+
+        if (unitCost > 0) {
+          if (oldStock > 0 && oldCost > 0) {
+            newAverageCost =
+              ((oldStock * oldCost) + (qty * unitCost)) /
+              (oldStock + qty);
+          } else {
+            newAverageCost = unitCost;
+          }
+        }
+
+        // Actualizar existencias y costo sin modificar el precio de venta
         const prod = await tx.producto.update({
           where: { id: item.productoId },
           data: {
             stock: { increment: qty },
-            ...(unitCost > 0 ? { costo: costToSave, precio: newPrice } : {}),
+            ...(unitCost > 0
+              ? { costo: Number(newAverageCost.toFixed(4)) }
+              : {}),
           },
         });
 
-        const stockDespues = prod.stock;
-        const stockAntes = stockDespues - qty;
-
+        // Registrar movimiento en Kardex
         await tx.kardex.create({
           data: {
             productoId: item.productoId,
             tipo: 'entrada',
             cantidad: qty,
-            stockAntes,
-            stockDespues,
+            stockAntes: prod.stock - qty,
+            stockDespues: prod.stock,
             motivo: `Compra ${numero}${dto.numeroFactura ? ` — Factura ${dto.serieFactura || ''}${dto.numeroFactura}` : ''}`,
             referencia: dto.numeroFactura || null,
             usuarioId: userId,
@@ -102,6 +135,7 @@ export class CompraRepository {
           },
         });
       }
+
 
       // Automatically register CuentaPagar for credit purchases
       if (dto.notas && /credito|crédito|diferido/i.test(dto.notas)) {
