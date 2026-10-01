@@ -19,6 +19,16 @@ export interface FELResponse {
   sandbox?: boolean
 }
 
+export interface FELItem {
+  cantidad: number
+  descripcion: string
+  precioUnitario: number
+  descuento?: number
+  subtotal: number
+  codigoProducto?: string
+  unidadMedida?: string
+}
+
 export interface FELInput {
   numeroInterno: string
   tipoDTE?: 'FACT'
