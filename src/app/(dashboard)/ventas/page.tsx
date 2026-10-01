@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { fmt, fmtDateTime } from '@/lib/utils'
+import { buildTicketHTML, printTicketWindow } from '@/lib/ticket-printer'
 
 interface Venta {
   id: number
