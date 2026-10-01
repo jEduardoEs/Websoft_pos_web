@@ -422,7 +422,7 @@ ${HR}
   ${itemRows}
 
   ${HR}
-
+  <div class="section-title">TOTALES DEL DOCUMENTO</div>
   <!-- Totales -->
   <div class="total-row"><span>Subtotal</span><span>${fmt(d.subtotal)}</span></div>
   ${d.descuento > 0 ? `<div class="total-row"><span>Descuento</span><span>-${fmt(d.descuento)}</span></div>` : ''}
