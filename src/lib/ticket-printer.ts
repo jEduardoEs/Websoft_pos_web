@@ -143,6 +143,21 @@ const felSection = d.felUuid ? `
   </div>
 ` : ''
 
+  // Logo de empresa
+const logoSection =
+  d.mostrarLogo !== false && d.empresaLogoUrl
+    ? `
+      <div class="logo-wrap">
+        <img
+          src="${d.empresaLogoUrl}"
+          class="logo"
+          alt="Logo ${d.empresaNombre}"
+          onerror="this.style.display='none'"
+        >
+      </div>
+    `
+    : ''
+  
  
   return `<!DOCTYPE html>
 <html lang="es">
@@ -159,9 +174,10 @@ const felSection = d.felUuid ? `
     margin: 3mm 2mm;
   }
 
-  body {
+ body {
     font-family: 'Courier New', Courier, monospace;
     font-size: 11px;
+    font-weight: 600;
     color: #000;
     background: #fff;
     width: 72mm;
@@ -175,7 +191,13 @@ const felSection = d.felUuid ? `
   .logo-wrap  { text-align:center; margin-bottom:6px; }
   .logo       { width:52px; height:52px; object-fit:contain; }
   .empresa    { font-size:13px; font-weight:bold; text-align:center; text-transform:uppercase; }
-  .empresa-sub{ font-size:9px; text-align:center; color:#444; line-height:1.5; }
+  .empresa-sub {
+    font-size:10px;
+    text-align:center;
+    color:#000;
+    font-weight:600;
+    line-height:1.5;
+}
 
   /* ── Divisores ── */
   .hr  { border-top:1px dashed #000; margin:5px 0; }
@@ -193,9 +215,9 @@ const felSection = d.felUuid ? `
   /* ── Items ── */
   .item-name  { font-size:10px; font-weight:bold; margin-top:3px; word-break:break-word; }
   .item-line  { display:flex; justify-content:space-between; font-size:10px; }
-  .item-qty   { color:#333; }
+  .item-qty { color:#000; font-weight:600; }
   .item-total { font-weight:bold; }
-  .item-desc  { font-size:9px; color:#555; }
+  .item-desc { font-size:9px; color:#000; font-weight:600; }
 
   /* ── Totales ── */
   .total-row  { display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
@@ -205,13 +227,73 @@ const felSection = d.felUuid ? `
   .total-cambio{ display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
 
   /* ── FEL ── */
-  .dte-title  { font-size:8px; font-weight:normal; text-align:center; color:#666;
-                margin:3px 0; letter-spacing:0px; }
-  .sandbox-badge{ font-size:9px; font-weight:bold; text-align:center; margin:2px 0; }
-  .dte-label  { font-size:8px; text-align:center; margin:2px 0; color:#666; }
-  .dte-uuid   { font-size:7.5px; font-weight:normal; word-break:break-all; text-align:center;
-                margin:2px 0; line-height:1.4; color:#777; }
-  .dte-row    { display:flex; justify-content:space-between; font-size:8px; margin:1px 0; color:#666; }
+ .dte-title {
+    font-size:12px;
+    font-weight:900;
+    text-align:center;
+    color:#000;
+    margin:6px 0;
+}
+
+.dte-label {
+    font-size:9px;
+    font-weight:900;
+    text-align:center;
+    color:#000;
+    margin:3px 0;
+}
+
+.dte-uuid {
+    font-size:8px;
+    font-weight:700;
+    word-break:break-all;
+    text-align:center;
+    margin:3px 0 5px;
+    line-height:1.4;
+    color:#000;
+}
+
+.dte-row {
+    display:flex;
+    justify-content:space-between;
+    gap:6px;
+    font-size:9px;
+    font-weight:700;
+    margin:2px 0;
+    color:#000;
+}
+
+.dte-key {
+    font-weight:900;
+}
+
+.qr-wrap {
+    text-align:center;
+    margin:8px 0 5px;
+}
+
+.qr {
+    display:block;
+    width:110px;
+    height:110px;
+    margin:0 auto 4px;
+}
+
+.qr-text {
+    font-size:8px;
+    font-weight:900;
+    color:#000;
+    line-height:1.3;
+}
+
+.sat-text {
+    font-size:8px;
+    font-weight:700;
+    text-align:center;
+    color:#000;
+    line-height:1.4;
+    margin-top:5px;
+}
 
   /* ── Leyendas ── */
   .legend     { font-size:9px; text-align:center; margin:3px 0; line-height:1.4; }
