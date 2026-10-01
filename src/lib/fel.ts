@@ -5,14 +5,18 @@
 
 import { prisma } from './prisma'
 
-export interface FELItem {
-  cantidad: number
-  descripcion: string
-  precioUnitario: number   // precio CON IVA (como se maneja en el POS)
-  descuento: number
-  subtotal: number
-  codigoProducto?: string
-  unidadMedida?: string
+export interface FELResponse {
+  ok: boolean
+  uuid?: string
+  serie?: string
+  numero?: number
+  fechaCertificacion?: string
+  xmlCertificado?: string
+  pdfUrl?: string
+  qrUrl?: string
+  certificador?: string
+  error?: string
+  sandbox?: boolean
 }
 
 export interface FELInput {
