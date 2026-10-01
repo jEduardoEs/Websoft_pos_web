@@ -323,20 +323,28 @@ const logoSection =
 </head>
 <body>
 
-  ${logoSection}
-  <div class="document-title">
-  DOCUMENTO TRIBUTARIO ELECTRÓNICO
-</div>
+ ${logoSection}
 
-<div class="document-type">
-  FACTURA
-</div>
-  <div class="empresa">${d.empresaNombre}</div>
-  <div class="empresa-sub">
-    NIT: ${d.empresaNit}<br>
-    ${d.empresaDireccion || ''}<br>
-    ${d.empresaTelefono ? `Tel: ${d.empresaTelefono}` : ''}
+${d.felUuid ? `
+  <div class="document-title">
+    DOCUMENTO TRIBUTARIO ELECTRÓNICO
   </div>
+
+  <div class="document-type">
+    FACTURA
+  </div>
+` : `
+  <div class="document-title">
+    COMPROBANTE DE VENTA
+  </div>
+`}
+
+<div class="empresa">${d.empresaNombre}</div>
+<div class="empresa-sub">
+  NIT: ${d.empresaNit}<br>
+  ${d.empresaDireccion || ''}<br>
+  ${d.empresaTelefono ? `Tel: ${d.empresaTelefono}` : ''}
+</div>
 
   ${HR2}
 
