@@ -60,7 +60,7 @@ export function buildTicketHTML(d: TicketData): string {
 
   // Filas de items — formato compacto
   const itemRows = d.items.map(it => {
-    const nombre = trunc(it.nombre, 26)
+    const nombre = it.nombre
     const cant = it.cantidad % 1 === 0 ? String(it.cantidad) : it.cantidad.toFixed(2)
     const total = it.subtotal - (it.descuento || 0)
     const descLine = it.descuento > 0
