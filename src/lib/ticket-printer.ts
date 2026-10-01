@@ -16,12 +16,14 @@ export interface TicketData {
   clienteNombre: string
   clienteNit: string
   cajero: string
-  // FEL (opcional)
-  felUuid?: string
-  felSerie?: string
-  felNumero?: number
-  felCertificacion?: string
-  isSandbox?: boolean
+ // FEL (opcional)
+felUuid?: string
+felSerie?: string
+felNumero?: number
+felCertificacion?: string
+felQrUrl?: string
+felCertificador?: string
+isSandbox?: boolean
   // Items
   items: {
     nombre: string
@@ -73,35 +75,75 @@ export function buildTicketHTML(d: TicketData): string {
       ${descLine}`
   }).join('')
 
-  // FEL section
-  const felSection = d.felUuid ? `
-    ${HR}
-    <div class="dte-title">Documento tributario electrónico</div>
-    ${d.isSandbox ? '<div class="sandbox-badge">*** PRUEBA — NO VÁLIDA ***</div>' : ''}
-    <div class="dte-label">No. Autorización:</div>
+// FEL / DTE certificado
+const qrData = d.felQrUrl ||
+  (!d.isSandbox && d.felUuid
+    ? `https://fel.sat.gob.gt/verificar/${d.felUuid}`
+    : '')
+
+const felSection = d.felUuid ? `
+  ${HR2}
+
+  <div class="dte-title">DTE CERTIFICADO</div>
+
+  ${d.isSandbox
+    ? '<div class="sandbox-badge">*** DOCUMENTO DE PRUEBA ***</div>'
+    : ''}
+
+  <div class="dte-block">
+
+    <div class="dte-label">NÚMERO DE AUTORIZACIÓN</div>
     <div class="dte-uuid">${d.felUuid}</div>
-    <div class="dte-row">
-      <span>Serie/No.:</span>
-      <span>${d.felSerie || ''}${d.felNumero ? ` / ${d.felNumero}` : ''}</span>
-    </div>
-    <div class="dte-row">
-      <span>Certificado:</span>
-      <span>${d.felCertificacion ? new Date(d.felCertificacion).toLocaleString('es-GT') : fechaStr}</span>
-    </div>
-    <div class="dte-row"><span>Certificador:</span><span>Por definir</span></div>
-    <div class="dte-label">Verificar en: fel.sat.gob.gt</div>
-    ${d.felUuid && !d.isSandbox ? `
-    <div style="text-align:center;margin:6px 0">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://fel.sat.gob.gt/verificar/${d.felUuid}"
-           width="80" height="80" style="display:block;margin:0 auto" alt="QR">
-    </div>` : ''}` : ''
 
-  // Logo
-  const logoSection = (d.mostrarLogo !== false && d.empresaLogoUrl) ? `
-    <div class="logo-wrap">
-      <img src="${d.empresaLogoUrl}" class="logo" alt="Logo" onerror="this.style.display='none'">
-    </div>` : ''
+    <div class="dte-row">
+      <span class="dte-key">Serie:</span>
+      <span>${d.felSerie || '—'}</span>
+    </div>
 
+    <div class="dte-row">
+      <span class="dte-key">Número:</span>
+      <span>${d.felNumero ?? '—'}</span>
+    </div>
+
+    <div class="dte-row">
+      <span class="dte-key">Fecha certificación:</span>
+      <span>${
+        d.felCertificacion
+          ? new Date(d.felCertificacion).toLocaleString('es-GT')
+          : fechaStr
+      }</span>
+    </div>
+
+    ${d.felCertificador ? `
+      <div class="dte-row">
+        <span class="dte-key">Certificador:</span>
+        <span>${d.felCertificador}</span>
+      </div>
+    ` : ''}
+
+  </div>
+
+  ${qrData ? `
+    <div class="qr-wrap">
+      <img
+        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}"
+        class="qr"
+        alt="QR DTE"
+      >
+      <div class="qr-text">
+        ESCANEA PARA CONSULTAR<br>
+        EL DOCUMENTO TRIBUTARIO
+      </div>
+    </div>
+  ` : ''}
+
+  <div class="sat-text">
+    DOCUMENTO TRIBUTARIO ELECTRÓNICO<br>
+    FEL - GUATEMALA
+  </div>
+` : ''
+
+ 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
