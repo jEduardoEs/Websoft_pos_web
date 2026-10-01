@@ -176,8 +176,8 @@ const logoSection =
   }
 
  body {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
     font-weight: 600;
     color: #000;
     background: #fff;
