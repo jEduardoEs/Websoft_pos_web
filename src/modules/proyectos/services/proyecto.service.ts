@@ -60,6 +60,23 @@ export class ProyectoService {
       });
     }
 
+    const itemsInstalados = venta.items.filter(item => {
+  const codigo = (item.codigo || '').toUpperCase();
+  const nombre = (item.nombre || '').toLowerCase();
+
+  const esInstalacion =
+    codigo.includes('INST') ||
+    nombre.includes('instalación') ||
+    nombre.includes('instalacion');
+
+  return !esInstalacion;
+});
+
+const descripcionInstalacion = [
+  'Se realizó instalación de:',
+  ...itemsInstalados.map(item => `${item.cantidad} x ${item.nombre}`)
+].join('\n');
+
     const dto: CreateProyectoDto = {
       nombre: cot?.descripcion?.trim() ? cot.descripcion.trim() : `Proyecto Venta ${venta.numero}`,
       clienteNombre: cot?.clienteNombre || venta.clienteNombre,
@@ -72,6 +89,11 @@ export class ProyectoService {
       cotizacionId: resolvedCotId,
       cotizacionNumero: cot?.numero || venta.numero,
     };
+    if (resolvedCotId) {
+  cot = await prisma.cotizacion.findUnique({
+    where: { id: resolvedCotId },
+  });
+}
 
     const proyecto = await this.create(dto, 1, 'System');
     
