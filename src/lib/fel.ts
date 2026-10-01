@@ -35,18 +35,6 @@ export interface FELInput {
   fechaEmision?: string
 }
 
-export interface FELResponse {
-  ok: boolean
-  uuid?: string
-  serie?: string
-  numero?: number
-  fechaCertificacion?: string
-  xmlCertificado?: string
-  pdfUrl?: string
-  error?: string
-  sandbox?: boolean
-}
-
 const BASE = 'https://api.dtevia.com.gt/v1'
 
 function nowGT(): string {
