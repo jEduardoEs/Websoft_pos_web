@@ -309,6 +309,13 @@ const logoSection =
 <body>
 
   ${logoSection}
+  <div class="document-title">
+  DOCUMENTO TRIBUTARIO ELECTRÓNICO
+</div>
+
+<div class="document-type">
+  FACTURA
+</div>
   <div class="empresa">${d.empresaNombre}</div>
   <div class="empresa-sub">
     NIT: ${d.empresaNit}<br>
