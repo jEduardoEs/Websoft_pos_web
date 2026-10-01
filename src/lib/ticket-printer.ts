@@ -371,10 +371,8 @@ ${d.felUuid ? `
   </div>
 `}
 
-<div class="empresa">${d.empresaNombre}</div>
-
 <div class="section-title">DATOS DEL VENDEDOR</div>
-
+<div class="empresa">${d.empresaNombre}</div>
 <div class="empresa-sub">
   NIT: ${d.empresaNit}<br>
   ${d.empresaDireccion || ''}<br>
