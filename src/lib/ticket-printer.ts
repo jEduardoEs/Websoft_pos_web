@@ -113,8 +113,9 @@ const felSection = d.felUuid ? `
           : fechaStr
       }</span>
     </div>
-  <div class="section-title">DATOS DEL CERTIFICADOR</div>
+
     ${d.felCertificador ? `
+      <div class="section-title">DATOS DEL CERTIFICADOR</div>
       <div class="dte-row">
         <span class="dte-key">Certificador:</span>
         <span>${d.felCertificador}</span>
