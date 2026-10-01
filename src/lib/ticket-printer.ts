@@ -222,6 +222,25 @@ const logoSection =
   .info-row { display:flex; justify-content:space-between; font-size:10px; margin:2px 0; }
   .info-label{ font-weight:bold; }
   .factura-num{ font-size:14px; font-weight:bold; text-align:center; margin:4px 0; }
+  .fiscal-data {
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: left;
+  margin: 4px 0 6px;
+}
+
+.auth-label {
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.auth-number {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-all;
+  margin-bottom: 4px;
+}
 
   /* ── Header tabla items ── */
   .col-header { display:flex; justify-content:space-between; font-size:9px; font-weight:bold;
