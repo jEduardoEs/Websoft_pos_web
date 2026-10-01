@@ -9,6 +9,52 @@ interface VentaDetalleModalProps {
 }
 
 export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
+
+  const reimprimirTicket = () => {
+    const html = buildTicketHTML({
+      empresaNombre: 'WebSoft Solutions',
+      empresaNit: '115471413',
+      empresaDireccion: 'Barrio el Calvario, Guastatoya, El Progreso',
+      empresaTelefono: '3671-4377',
+      empresaLogoUrl: '/bancos/logo.png',
+      mostrarLogo: true,
+      ticketMensaje: '¡Gracias por su compra!',
+
+      numero: venta.numero,
+      fecha: venta.fecha,
+      cajero: venta.usuarioNombre || 'Sistema',
+
+      clienteNombre: venta.clienteNombre,
+      clienteNit: venta.clienteNit,
+
+      felUuid: venta.felUuid || undefined,
+      felSerie: venta.felSerie || undefined,
+      felNumero: venta.felNumero || undefined,
+      felCertificacion: venta.felCertificacion || undefined,
+      isSandbox: venta.felEstado === 'sandbox',
+
+      items: (venta.items || []).map(it => ({
+        nombre: it.nombre,
+        cantidad: it.cantidad,
+        precioUnitario: it.precioUnitario,
+        descuento: it.descuento || 0,
+        subtotal: it.subtotal,
+      })),
+
+      subtotal: venta.subtotal,
+      descuento: venta.descuento,
+      impuesto: venta.impuesto,
+      total: venta.total,
+      metodoPago: venta.metodoPago,
+      montoRecibido: venta.montoRecibido,
+      cambio: venta.cambio,
+      ivaPct: 5,
+    });
+
+    printTicketWindow(html);
+  };
+
+  
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28, width: '100%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.15)' }}>
