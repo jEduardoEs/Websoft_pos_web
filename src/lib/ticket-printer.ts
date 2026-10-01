@@ -220,7 +220,7 @@ const logoSection =
   .hr2 { border-top:2px solid #000; margin:5px 0; }
 
   /* ── Info venta ── */
-  .info-row { display:flex; justify-content:space-between; font-size:10px; margin:2px 0; }
+  .info-row { display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
   .info-label{ font-weight:bold; }
   .factura-num{ font-size:14px; font-weight:bold; text-align:center; margin:4px 0; }
   .fiscal-data {
