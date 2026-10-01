@@ -84,7 +84,7 @@ const descripcionInstalacion = [
       clienteTelefono: cot?.clienteTelefono || undefined,
       clienteDireccion: cot?.clienteDireccion || undefined,
       contactoNombre: cot?.atencion || undefined,
-      descripcion: cot?.descripcion || `Proyecto generado automáticamente a partir de la venta ${venta.numero}`,
+      descripcion: descripcionInstalacion,
       notas: cot?.notas || undefined,
       cotizacionId: resolvedCotId,
       cotizacionNumero: cot?.numero || venta.numero,
