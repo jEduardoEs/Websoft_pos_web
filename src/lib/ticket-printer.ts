@@ -189,7 +189,7 @@ const logoSection =
 
   /* ── Header ── */
   .logo-wrap  { text-align:center; margin-bottom:6px; }
-  .logo       { width:145px; height:125px; object-fit:contain; }
+  .logo       { width:165px; height:145px; object-fit:contain; }
   .empresa    { font-size:13px; font-weight:bold; text-align:center; text-transform:uppercase; }
   .empresa-sub {
     font-size:10px;
