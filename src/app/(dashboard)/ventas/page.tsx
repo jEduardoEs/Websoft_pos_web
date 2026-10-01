@@ -450,6 +450,14 @@ const reimprimirTicket = () => {
               <button type="button" className="btn-ghost btn-sm" onClick={() => setSelected(null)}>
                 Cerrar
               </button>
+
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={reimprimirTicket}
+                >
+                 Reimprimir Ticket
+              </button>
             </div>
           </div>
         </div>
