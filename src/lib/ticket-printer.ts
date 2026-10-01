@@ -348,11 +348,29 @@ ${d.felUuid ? `
 
   ${HR2}
 
+${d.felUuid ? `
+  <div class="fiscal-data">
+    <div><strong>Serie:</strong> ${d.felSerie || '—'}</div>
+    <div><strong>Número:</strong> ${d.felNumero ?? '—'}</div>
+
+    <div class="auth-label">Número de Autorización:</div>
+    <div class="auth-number">${d.felUuid}</div>
+
+    <div><strong>Fecha de Emisión:</strong> ${fechaStr} ${horaStr}</div>
+  </div>
+` : `
   <div class="factura-num">${d.numero}</div>
-  ${d.felSerie && d.felNumero ? `<div style="text-align:center;font-size:10px;font-weight:bold;margin:0 0 3px">Serie ${d.felSerie} | No. ${d.felNumero}</div>` : ''}
-  ${HR}
-  <div class="info-row"><span class="info-label">Fecha:</span><span>${fechaStr}</span></div>
-  <div class="info-row"><span class="info-label">Hora:</span><span>${horaStr}</span></div>
+  <div class="info-row">
+    <span class="info-label">Fecha:</span>
+    <span>${fechaStr}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Hora:</span>
+    <span>${horaStr}</span>
+  </div>
+`}
+
+${HR}
   <div class="info-row"><span class="info-label">Cajero:</span><span>${trunc(d.cajero, 18)}</span></div>
   ${HR}
   <div class="info-row"><span class="info-label">Cliente:</span><span>${trunc(d.clienteNombre, 18)}</span></div>
