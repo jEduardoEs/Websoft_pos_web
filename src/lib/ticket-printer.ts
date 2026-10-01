@@ -261,8 +261,8 @@ const logoSection =
                 text-transform:uppercase; border-bottom:1px solid #000; padding-bottom:2px; margin-bottom:3px; }
 
   /* ── Items ── */
-  .item-name  { font-size:10px; font-weight:bold; margin-top:3px; word-break:break-word; }
-  .item-line  { display:flex; justify-content:space-between; font-size:10px; }
+  .item-name  { font-size:11px; font-weight:bold; margin-top:3px; word-break:break-word; }
+  .item-line  { display:flex; justify-content:space-between; font-size:11px; }
   .item-qty { color:#000; font-weight:600; }
   .item-total { font-weight:bold; }
   .item-desc { font-size:9px; color:#000; font-weight:600; }
