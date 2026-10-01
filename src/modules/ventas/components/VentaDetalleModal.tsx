@@ -148,4 +148,22 @@ export function VentaDetalleModal({ venta, onClose }: VentaDetalleModalProps) {
       </div>
     </div>
   );
+
+
+  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+  <button
+    onClick={onClose}
+    className="btn-ghost btn-sm"
+  >
+    Cerrar
+  </button>
+
+  <button
+    onClick={reimprimirTicket}
+    className="btn-primary btn-sm"
+  >
+    Reimprimir Ticket
+  </button>
+</div>
+  
 }
