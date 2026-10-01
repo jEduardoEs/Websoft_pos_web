@@ -242,6 +242,19 @@ const logoSection =
   margin-bottom: 4px;
 }
 
+.section-title {
+  background: #000;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 3px 4px;
+  margin: 6px 0 4px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
   /* ── Header tabla items ── */
   .col-header { display:flex; justify-content:space-between; font-size:9px; font-weight:bold;
                 text-transform:uppercase; border-bottom:1px solid #000; padding-bottom:2px; margin-bottom:3px; }
