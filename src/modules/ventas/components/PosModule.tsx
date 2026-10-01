@@ -253,7 +253,7 @@ export function PosModule() {
       ticketMensaje: config?.ticket_mensaje || '¡Gracias por su compra!', 
       cajero: lastVenta.usuarioNombre || 'Cajero',
       numero: lastVenta.numero,
-      fecha: lastVenta.createdAt,
+      fecha: lastVenta.fecha,
       clienteNombre: lastVenta.clienteNombre,
       clienteNit: lastVenta.clienteNit,
       felUuid: lastFel?.uuid,
