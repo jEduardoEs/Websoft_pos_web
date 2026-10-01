@@ -1,6 +1,7 @@
 import React from 'react';
 import { fmt, fmtDateTime } from '@/lib/utils';
 import { Venta } from '../types/venta';
+import { buildTicketHTML, printTicketWindow } from '@/lib/ticket-printer';
 
 interface VentaDetalleModalProps {
   venta: Venta;
