@@ -413,7 +413,7 @@ ${HR}
   <div class="info-row"><span class="info-label">Pago:</span><span>${d.metodoPago}</span></div>
 
   ${HR}
-
+<div class="section-title">DESCRIPCIÓN DEL DOCUMENTO</div>
   <div class="col-header">
     <span>Descripción</span>
     <span>Total</span>
