@@ -72,6 +72,48 @@ export default function VentasPage() {
     load()
   }, [fi, ff, estado, buscar])
 
+const reimprimirTicket = () => {
+  if (!selected) return
+
+  const html = buildTicketHTML({
+    empresaNombre: 'WebSoft Solutions',
+    empresaNit: '115471413',
+    empresaDireccion: 'Barrio el Calvario, Guastatoya, El Progreso',
+    empresaTelefono: '3671-4377',
+    empresaLogoUrl: '/bancos/logo.png',
+    mostrarLogo: true,
+    ticketMensaje: '¡Gracias por su compra!',
+
+    numero: selected.numero,
+    fecha: selected.fecha,
+    cajero: selected.usuarioNombre || 'Sistema',
+
+    clienteNombre: selected.clienteNombre,
+    clienteNit: selected.clienteNit || 'CF',
+
+    items: (selected.items || []).map(item => ({
+      nombre: item.nombre,
+      cantidad: item.cantidad,
+      precioUnitario: item.precioUnitario,
+      descuento: 0,
+      subtotal: item.subtotal,
+    })),
+
+    subtotal: selected.subtotal,
+    descuento: selected.descuento,
+    impuesto: selected.impuesto,
+    total: selected.total,
+    metodoPago: selected.metodoPago,
+    montoRecibido: selected.montoRecibido,
+    cambio: selected.cambio,
+    ivaPct: 5,
+  })
+
+  printTicketWindow(html)
+}
+
+
+  
   const anular = async () => {
     if (!selected) return
     const motivo = prompt('Motivo de anulación:')
