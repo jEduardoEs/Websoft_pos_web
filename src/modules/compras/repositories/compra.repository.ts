@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { CreateCompraDto } from '../dto/create-compra.dto';
 import { Compra } from '../types/compra';
-import { calculateNewPricePreservingMargin } from '@/modules/productos/utils/producto-calc.helper';
 
 export class CompraRepository {
 
