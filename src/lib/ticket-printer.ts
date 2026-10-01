@@ -246,7 +246,7 @@ const logoSection =
 .section-title {
   background: #000;
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   text-align: center;
   text-transform: uppercase;
