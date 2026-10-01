@@ -89,6 +89,7 @@ model VentaItem {
   nombre         String
   cantidad       Float
   precioUnitario Float     @map("precio_unitario")
+  costoUnitario  Float?    @map("costo_unitario")
   descuento      Float     @default(0)
   subtotal       Float
   producto       Producto? @relation(fields: [productoId], references: [id])
