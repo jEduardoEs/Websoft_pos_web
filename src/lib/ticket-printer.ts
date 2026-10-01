@@ -406,6 +406,8 @@ ${d.felUuid ? `
 ${HR}
   <div class="info-row"><span class="info-label">Cajero:</span><span>${trunc(d.cajero, 18)}</span></div>
   ${HR}
+  <div class="section-title">DATOS DEL COMPRADOR</div>
+  
   <div class="info-row"><span class="info-label">Cliente:</span><span>${trunc(d.clienteNombre, 18)}</span></div>
   <div class="info-row"><span class="info-label">NIT:</span><span>${d.clienteNit}</span></div>
   <div class="info-row"><span class="info-label">Pago:</span><span>${d.metodoPago}</span></div>
