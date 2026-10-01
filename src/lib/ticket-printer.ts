@@ -190,6 +190,21 @@ const logoSection =
   /* ── Header ── */
   .logo-wrap  { text-align:center; margin-bottom:6px; }
   .logo       { width:185px; height:165px; object-fit:contain; }
+  .document-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 900;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  }
+
+  .document-type {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 2px;
+  margin-bottom: 5px;
+  }
   .empresa    { font-size:13px; font-weight:bold; text-align:center; text-transform:uppercase; }
   .empresa-sub {
     font-size:10px;
@@ -197,7 +212,7 @@ const logoSection =
     color:#000;
     font-weight:600;
     line-height:1.5;
-}
+  }
 
   /* ── Divisores ── */
   .hr  { border-top:1px dashed #000; margin:5px 0; }
