@@ -32,35 +32,7 @@ export class CotizacionService {
    * Create a new quotation
    */
   static async create(data: CreateCotizacionDto, usuarioId: number, usuarioNombre: string) {
-    // Validate inventory stock for quotation items
-    if (data.items && data.items.length > 0) {
-      const codigos = data.items.map(it => it.codigo).filter(Boolean) as string[];
-      if (codigos.length > 0) {
-        const prods = await prisma.producto.findMany({
-          where: {
-            codigo: { in: codigos, mode: 'insensitive' },
-            activo: true,
-          },
-          select: { id: true, codigo: true, stock: true, nombre: true },
-        });
-
-        const prodMap = new Map<string, { stock: number; nombre: string }>();
-        prods.forEach(p => {
-          if (p.codigo) prodMap.set(p.codigo.trim().toUpperCase(), p);
-        });
-
-        for (const item of data.items) {
-          if (!item.codigo) continue;
-          const prod = prodMap.get(item.codigo.trim().toUpperCase());
-          if (prod) {
-            if (prod.stock < item.cantidad) {
-              throw new Error(`Stock insuficiente para '${prod.nombre}' en inventario. Disponible: ${prod.stock} unidades, Cotizado: ${item.cantidad} unidades`);
-            }
-          }
-        }
-      }
-    }
-
+   
     const res = await prisma.$transaction(async (tx) => {
       // Get the next sequence number for the quotation using max ID
       const maxCot = await tx.cotizacion.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
@@ -248,34 +220,6 @@ export class CotizacionService {
   }
 
   static async updateFull(id: number, data: any, user: any) {
-    // Validate inventory stock for quotation items
-    if (Array.isArray(data.items) && data.items.length > 0) {
-      const codigos = data.items.map((it: any) => it.codigo).filter(Boolean) as string[];
-      if (codigos.length > 0) {
-        const prods = await prisma.producto.findMany({
-          where: {
-            codigo: { in: codigos, mode: 'insensitive' },
-            activo: true,
-          },
-          select: { id: true, codigo: true, stock: true, nombre: true },
-        });
-
-        const prodMap = new Map<string, { stock: number; nombre: string }>();
-        prods.forEach(p => {
-          if (p.codigo) prodMap.set(p.codigo.trim().toUpperCase(), p);
-        });
-
-        for (const item of data.items) {
-          if (!item.codigo) continue;
-          const prod = prodMap.get(item.codigo.trim().toUpperCase());
-          if (prod) {
-            if (prod.stock < item.cantidad) {
-              throw new Error(`Stock insuficiente para '${prod.nombre}' en inventario. Disponible: ${prod.stock} unidades, Cotizado: ${item.cantidad} unidades`);
-            }
-          }
-        }
-      }
-    }
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.cotizacionItem.deleteMany({ where: { cotizacionId: id } });
